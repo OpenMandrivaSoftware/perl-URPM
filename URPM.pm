@@ -120,7 +120,7 @@ sub traverse_tag {
 		}
 	    } elsif ($tag eq 'triggeredby' || $tag eq 'path') {
 		foreach (@{$urpm->{depslist} || []}) {
-		    if (grep { exists $names{$_} } $_->files, grep { /^\// } $_->provides_nosense) {
+		    if (grep { exists $names{$_} } $_->files, grep { m!^/! } $_->provides_nosense) {
 			$callback and $callback->($_);
 			++$count;
 		    }
