@@ -86,6 +86,7 @@ sub unsatisfied_requires {
 sub resolve_closure_ask_remove {
     my ($urpm, $db, $state, $pkg, $from, $why) = @_;
     my $name = join '-', ($pkg->fullname)[0..2]; #- specila name (without arch) to allow selection.
+    my @unsatisfied;
 
     #- allow default value for 'from' to be taken.
     $from ||= $name;
@@ -105,9 +106,17 @@ sub resolve_closure_ask_remove {
 		%{$state->{installed}{$_} || {}} or delete $state->{installed}{$_};
 	    }
 
-	    #- close what requires this property.
+	    #- close what requires this property, but check with selected package requiring old properties.
 	    foreach ($pkg->provides) {
 		if (my ($n) = /^([^\s\[]*)/) {
+		    foreach (keys %{$state->{whatrequires}{$n} || {}}) {
+			my $pkg = $urpm->{depslist}[$_] or next;
+			if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg, name => $n, keep_state => 1)) {
+			    #- a selected package requires something that is no more available
+			    #- and should be tried to be re-selected.
+			    push @unsatisfied, @l;
+			}
+		    }
 		    $db->traverse_tag('whatrequires', [ $n ], sub {
 					  my ($p) = @_;
 					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n, keep_state => 1)) {
@@ -128,6 +137,8 @@ sub resolve_closure_ask_remove {
     } else {
 	$state->{ask_remove}{$name}{closure}{$from} = $why;
     }
+
+    @unsatisfied;
 }
 
 #- resolve requested, keep resolution state to speed process.
@@ -279,8 +290,8 @@ sub resolve_requested {
 					  $allow or update_state_provides($state, $pkg);
 					  $allow = ++$state->{oldpackage};
 					  $options{keep_state} or
-					    $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-									      { old_requested => 1 });
+					    push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+												{ old_requested => 1 });
 				      }
 				  });
 		#- if nothing has been removed, just ignore it.
@@ -371,8 +382,8 @@ sub resolve_requested {
 						  push @properties, @best;
 					      } else {
 						  $options{keep_state} or
-						    $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-										      { unsatisfied => \@l });
+						    push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+													{ unsatisfied => \@l });
 					      }
 					  }
 				      }
@@ -396,8 +407,8 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      #- all these packages should be removed.
 				      $options{keep_state} or
-					$urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-									  { conflicts => $file });
+					push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+											    { conflicts => $file });
 				  });
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
@@ -415,8 +426,8 @@ sub resolve_requested {
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
 					      $options{keep_state} or
-						$urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-										  { conflicts => $property });
+						push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+												    { conflicts => $property });
 					  }
 				      }
 				  });
@@ -440,8 +451,8 @@ sub resolve_requested {
 				  if (grep { ranges_overlap($_, $property) } $pkg->provides) {
 				      #- all these packages should be removed.
 				      $options{keep_state} or
-					$urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-									  { conflicts => $property });
+					push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+											    { conflicts => $property });
 				  }
 			      }
 			  });

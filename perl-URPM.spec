@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 6mdk
+%define release 7mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jan 23 2003 François Pons <fpons@mandrakesoft.com> 0.81-7mdk
+- fixed unsatisfied requires of already selected package to
+  an installed properties which is removed later.
+- simplified weight propagation when building depslist (ordering).
+
 * Mon Jan  6 2003 François Pons <fpons@mandrakesoft.com> 0.81-6mdk
 - fixed avoiding package with virtual provides obsoleted by
   another package as this is not a true obsoletes (openssh).

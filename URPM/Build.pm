@@ -114,6 +114,11 @@ sub parse_headers {
 #-   callback : callback to relocate reference to package id.
 sub compute_deps {
     my ($urpm, %options) = @_;
+    my %propagated_weight = ( basesystem => 10000,
+			      msec       => 20000,
+			      filesystem => 50000,
+			    );
+    my ($locales_weight, $step_weight, $fixed_weight) = (-5000, 10000, $propagated_weight{basesystem});
 
     #- avoid recomputing already present infos, take care not to modify
     #- existing entries, as the array here is used instead of values of infos.
@@ -187,24 +192,24 @@ sub compute_deps {
 	}
 
 	my $pkg = $urpm->{depslist}[$_];
-	my $delta = 1 + ($pkg->name eq 'basesystem' ? 10000 : 0) + ($pkg->name eq 'msec' ? 20000 : 0);
+	my $delta = 1 + $propagated_weight{$pkg->name};
 	foreach (keys %requires) {
 	    $ordered{$_} += $delta;
 	}
     }
 
     #- some package should be sorted at the beginning.
-    my $fixed_weight = 10000;
-    foreach (qw(basesystem msec * locales filesystem setup glibc sash bash libtermcap2 termcap readline ldconfig)) {
+    foreach (qw(basesystem msec rpm locales filesystem setup glibc sash bash libtermcap2 termcap readline ldconfig)) {
 	foreach (keys %{$urpm->{provides}{$_} || {}}) {
 	    /^\d+$/ and $ordered{$_} = $fixed_weight;
 	}
-	$fixed_weight += 10000;
+	/locales/ and $locales_weight += $fixed_weight;
+	$fixed_weight += $step_weight;
     }
     foreach ($start .. $end) {
 	my $pkg = $urpm->{depslist}[$_];
 
-	$pkg->name =~ /locales-[a-zA-Z]/ and $ordered{$_} = 35000;
+	$pkg->name =~ /locales-[a-zA-Z]/ and $ordered{$_} = $locales_weight;
     }
 
     #- compute base flag, consists of packages which are required without
