@@ -1,3 +1,11 @@
+2005-02-02 10:00  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: Ooops, missing epoch
+
+2005-01-21 10:53  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: 1.07-3mdk
+
 2005-01-20 21:35  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* perl-URPM.spec: Require perl-base >= 5.8.6, so perl will be
