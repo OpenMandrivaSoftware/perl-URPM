@@ -421,15 +421,21 @@ sub build_hdlist {
     $ratio = $options{ratio} || 4;
     $split = $options{split} || 400000;
 
-    open my $fh, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
+    require Packdrakeng;
+    my $pack = Packdrakeng->new(
+	archive => $options{hdlist},
+	compress => "gzip",
+	uncompress => "gzip -d",
+	block_size => $split,
+	comp_level => $ratio,
+    ) or die "Can't create archive";
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 	my $filename = $pkg->fullname;
 	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ /([^\/]*)\.rpm$/
 	    and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
-	print $fh "$filename\n";
+	$pack->add($dir, $filename);
     }
-    close $fh or die "packdrake failed\n";
 }
 
 #- build synthesis file.
