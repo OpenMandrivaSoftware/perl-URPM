@@ -53,6 +53,8 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Wed Jun 18 2003 François Pons <fpons@mandrakesoft.com> 0.91-4mdk
 - fixed installation of old package due to missing closure.
+- fixed nodeps option to used for building transaction set.
+- fixed too many from source propagated which were not legal.
 
 * Wed Jun 18 2003 François Pons <fpons@mandrakesoft.com> 0.91-3mdk
 - fixed obssoletes on virtual provides not taken into account.

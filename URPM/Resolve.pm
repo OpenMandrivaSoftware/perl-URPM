@@ -255,6 +255,7 @@ sub backtrack_selected {
 		  $state->{rejected}{$_->fullname}{backtrack}{closure}{$dep->{from}->fullname} = undef;
 	    }
 	}
+	print STDERR "+++".$urpm->{depslist}[$dep->{required}]->fullname."\n";
 	#- the package is already rejected, we assume we can add another reason here!
 	push @{$state->{rejected}{$dep->{from}->fullname}{backtrack}{unsatisfied}}, $dep->{required};
     }
@@ -365,6 +366,7 @@ sub resolve_requested {
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     while (defined ($dep = shift @properties)) {
+	print STDERR ">>required=$dep->{required}<< >>requested=$dep->{requested}<< >>from=".eval{$dep->{from}->fullname.""}."\n";
 	#- in case of keep_unrequested_dependencies option is not set, we need to avoid
 	#- selecting packages if the source has been disabled.
 	if (exists $dep->{from} && !$options{keep_unrequested_dependencies}) {
@@ -516,7 +518,7 @@ sub resolve_requested {
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
-					      push @properties, { required => $best, from => $pkg, promote => $n };
+					      push @properties, { required => $best, promote => $n };
 					  } else {
 					      #- no package have been found, we may need to remove the package examined unless
 					      #- there exists a package that provided the unsatisfied requires.
@@ -530,7 +532,7 @@ sub resolve_requested {
 					      }
 
 					      if (@best == @l) {
-						  push @properties, map { +{ required => $_, from => $pkg, promote => $n } } @best;
+						  push @properties, map { +{ required => $_, promote => $n } } @best;
 					      } else {
 						  $urpm->resolve_rejected($db, $state, $p,
 									  removed => 1, unsatisfied => \@properties,
@@ -583,7 +585,7 @@ sub resolve_requested {
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
-					      push @properties, { required => $best, from => $pkg, promote_conflicts => $name };
+					      push @properties, { required => $best, promote_conflicts => $name };
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
 					      $urpm->resolve_rejected($db, $state, $p,
