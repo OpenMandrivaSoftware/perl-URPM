@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 10mdk
+%define release 11mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jul 10 2003 François Pons <fpons@mandrakesoft.com> 0.91-11mdk
+- improved URPM::compute_flags.
+- started coding URPM::unsatisfied_requires in XS (as
+  URPM::unsatisfied_requires2).
+
 * Mon Jul  7 2003 François Pons <fpons@mandrakesoft.com> 0.91-10mdk
 - fixed backtracking not applied on promotion which now ends
   up in removing the initial packages.
