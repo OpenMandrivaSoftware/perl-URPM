@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 0.98
+%define version 0.99
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,10 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Fri Jul 30 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.99-1mdk
+- A small modification in the algorithm that searches for virtual provides:
+  don't give a choice between several packages that are already installed.
+
 * Thu Jul 22 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.98-1mdk
 - Add a function URPM::stream2header()
 

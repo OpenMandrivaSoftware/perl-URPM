@@ -1,3 +1,17 @@
+2004-07-30 08:10  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Resolution of requested packages: by default,
+	  don't propose a choice when multiple found packages are already
+	  installed.
+
+2004-07-28 10:47  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: Use lexical filehandles.
+
+2004-07-22 11:39  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: Version 0.98
+
 2004-07-22 05:15  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM.xs, t/parse.t: Add URPM::stream2header (borrowed from
