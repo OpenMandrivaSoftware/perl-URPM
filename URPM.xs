@@ -1632,9 +1632,10 @@ Pkg_set_rflags(pkg, ...)
     STRLEN len;
     char *s = SvPV(ST(i), len);
     memcpy(new_rflags + total_len, s, len);
-    new_rflags[total_len + len] = 0;
+    new_rflags[total_len + len] = '\t';
     total_len += len + 1;
   }
+  new_rflags[total_len - 1] = 0; /* but mark end-of-string correctly */
 
   if (gimme == G_ARRAY && pkg->rflags != NULL) {
     char *s = pkg->rflags;

@@ -267,7 +267,7 @@ sub resolve_requested {
 	    if (my ($name) =~ /^([^\s\[]*)/) {
 		foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		    my $p = $urpm->{depslist}[$_];
-		    $pkg->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id};
+		    $pkg->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
 		}
 	    }
 	}

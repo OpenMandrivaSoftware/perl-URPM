@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.08
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul  8 2002 François Pons <fpons@mandrakesoft.com> 0.08-2mdk
+- fixed rflags setting (now keep more than one element).
+- fixed setting of ask_unselect correctly.
+
 * Mon Jul  8 2002 François Pons <fpons@mandrakesoft.com> 0.08-1mdk
 - added transaction flags (equivalence to --force and --ignoreSize).
 - simplified some transaction method names.
