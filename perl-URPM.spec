@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.93
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -20,6 +20,7 @@ BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 Provides: perl(URPM::Build) = %{version}-%{release}
 Provides: perl(URPM::Resolve) = %{version}-%{release}
+Provides: perl(URPM::Signature) = %{version}-%{release}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
@@ -51,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Aug 13 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 0.93-4mdk
+- provide URPM::Signature as well
+
 * Mon Aug 11 2003 François Pons <fpons@mandrakesoft.com> 0.93-3mdk
 - fixed limit case for string extraction from headers (files_md5sum).
 - removed unsatisfied_requires2 from xs not used and not finished.
