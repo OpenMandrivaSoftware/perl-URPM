@@ -146,16 +146,22 @@ sub resolve_requested {
 	#- take the best package for each choices of same name.
 	my $packages = $urpm->find_candidate_packages($dep);
 	foreach (values %$packages) {
-	    my $best;
+	    my ($best_requested, $best);
 	    foreach (@$_) {
-		if ($best && $best != $_) {
-		    exists $requested{$_->id} || exists $state->{selected}{$_->id} and $best = $_, last;
+		exists $state->{selected}{$_->id} and $best_requested = $_, last;
+		if ($best_requested || exists $requested{$_->id}) {
+		    if ($best_requested && $best_requested != $_) {
+			$_->compare_pkg($best_requested) > 0 and $best_requested = $_;
+		    } else {
+			$best_requested = $_;
+		    }
+		} elsif ($best && $best != $_) {
 		    $_->compare_pkg($best) > 0 and $best = $_;
 		} else {
 		    $best = $_;
 		}
 	    }
-	    $_ = $best;
+	    $_ = $best_requested || $best;
 	}
 	if (keys(%$packages) > 1) {
 	    #- package should be prefered if one of their provides is referenced

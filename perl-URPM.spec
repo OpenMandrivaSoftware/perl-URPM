@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.50
-%define release 5mdk
+%define release 6mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jul 25 2002 François Pons <fpons@mandrakesoft.com> 0.50-6mdk
+- fixed incomplete search of best requested packages.
+
 * Thu Jul 25 2002 François Pons <fpons@mandrakesoft.com> 0.50-5mdk
 - fixed stupid error in URPM/Build.pm.
 
