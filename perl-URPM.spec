@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 4mdk
+%define release 5mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Sep 10 2003 François Pons <fpons@mandrakesoft.com> 0.94-5mdk
+- fixed bad reference to ARRAY on promote.
+
 * Fri Sep  5 2003 François Pons <fpons@mandrakesoft.com> 0.94-4mdk
 - fixed diff provides generation to be always managed when
   requires have been completely handled.
