@@ -14,19 +14,21 @@ use URPM;
 
 print "1..5\n";
 
-my $db;
-ok(1, $db = URPM::DB::open);
+my ($count, @all_pkgs_extern, @all_pkgs);
+{
+    my $db;
+    ok(1, $db = URPM::DB::open);
 
-my @all_pkgs_extern = sort { $a cmp $b } split '\n', `rpm -qa`;
-ok(2, @all_pkgs_extern > 0);
+    @all_pkgs_extern = sort { $a cmp $b } split '\n', `rpm -qa`;
+    ok(2, @all_pkgs_extern > 0);
 
-my @all_pkgs;
-my $count = $db->traverse(sub {
-			      my ($pkg) = @_;
-			      my ($name, $version, $release, $arch) = $pkg->fullname;
-			      $arch or return;
-			      push @all_pkgs, "$name-$version-$release";
-			  });
+    $count = $db->traverse(sub {
+			       my ($pkg) = @_;
+			       my ($name, $version, $release, $arch) = $pkg->fullname;
+			       $arch or return;
+			       push @all_pkgs, "$name-$version-$release";
+			   });
+}
 ok(3, $count == @all_pkgs_extern);
 ok(4, $count == @all_pkgs);
 

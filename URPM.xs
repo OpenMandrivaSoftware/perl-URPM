@@ -484,7 +484,7 @@ open_archive(char *filename, pid_t *pid) {
 
   fd = open(filename, O_RDONLY);
   if (fd >= 0) {
-    lseek(fd, -sizeof(buf), SEEK_END);
+    lseek(fd, -(int)sizeof(buf), SEEK_END);
     if (read(fd, &buf, sizeof(buf)) != sizeof(buf) || strncmp(buf.header, "cz[0", 4) || strncmp(buf.trailer, "0]cz", 4)) {
       /* this is not an archive, open it without magic, but first rewind at begin of file */
       lseek(fd, 0, SEEK_SET);
@@ -529,8 +529,8 @@ open_archive(char *filename, pid_t *pid) {
 	  lseek(fd, 0, SEEK_SET);
 	  dup2(fd, STDIN_FILENO); close(fd);
 	  dup2(fdno[1], STDOUT_FILENO); close(fdno[1]);
-	  fd = open("/dev/null", O_WRONLY);
-	  dup2(fd, STDERR_FILENO); close(fd);
+	  /*fd = open("/dev/null", O_WRONLY);
+	    dup2(fd, STDERR_FILENO); close(fd);*/
 	  execvp(unpacker[0], unpacker);
 	  exit(1);
 	}
@@ -1187,7 +1187,6 @@ Db_open(prefix="/")
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbOpen(prefix, &db, O_RDONLY, 0644) == 0 ? db : NULL;
-  fprintf(stderr, "opening read only rpm db %p\n", db);
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
   OUTPUT:
@@ -1204,7 +1203,6 @@ Db_open_rw(prefix="/")
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbOpen(prefix, &db, O_RDWR | O_CREAT, 0644) == 0 ? db : NULL;
-  fprintf(stderr, "opening read-write rpm db %p\n", db);
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
   OUTPUT:
@@ -1214,7 +1212,6 @@ void
 Db_DESTROY(db)
   URPM::DB db
   CODE:
-  fprintf(stderr, "closing rpm db %p\n", db);
   rpmdbClose(db);
 
 int
@@ -1398,32 +1395,39 @@ Urpm_parse_hdlist(urpm, filename, packing=0)
 
       if (fdFileno(fd) >= 0) {
 	Header header;
-	int count;
 	int start_id = 1 + av_len(depslist);
 
-	for (count = 0; count < 20 && (header=headerRead(fd, HEADER_MAGIC_YES)) == 0; ++count) {
-	  struct timeval timeout;
-
-	  timeout.tv_sec = 0;
-	  timeout.tv_usec = 10000;
-	  select(0, NULL, NULL, NULL, &timeout);
-	}
-	while (header != 0) {
-	  struct s_Package pkg;
-
-	  memset(&pkg, 0, sizeof(struct s_Package));
-	  pkg.id = 1 + av_len(depslist);
-	  pkg.h = header;
-	  if (provides) {
-	    update_provides(&pkg, provides);
-	    update_provides_files(&pkg, provides);
-	  }
-	  if (packing) pack_header(&pkg);
-	  av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
-					 memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
-
+	do {
+	  int count = 4;
 	  header=headerRead(fd, HEADER_MAGIC_YES);
-	}
+	  while (header == NULL && count > 0) {
+	    fd_set readfds;
+	    struct timeval timeout;
+
+	    FD_ZERO(&readfds);
+	    FD_SET(fdFileno(fd), &readfds);
+	    timeout.tv_sec = 1;
+	    timeout.tv_usec = 0;
+	    select(fdFileno(fd)+1, &readfds, NULL, NULL, &timeout);
+
+	    header=headerRead(fd, HEADER_MAGIC_YES);
+	    --count;
+	  }
+	  if (header != NULL) {
+	    struct s_Package pkg;
+
+	    memset(&pkg, 0, sizeof(struct s_Package));
+	    pkg.id = 1 + av_len(depslist);
+	    pkg.h = header;
+	    if (provides) {
+	      update_provides(&pkg, provides);
+	      update_provides_files(&pkg, provides);
+	    }
+	    if (packing) pack_header(&pkg);
+	    av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
+					   memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
+	  }
+	} while (header != NULL);
 	fdClose(fd);
 	if (pid) {
 	  kill(pid, SIGTERM);

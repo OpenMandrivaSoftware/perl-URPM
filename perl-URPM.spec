@@ -1,6 +1,6 @@
 %define name perl-URPM
 %define real_name URPM
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define version %(perl -ne '/VERSION\s+=[^0-9\.]*([0-9\.]+)/ and print "$1\n"' URPM.pm)}
 
@@ -47,6 +47,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jun  5 2002 François Pons <fpons@mandrakesoft.com> 0.02-3mdk
+- removed log on opening/closing rpmdb.
+- modified reading of archive to avoid incomplete read.
+
 * Wed Jun  5 2002 François Pons <fpons@mandrakesoft.com> 0.02-2mdk
 - added log on opening/closing rpmdb.
 
