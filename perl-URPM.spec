@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.05
+%define version 1.06
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -29,10 +29,13 @@ Source:		%{real_name}-%{version}.tar.bz2
 URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.0.3 bzip2-devel
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
+Requires:	rpmtools >= 5.0.0
 Provides:	perl(URPM::Build) = %{version}-%{release}
 Provides:	perl(URPM::Resolve) = %{version}-%{release}
 Provides:	perl(URPM::Signature) = %{version}-%{release}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
+
+%define _requires_exceptions perl(URPM::DB)\\|perl(URPM::Package)\\|perl(URPM::Transaction)
 
 %description
 The URPM module allows you to manipulate rpm files, rpm header files and
@@ -54,7 +57,7 @@ hdlist files and manage them in memory.
 
 %files
 %defattr(-,root,root)
-%doc README
+%doc README ChangeLog
 %{_mandir}/man3/*
 %{compat_perl_vendorarch}/URPM.pm
 %{compat_perl_vendorarch}/URPM
@@ -62,6 +65,11 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Thu Dec 09 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.06-1mdk
+- Don't fork a packdrake to build hdlists anymore, use Packdrakeng.pm instead.
+- Remove unused requires.
+- Add ChangeLog in documentation.
+
 * Thu Nov 25 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.05-1mdk
 - Allow to use non-contiguous selection ranges (Olivier Thauvin)
 

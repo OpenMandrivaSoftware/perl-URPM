@@ -1,3 +1,23 @@
+2004-12-09 16:16  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: trust packdrake's defaults
+
+2004-12-09 16:10  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: Remove external call to packdrake.
+
+2004-12-09 15:27  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* t/parse.t: Silence warnings
+
+2004-12-09 15:24  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* t/parse.t: Adjust test count
+
+2004-11-26 08:45  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 1.05-1mdk
+
 2004-11-25 20:18  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM.pm, URPM/Build.pm: Inspired changes on top of Olivier's
