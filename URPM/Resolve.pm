@@ -845,7 +845,7 @@ sub compute_flags {
     if (%regex) {
 	foreach my $pkg (@{$urpm->{depslist}}) {
 	    #- check if fullname is matching a regexp.
-	    if (grep { exists($regex{$_}{''}) && $pkg->fullname =~ /$1/ } keys %regex) {
+	    if (grep { exists($regex{$_}{''}) && $pkg->fullname =~ /$_/ } keys %regex) {
 		#- a single selection on fullname using a regular expression.
 		foreach (qw(skip disable_obsolete)) {
 		    if ($options{$_} && !$pkg->flag($_)) {
