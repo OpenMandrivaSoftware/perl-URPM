@@ -880,57 +880,46 @@ sub compute_installed_flags {
     \%sizes;
 }
 
-#- compute flags according to a hash describing packages to skip
-#- $val is a hash reference (as returned by get_packages_list) described as follows :
-#-   key is a package name, or a regular expression matching against the
-#-      fullname, if enclosed in slashes
-#-   value is a hashref indicating sense information ({ '' => undef } if none).
+sub compute_flag {
+    my ($urpm, $pkg, %options) = @_;
+    foreach (qw(skip disable_obsolete)) {
+	if ($options{$_} && !$pkg->flag($_)) {
+	    $pkg->set_flag($_, 1);
+	    $options{callback} and $options{callback}->($urpm, $pkg, %options);
+	}
+    }
+}
+
+#- Adds packages flags according to an array containing packages names.
+#- $val is an array reference (as returned by get_packages_list) containing
+#- package names, or a regular expression matching against the fullname, if
+#- enclosed in slashes.
 #- %options :
 #-   callback : sub to be called for each package where the flag is set
 #-   skip : if true, set the 'skip' flag
-#-   disable_obsolete : if true, set the 'disable_obsolete' flag
+#-   disable_obsolete : if true, set the 'risable_obsolete' flag
 sub compute_flags {
     my ($urpm, $val, %options) = @_;
-    my %regex;
+    if (ref $val eq 'HASH') { $val = \ keys %$val }; #- compatibility with urpmi <= 4.5-13mdk
+    my @regex;
 
-    #- perform the fastest possible, unless a regular expression is given,
-    #- the operation matches only according to provides.
-    while (my ($name, $sense) = each %$val) {
-	if ($name =~ m!^/(.*)/$!) {
-	    $regex{$1} = $sense;
+    #- unless a regular expression is given, search in provides
+    for my $name (@$val) {
+	if ($name =~ m{^/(.*)/$}) {
+	    push @regex, $1;
 	} else {
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
-		my $satisfied = exists($sense->{''}) || !$urpm->{provides}{$name}{$_};
-		unless ($satisfied) {
-		    foreach my $s (keys %$sense) {
-			$pkg->provides_overlap($name.$s) and ++$satisfied, last;
-		    }
-		}
-		if ($satisfied) {
-		    foreach (qw(skip disable_obsolete)) {
-			if ($options{$_} && !$pkg->flag($_)) {
-			    $pkg->set_flag($_, 1);
-			    $options{callback} and $options{callback}->($urpm, $pkg, %options);
-			}
-		    }
-		}
+		$urpm->compute_flag($pkg, %options);
 	    }
 	}
     }
 
-    #- now perform regular matches but only on fullname.
-    if (%regex) {
+    #- now search packages which fullname match given regexps
+    if (@regex) {
 	foreach my $pkg (@{$urpm->{depslist}}) {
-	    #- check if fullname is matching a regexp.
-	    if (grep { exists($regex{$_}{''}) && $pkg->fullname =~ /$_/ } keys %regex) {
-		#- a single selection on fullname using a regular expression.
-		foreach (qw(skip disable_obsolete)) {
-		    if ($options{$_} && !$pkg->flag($_)) {
-			$pkg->set_flag($_, 1);
-			$options{callback} and $options{callback}->($urpm, $pkg, %options);
-		    }
-		}
+	    if (grep { $pkg->fullname =~ /$_/ } @regex) {
+		$urpm->compute_flag($pkg, %options);
 	    }
 	}
     }
@@ -1211,13 +1200,6 @@ sub resolve_unrequested {
 
     #- use return value of old method.
     %$unrequested && $unrequested;
-}
-sub compute_skip_flags {
-    my ($urpm, $skip, %options) = @_;
-
-    print STDERR "calling obsoleted method URPM::compute_skip_flags\n";
-
-    $urpm->compute_flags($skip, %options, skpip => 1);
 }
 
 1;
