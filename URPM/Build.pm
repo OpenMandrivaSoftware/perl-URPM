@@ -45,7 +45,7 @@ sub parse_rpms_build_headers {
 	    } else {
 		($id, undef) = $urpm->parse_rpm($_);
 		defined $id or die "bad rpm $_\n";
-	
+
 		my $pkg = $urpm->{depslist}[$id];
 
 		$filename = $pkg->fullname;

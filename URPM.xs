@@ -319,6 +319,73 @@ xreturn_files(register SV **sp, Header header, int filter_mode) {
   return sp;
 }
 
+static SV **
+xreturn_problems(register SV **sp, rpmps ps, int translate_message) {
+  if (ps && ps->probs && ps->numProblems > 0) {
+    int i;
+
+    for (i = 0; i < ps->numProblems; i++) {
+      rpmProblem p = ps->probs + i;
+
+      if (p->ignoreProblem)
+	continue;
+
+      if (translate_message) {
+	/* translate error using rpm localization */
+	const char *buf = rpmProblemString(ps->probs + i);
+	XPUSHs(sv_2mortal(newSVpv(buf, 0)));
+	_free(buf);
+      } else {
+	const char *pkgNEVR = p->pkgNEVR ? p->pkgNEVR : "";
+	const char *altNEVR = p->altNEVR ? p->altNEVR : "";
+	const char *s = p->str1 ? p->str1 : "";
+	SV *sv;
+
+	switch (p->type) {
+	case RPMPROB_BADARCH:
+	  sv = newSVpvf("badarch@%s", pkgNEVR); break;
+
+	case RPMPROB_BADOS:
+	  sv = newSVpvf("bados@%s", pkgNEVR); break;
+
+	case RPMPROB_PKG_INSTALLED:
+	  sv = newSVpvf("installed@%s", pkgNEVR); break;
+
+	case RPMPROB_BADRELOCATE:
+	  sv = newSVpvf("badrelocate@%s@%s", pkgNEVR, s); break;
+
+	case RPMPROB_NEW_FILE_CONFLICT:
+	case RPMPROB_FILE_CONFLICT:
+	  sv = newSVpvf("conflicts@%s@%s@%s", pkgNEVR, altNEVR, s); break;
+
+	case RPMPROB_OLDPACKAGE:
+	  sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
+
+	case RPMPROB_DISKSPACE:
+	  sv = newSVpvf("diskspace@%s@%s@%ld", pkgNEVR, s, p->ulong1); break;
+
+	case RPMPROB_DISKNODES:
+	  sv = newSVpvf("disknodes@%s@%s@%ld", pkgNEVR, s, p->ulong1); break;
+
+	case RPMPROB_BADPRETRANS:
+	  sv = newSVpvf("badpretrans@%s@%s@%s", pkgNEVR, s, strerror(p->ulong1)); break;
+
+	case RPMPROB_REQUIRES:
+	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
+
+	case RPMPROB_CONFLICT:
+	  sv = newSVpvf("conflicts@%s@%s", pkgNEVR, altNEVR+2); break;
+
+	default:
+	  sv = newSVpvf("unknown@%s", pkgNEVR); break;
+	}
+	XPUSHs(sv_2mortal(sv));
+      }
+    }
+  }
+  return sp;
+}
+
 static char *
 pack_list(Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version) {
   char buff[65536];
@@ -2124,15 +2191,25 @@ Trans_remove(trans, name)
   RETVAL
 
 void
-Trans_check(trans)
+Trans_check(trans, ...)
   URPM::Transaction trans
   PREINIT:
   I32 gimme = GIMME_V;
+  int translate_message = 0;
+  int i;
 #ifndef RPM_42
   rpmDependencyConflict conflicts;
   int num_conflicts;
 #endif
   PPCODE:
+  for (i = 1; i < items-1; i+=2) {
+    STRLEN len;
+    char *s = SvPV(ST(i), len);
+
+    if (len == 17 && !memcmp(s, "translate_message", 17)) {
+      translate_message = SvIV(ST(i+1));
+    }
+  }
 #ifdef RPM_42
   if (rpmtsCheck(trans->ts)) {
 #else
@@ -2150,8 +2227,8 @@ Trans_check(trans)
       if (gimme == G_SCALAR) {
 	XPUSHs(sv_2mortal(newSViv(0)));
       } else if (gimme == G_ARRAY) {
-	XPUSHs(sv_2mortal(newSVpv("failed dependencies to be completed", 0)));
-	/* TODO */
+	/* now translation is handled by rpmlib, but only for version 4.2 and above */
+	SP = xreturn_problems(SP, ps, 1);
       }
     } else if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSViv(1)));
@@ -2273,66 +2350,13 @@ Trans_run(trans, data, ...)
   if (rpmtsRun(trans->ts, NULL, probFilter) > 0) {
     rpmps ps = rpmtsProblems(trans->ts);
     XPUSHs(sv_2mortal(newSViv(rpmpsNumProblems(ps))));
+    SP = xreturn_problems(SP, ps, translate_message);
     ps = rpmpsFree(ps);
-    /* problems here more detailed TODO */
   }
   rpmtsEmpty(trans->ts);
 #else
   if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, &td, NULL, &probs, transFlags, probFilter)) {
-    EXTEND(SP, probs->numProblems);
-    for (i = 0; i < probs->numProblems; i++) {
-      if (translate_message) {
-	/* translate error using rpm localization */
-	const char *buf = rpmProblemString(probs->probs + i);
-	PUSHs(sv_2mortal(newSVpv(buf, 0)));
-	_free(buf);
-      } else {
-	const char *pkgNEVR = (probs->probs[i].pkgNEVR ? probs->probs[i].pkgNEVR : "");
-	const char *altNEVR = probs->probs[i].altNEVR ? probs->probs[i].altNEVR : "";
-	const char *s = probs->probs[i].str1 ? probs->probs[i].str1 : "";
-	SV *sv;
-
-	switch (probs->probs[i].type) {
-	case RPMPROB_BADARCH:
-	  sv = newSVpvf("badarch@%s", pkgNEVR); break;
-
-	case RPMPROB_BADOS:
-	  sv = newSVpvf("bados@%s", pkgNEVR); break;
-
-	case RPMPROB_PKG_INSTALLED:
-	  sv = newSVpvf("installed@%s", pkgNEVR); break;
-
-	case RPMPROB_BADRELOCATE:
-	  sv = newSVpvf("badrelocate@%s@%s", pkgNEVR, s); break;
-
-	case RPMPROB_NEW_FILE_CONFLICT:
-	case RPMPROB_FILE_CONFLICT:
-	  sv = newSVpvf("conflicts@%s@%s@%s", pkgNEVR, altNEVR, s); break;
-
-	case RPMPROB_OLDPACKAGE:
-	  sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
-
-	case RPMPROB_DISKSPACE:
-	  sv = newSVpvf("diskspace@%s@%s@%ld", pkgNEVR, s, probs->probs[i].ulong1); break;
-
-	case RPMPROB_DISKNODES:
-	  sv = newSVpvf("disknodes@%s@%s@%ld", pkgNEVR, s, probs->probs[i].ulong1); break;
-
-	case RPMPROB_BADPRETRANS:
-	  sv = newSVpvf("badpretrans@%s@%s@%s", pkgNEVR, s, strerror(probs->probs[i].ulong1)); break;
-
-	case RPMPROB_REQUIRES:
-	  sv = newSVpvf("requires@%s@%s@%s", pkgNEVR, altNEVR+2); break;
-
-	case RPMPROB_CONFLICT:
-	  sv = newSVpvf("conflicts@%s@%s", pkgNEVR, altNEVR+2); break;
-
-	default:
-	  sv = newSVpvf("unknown@%s", pkgNEVR); break;
-	}
-	PUSHs(sv_2mortal(sv));
-      }
-    }
+    SP = xreturn_problems(SP, probs, translate_message);
   }
 #endif
 

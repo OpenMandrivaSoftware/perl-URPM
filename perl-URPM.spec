@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.83
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue May 13 2003 Pons François <fpons@mandrakesoft.com> 0.83-3mdk
+- fixed URPM::Transaction::check and URPM::Transaction::run
+  when returning error list.
+
 * Mon May 12 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 0.83-2mdk
 - rebuild for new perl requires/provides
 - provide perl packages URPM::Resolve and URPM::Build since the
