@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.60
-%define release 6mdk
+%define release 7mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug 12 2002 François Pons <fpons@mandrakesoft.com> 0.60-7mdk
+- fixed bad behaviour of request_packages_to_upgrade if upgrade flag
+  has been computed before.
+- fixed propable old package (according provides) requested by
+  request_packages_to_upgrade.
+
 * Mon Aug 12 2002 François Pons <fpons@mandrakesoft.com> 0.60-6mdk
 - simplified compute_installed_flags return value (used by DrakX).
 

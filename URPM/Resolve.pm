@@ -559,22 +559,42 @@ sub compute_installed_flags {
 #- all installed or upgrade flag.
 sub request_packages_to_upgrade {
     my ($urpm, $db, $state, $requested, %options) = @_;
-    my (%names, %skip, %obsoletes, @obsoleters);
+    my (%provides, %names, %skip, %requested, %obsoletes, @obsoleters);
 
     #- build direct access to best package according to name.
-    foreach (@{$urpm->{depslist}}) {
-	if ($_->is_arch_compat) {
-	    my $p = $names{$_->name};
+    foreach my $pkg (@{$urpm->{depslist}}) {
+	if ($pkg->is_arch_compat) {
+	    foreach ($pkg->provides) {
+		if (my ($n, $evr) = /^([^\s\[]*)(?:\[\*\])?\[?=+\s*([^\s\]]*)/) {
+		    if ($provides{$n}) {
+			foreach ($provides{$n}->provides) {
+			    if (my ($pn, $pevr) = /^([^\s\[]*)(?:\[\*\])?\[?=+\s*([^\s\]]*)/) {
+				$pn eq $n or next;
+				if (ranges_overlap("< $evr", "== $pevr")) {
+				    $skip{$provides{$n}->name} = undef; #- this package looks like too old ?
+				    $provides{$n} = $pkg;
+				}
+				last;
+			    }
+			}
+		    } else {
+			$provides{$n} = $pkg;
+		    }
+		}
+	    }
+
+	    my $p = $names{$pkg->name};
 	    if ($p) {
-		if ($_->compare_pkg($p) > 0) {
-		    $names{$_->name} = $_;
+		if ($pkg->compare_pkg($p) > 0) {
+		    $names{$pkg->name} = $pkg;
 		}
 	    } else {
-		$names{$_->name} = $_;
+		$names{$pkg->name} = $pkg;
 	    }
 	}
     }
 
+    #- clean direct access, a package in names should have 
     #- check consistency with obsoletes of eligible package.
     #- it is important not to select a package wich obsolete
     #- an old one.
@@ -599,15 +619,13 @@ sub request_packages_to_upgrade {
 		      #- first try with package using the same name.
 		      #- this will avoid selecting all packages obsoleting an old one.
 		      if (my $pkg = $names{$p->name}) {
-			  $pkg->flag_upgrade || $pkg->flag_installed or $pkg->set_flag_upgrade;
-			  $pkg->set_flag_installed;
-			  if ($pkg->compare_pkg($p) <= 0) {
-			      #- this means the package is already installed (or there
-			      #- is a old version in depslist).
-			      $pkg->set_flag_upgrade(0);
-			      #- ignore it now.
-			      delete $names{$p->name};
+			  unless ($pkg->flag_upgrade || $pkg->flag_installed) {
+			      $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+			      $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 			  }
+			  $pkg->flag_upgrade or delete $names{$p->name};
+			  #- keep in mind the package is requested.
+			  $pkg->flag_upgrade and $requested{$p->name} = undef;
 		      }
 
 		      #- check provides of existing package to see if a obsolete
@@ -659,7 +677,7 @@ sub request_packages_to_upgrade {
 
     #- examine all packages potentially selectable.
     foreach my $pkg (values %names) {
-	$pkg->flag_upgrade and $requested->{$pkg->id} = $options{requested};
+	exists $requested{$pkg->name} and $requested->{$pkg->id} = $options{requested};
     }
 
     $requested;
