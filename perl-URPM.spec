@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.83
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -18,7 +18,9 @@ URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 Prefix:		%{_prefix}
 BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
-BuildRoot:	%{_tmppath}/%{name}-buildroot
+Provides: perl(URPM::Build) = %{version}-%{release}
+Provides: perl(URPM::Resolve) = %{version}-%{release}
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
 The URPM module allows you to manipulate rpm files, rpm header files and
@@ -49,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon May 12 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 0.83-2mdk
+- rebuild for new perl requires/provides
+- provide perl packages URPM::Resolve and URPM::Build since the
+  perl packages are URPM for object export
+
 * Tue Apr 29 2003 François Pons <fpons@mandrakesoft.com> 0.83-1mdk
 - added preliminary support for rpm 4.2, there is lack of
   signature checking but interface of URPM is kept.
