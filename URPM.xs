@@ -3063,8 +3063,8 @@ Urpm_verify_rpm(filename, ...)
   int i;
   char result[8*BUFSIZ];
   unsigned char buffer[8192];
-#ifdef RPM_42
   unsigned char *b = buffer;
+#ifdef RPM_42
   rpmts ts;
   pgpDig dig;
   pgpDigParams sigp;
@@ -3193,10 +3193,7 @@ Urpm_verify_rpm(filename, ...)
 	if (!RETVAL) {
 	  int res2 = 0;
 	  int res3;
-	  unsigned char missingKeys[7164] = { 0 };
-	  unsigned char *m = missingKeys;
-	  unsigned char untrustedKeys[7164] = { 0 };
-	  unsigned char *u = untrustedKeys;
+	  char *tempKey;
 
 	  buffer[0] = 0; /* reset buffer as it is used again */
 	  for (sigIter = headerInitIterator(sigh);
@@ -3256,258 +3253,152 @@ Urpm_verify_rpm(filename, ...)
 	    default:
 	      break;
 	    }
-	    if ((res3 = rpmVerifySignature(ts, result))) {
-	      /* all the following code directly taken from lib/rpmchecksig.c */
-		if (rpmIsVerbose()) {
-		    b = stpcpy(b, "    ");
-		    b = stpcpy(b, result);
-		    res2 = 1;
-		} else {
-		    char *tempKey;
-		    switch (tag) {
-		    case RPMSIGTAG_SIZE:
-			b = stpcpy(b, "SIZE ");
-			res2 = 1;
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_SHA1:
-			b = stpcpy(b, "SHA1 ");
-			res2 = 1;
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_LEMD5_2:
-		    case RPMSIGTAG_LEMD5_1:
-		    case RPMSIGTAG_MD5:
-			b = stpcpy(b, "MD5 ");
-			res2 = 1;
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_RSA:
-			b = stpcpy(b, "RSA ");
-			res2 = 1;
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_PGP5:	/* XXX legacy */
-		    case RPMSIGTAG_PGP:
-			switch (res3) {
-			case RPMRC_NOKEY:
-			    res2 = 1;
-			    /*@fallthrough@*/
-			case RPMRC_NOTTRUSTED:
-			{   int offset = 6;
-			    b = stpcpy(b, "(MD5) (PGP) ");
-			    tempKey = strstr(result, "ey ID");
-			    if (tempKey == NULL) {
-			        tempKey = strstr(result, "keyid:");
-				offset = 9;
-			    }
-			    if (tempKey) {
-			      if (res3 == RPMRC_NOKEY) {
-				m = stpcpy(m, " PGP#");
-				m = stpncpy(m, tempKey + offset, 8);
-				*m = '\0';
-			      } else {
-			        u = stpcpy(u, " PGP#");
-				u = stpncpy(u, tempKey + offset, 8);
-				*u = '\0';
-			      }
-			    }
-			}   /*@innerbreak@*/ break;
-			default:
-			    b = stpcpy(b, "MD5 PGP ");
-			    res2 = 1;
-			    /*@innerbreak@*/ break;
-			}
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_DSA:
-			b = stpcpy(b, "(SHA1) DSA ");
-			res2 = 1;
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_GPG:
-			/* Do not consider this a failure */
-			switch (res3) {
-			case RPMRC_NOKEY:
-			    b = stpcpy(b, "(GPG) ");
-			    m = stpcpy(m, " GPG#");
-			    tempKey = strstr(result, "ey ID");
-			    if (tempKey) {
-				m = stpncpy(m, tempKey+6, 8);
-				*m = '\0';
-			    }
-			    res2 = 1;
-			    /*@innerbreak@*/ break;
-			default:
-			    b = stpcpy(b, "GPG ");
-			    res2 = 1;
-			    /*@innerbreak@*/ break;
-			}
-			/*@switchbreak@*/ break;
-		    default:
-			b = stpcpy(b, "?UnknownSignatureType? ");
-			res2 = 1;
-			/*@switchbreak@*/ break;
-		    }
-		}
-	    } else {
-		if (rpmIsVerbose()) {
-		    b = stpcpy(b, "    ");
-		    b = stpcpy(b, result);
-		} else {
-		    switch (tag) {
-		    case RPMSIGTAG_SIZE:
-			b = stpcpy(b, "size ");
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_SHA1:
-			b = stpcpy(b, "sha1 ");
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_LEMD5_2:
-		    case RPMSIGTAG_LEMD5_1:
-		    case RPMSIGTAG_MD5:
-			b = stpcpy(b, "md5 ");
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_RSA:
-			b = stpcpy(b, "rsa ");
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_PGP5:	/* XXX legacy */
-		    case RPMSIGTAG_PGP:
-			b = stpcpy(b, "(md5) pgp ");
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_DSA:
-			b = stpcpy(b, "(sha1) dsa ");
-			/*@switchbreak@*/ break;
-		    case RPMSIGTAG_GPG:
-			b = stpcpy(b, "gpg ");
-			/*@switchbreak@*/ break;
-		    default:
-			b = stpcpy(b, "??? ");
-			/*@switchbreak@*/ break;
-		    }
-		}
-	    }
+	    res3 = rpmVerifySignature(ts, result);
 #else
-	    if ((res3 = rpmVerifySignature(tmpfile, tag, ptr, count, result))) {
-	      /* all the following code directly taken from lib/rpmchecksig.c */
-	      if (rpmIsVerbose()) {
-		strcat(buffer, result);
-		res2 = 1;
-	      } else {
-		char *tempKey;
-		switch (tag) {
-		case RPMSIGTAG_SIZE:
-		  strcat(buffer, "SIZE ");
-		  res2 = 1;
-		  break;
-		case RPMSIGTAG_LEMD5_2:
-		case RPMSIGTAG_LEMD5_1:
-		case RPMSIGTAG_MD5:
-		  strcat(buffer, "MD5 ");
-		  res2 = 1;
-		  break;
-		case RPMSIGTAG_PGP5:	/* XXX legacy */
-		case RPMSIGTAG_PGP:
-		  switch (res3) {
-		  case RPMSIG_NOKEY:
-		    res2 = 1;
-		    /*@fallthrough@*/
-		  case RPMSIG_NOTTRUSTED:
-		    {   int offset = 7;
-		    strcat(buffer, "(PGP) ");
-		    tempKey = strstr(result, "Key ID");
-		    if (tempKey == NULL) {
-		      tempKey = strstr(result, "keyid:");
-		      offset = 9;
-		    }
-		    if (tempKey) {
-		      if (res3 == RPMSIG_NOKEY) {
-			strcat(missingKeys, " PGP#");
-			/*@-compdef@*/
-			strncat(missingKeys, tempKey + offset, 8);
-			/*@=compdef@*/
-		      } else {
-			strcat(untrustedKeys, " PGP#");
-			/*@-compdef@*/
-			strncat(untrustedKeys, tempKey + offset, 8);
-			/*@=compdef@*/
-		      }
-		    }
-		    }   break;
-		  default:
-		    strcat(buffer, "PGP ");
-		    res2 = 1;
-		    break;
-		  }
-		  break;
-		case RPMSIGTAG_GPG:
-		  /* Do not consider this a failure */
-		  switch (res3) {
-		  case RPMSIG_NOKEY:
-		    strcat(buffer, "(GPG) ");
-		    strcat(missingKeys, " GPG#");
-		    tempKey = strstr(result, "key ID");
-		    if (tempKey)
-		      /*@-compdef@*/
-		      strncat(missingKeys, tempKey+7, 8);
-		    /*@=compdef@*/
-		    res2 = 1;
-		    break;
-		  default:
-		    strcat(buffer, "GPG ");
-		    res2 = 1;
-		    break;
-		  }
-		  break;
-		default:
-		  strcat(buffer, "?UnknownSignatureType? ");
-		  res2 = 1;
-		  break;
-		}
-	      }
-	    } else {
-	      if (rpmIsVerbose()) {
-		strcat(buffer, result);
-	      } else {
-		switch (tag) {
-		case RPMSIGTAG_SIZE:
-		  strcat(buffer, "size ");
-		  break;
-		case RPMSIGTAG_LEMD5_2:
-		case RPMSIGTAG_LEMD5_1:
-		case RPMSIGTAG_MD5:
-		  strcat(buffer, "md5 ");
-		  break;
-		case RPMSIGTAG_PGP5:	/* XXX legacy */
-		case RPMSIGTAG_PGP:
-		  strcat(buffer, "pgp ");
-		  break;
-		case RPMSIGTAG_GPG:
-		  strcat(buffer, "gpg ");
-		  break;
-		default:
-		  strcat(buffer, "??? ");
-		  break;
-		}
-	      }
-	    }
+	    res3 = rpmVerifySignature(tmpfile, tag, ptr, count, result);
 #endif
+	    tempKey = strstr(result, "ey ID");
+	    if (tempKey) tempKey += 6;
+	    else {
+	      tempKey = strstr(result, "keyid:");
+	      if (tempKey) tempKey += 9;
+	    }
+	    if (res3) {
+	      switch (tag) {
+#ifdef RPM_42
+	      case RPMSIGTAG_SHA1:
+		b = stpcpy(b, "SHA1 ");
+		res2 = 1;
+		/*@switchbreak@*/ break;
+	      case RPMSIGTAG_RSA:
+		b = stpcpy(b, "RSA ");
+		res2 = 1;
+		/*@switchbreak@*/ break;
+	      case RPMSIGTAG_DSA:
+		b = stpcpy(b, "(SHA1) DSA ");
+		res2 = 1;
+		/*@switchbreak@*/ break;
+#endif
+	      case RPMSIGTAG_SIZE:
+		b = stpcpy(b, "SIZE ");
+		res2 = 1;
+		/*@switchbreak@*/ break;
+	      case RPMSIGTAG_LEMD5_2:
+	      case RPMSIGTAG_LEMD5_1:
+	      case RPMSIGTAG_MD5:
+		b = stpcpy(b, "MD5 ");
+		res2 = 1;
+		/*@switchbreak@*/ break;
+	      case RPMSIGTAG_PGP5:	/* XXX legacy */
+	      case RPMSIGTAG_PGP:
+		switch (res3) {
+#ifdef RPM_42
+		case RPMRC_NOKEY:
+#else
+		case RPMSIG_NOKEY:
+#endif
+		  res2 = 1;
+		  /*@fallthrough@*/
+#ifdef RPM_42
+		case RPMRC_NOTTRUSTED:
+#else
+		case RPMSIG_NOTTRUSTED:
+#endif
+		  b = stpcpy(b, "(MD5) (PGP) ");
+		  if (tempKey) {
+		    if (res3 == RPMRC_NOKEY)
+		      b = stpcpy(b, "(MISSING KEY) ");
+		    else
+		      b = stpcpy(b, "(UNTRUSTED KEY) ");
+		  }
+		default:
+		  b = stpcpy(b, "MD5 PGP ");
+		  res2 = 1;
+		  /*@innerbreak@*/ break;
+		}
+		if (tempKey) {
+		  b = stpcpy(b, "PGP#");
+		  b = stpncpy(b, tempKey, 8);
+		  b = stpcpy(b, " ");
+		}
+		/*@switchbreak@*/ break;
+	      case RPMSIGTAG_GPG:
+		/* Do not consider this a failure */
+		switch (res3) {
+#ifdef RPM_42
+		case RPMRC_NOKEY:
+#else
+		case RPMSIG_NOKEY:
+#endif
+		  b = stpcpy(b, "(GPG) (MISSING KEY) ");
+		  res2 = 1;
+		  /*@innerbreak@*/ break;
+		default:
+		  b = stpcpy(b, "GPG ");
+		  res2 = 1;
+		  /*@innerbreak@*/ break;
+		}
+		if (tempKey) {
+		  b = stpcpy(b, "GPG#");
+		  b = stpncpy(b, tempKey, 8);
+		  b = stpcpy(b, " ");
+		}
+		/*@switchbreak@*/ break;
+	      default:
+		b = stpcpy(b, "?UnknownSignatureType? ");
+		res2 = 1;
+		/*@switchbreak@*/ break;
+	      }
+	  } else {
+	    switch (tag) {
+#ifdef RPM_42
+	    case RPMSIGTAG_SHA1:
+	      b = stpcpy(b, "sha1 ");
+	      /*@switchbreak@*/ break;
+	    case RPMSIGTAG_RSA:
+	      b = stpcpy(b, "rsa ");
+	      /*@switchbreak@*/ break;
+	    case RPMSIGTAG_DSA:
+	      b = stpcpy(b, "(sha1) dsa ");
+	      /*@switchbreak@*/ break;
+#endif
+	    case RPMSIGTAG_SIZE:
+	      b = stpcpy(b, "size ");
+	      /*@switchbreak@*/ break;
+	    case RPMSIGTAG_LEMD5_2:
+	    case RPMSIGTAG_LEMD5_1:
+	    case RPMSIGTAG_MD5:
+	      b = stpcpy(b, "md5 ");
+	      /*@switchbreak@*/ break;
+	    case RPMSIGTAG_PGP5:	/* XXX legacy */
+	    case RPMSIGTAG_PGP:
+	      b = stpcpy(b, "(md5) pgp ");
+	      if (tempKey) {
+		b = stpcpy(b, "PGP#");
+		b = stpncpy(b, tempKey, 8);
+		b = stpcpy(b, " ");
+	      }
+	      /*@switchbreak@*/ break;
+	    case RPMSIGTAG_GPG:
+	      b = stpcpy(b, "gpg ");
+	      if (tempKey) {
+		b = stpcpy(b, "GPG#");
+		b = stpncpy(b, tempKey, 8);
+		b = stpcpy(b, " ");
+	      }
+	      /*@switchbreak@*/ break;
+	    default:
+	      b = stpcpy(b, "??? ");
+	      /*@switchbreak@*/ break;
+	    }
+	  }
 	  }
 	  sigIter = headerFreeIterator(sigIter);
 
-	  if (!rpmIsVerbose()) {
-	    if (res2) {
-	      sprintf(buffer+strlen(buffer), "%s%s%s%s%s%s%s",
-		      _("NOT OK"),
-		      (missingKeys[0] != '\0') ? _(" (MISSING KEYS:") : "",
-		      (char *)missingKeys,
-		      (missingKeys[0] != '\0') ? _(") ") : "",
-		      (untrustedKeys[0] != '\0') ? _(" (UNTRUSTED KEYS:") : "",
-		      (char *)untrustedKeys,
-		      (untrustedKeys[0] != '\0') ? _(")") : "");
-	    } else {
-	      sprintf(buffer+strlen(buffer), "%s%s%s%s%s%s%s",
-		      _("OK"),
-		      (missingKeys[0] != '\0') ? _(" (MISSING KEYS:") : "",
-		      (char *)missingKeys,
-		      (missingKeys[0] != '\0') ? _(") ") : "",
-		      (untrustedKeys[0] != '\0') ? _(" (UNTRUSTED KEYS:") : "",
-		      (char *)untrustedKeys,
-		      (untrustedKeys[0] != '\0') ? _(")") : "");
-	    }
+	  if (res2) {
+	    b = stpcpy(b, "NOT OK");
+	  } else {
+	    b = stpcpy(b, "OK");
 	  }
 
 	  RETVAL = buffer;
