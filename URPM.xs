@@ -1481,7 +1481,8 @@ Urpm_ranges_overlap(a, b)
     ++sa;
     ++sb;
   }
-  if (*sa && *sa != ' ' && *sa != '[' && *sa != '<' && *sa != '>' && *sa != '=') {
+  if (*sa && *sa != ' ' && *sa != '[' && *sa != '<' && *sa != '>' && *sa != '=' ||
+      *sb && *sb != ' ' && *sb != '[' && *sb != '<' && *sb != '>' && *sb != '=') {
     /* the strings are sure to be different */
     RETVAL = 0;
   } else {

@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.04
-%define release 4mdk
+%define release 5mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jun 18 2002 François Pons <fpons@mandrakesoft.com> 0.04-5mdk
+- fixed wrong range overlap evaluation (libgcc >= 3.1 and libgcc.so.1).
+
 * Thu Jun 13 2002 François Pons <fpons@mandrakesoft.com> 0.04-4mdk
 - fixed too many package selected on --auto-select.
 
