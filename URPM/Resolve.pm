@@ -292,20 +292,20 @@ sub resolve_rejected {
 		    $db->traverse_tag('whatrequires', [ $n ], sub {
 					  my ($p) = @_;
 					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
-					      my $v = $state->{rejected}{$p->fullname} ||= {};
+					      my $rv = $state->{rejected}{$p->fullname} ||= {};
 
 					      #- keep track of what cause closure.
-					      $v->{closure}{$pkg->fullname} = { unsatisfied => \@l };
+					      $rv->{closure}{$pkg->fullname} = { unsatisfied => \@l };
 
 					      #- set removed and obsoleted level.
 					      foreach (qw(removed obsoleted)) {
-						  $options{$_} && (! exists $v->{$_} || $options{$_} <= $v->{$_}) and
-						    $v->{$_} = $options{$_};
+						  $options{$_} && (! exists $rv->{$_} || $options{$_} <= $rv->{$_}) and
+						    $rv->{$_} = $options{$_};
 					      }
 
 					      #- continue the closure unless already examined.
-					      exists $v->{size} and return;
-					      $v->{size} = $p->size;
+					      exists $rv->{size} and return;
+					      $rv->{size} = $p->size;
 
 					      $p->pack_header; #- need to pack else package is no more visible...
 					      push @closure, $p;
@@ -414,9 +414,9 @@ sub resolve_requested {
 				      if ($pkg->compare_pkg($p) < 0) {
 					  $allow = ++$state->{oldpackage};
 					  #- avoid recusive rejects, else everything may be removed.
-					  my $v = $state->{rejected}{$p->fullname} ||= {};
-					  $v->{closure}{$pkg->fullname} = { old_requested => 1 };
-					  $v->{removed} = 1;
+					  my $rv = $state->{rejected}{$p->fullname} ||= {};
+					  $rv->{closure}{$pkg->fullname} = { old_requested => 1 };
+					  $rv->{removed} = 1;
 				      }
 				  });
 		#- if nothing has been removed, just ignore it.
@@ -463,10 +463,10 @@ sub resolve_requested {
 
 					  #- do not propagate now the broken dependencies as they are
 					  #- computed later.
-					  my $v = $state->{rejected}{$p->fullname} ||= {};
-					  $v->{closure}{$pkg->fullname} = undef;
-					  $v->{obsoleted} = 1;
-					  $v->{size} = $p->size;
+					  my $rv = $state->{rejected}{$p->fullname} ||= {};
+					  $rv->{closure}{$pkg->fullname} = undef;
+					  $rv->{obsoleted} = 1;
+					  $rv->{size} = $p->size;
 
 					  foreach ($p->provides) {
 					      #- check differential provides between obsoleted package and newer one.
