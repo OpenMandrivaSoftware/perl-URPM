@@ -4064,3 +4064,26 @@ Urpm_import_pubkey(...)
 #endif
   OUTPUT:
   RETVAL
+
+void
+Urpm_stream2header(pio)
+    PerlIO *pio;
+  PREINIT:
+    FILE *fp;
+    FD_t fd;
+    URPM__Package pkg;
+  PPCODE:
+    if (!(fp = PerlIO_findFILE(pio))) croak("Can't get perlio");
+    if ((fd = fdDup(fileno(fp)))) {
+	pkg = (URPM__Package)malloc(sizeof(struct s_Package));
+	memset(pkg, 0, sizeof(struct s_Package));
+        pkg->h = headerRead(fd, HEADER_MAGIC_YES);
+        if (pkg->h) {
+            SV *sv_pkg;
+            EXTEND(SP, 1);
+            sv_pkg = sv_newmortal();
+            sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
+            PUSHs(sv_pkg);
+        }
+        Fclose(fd);
+    }
