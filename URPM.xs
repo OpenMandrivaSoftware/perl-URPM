@@ -1453,49 +1453,44 @@ Urpm_ranges_overlap(a, b)
   PREINIT:
   char *sa = a, *sb = b;
   int aflags = 0, bflags = 0;
-  char *eona, *eonb;
-  char *eosa, *eosb;
-  char save_a, save_b;
   CODE:
-  while (*sa && *sa != ' ' && *sa != '[') ++sa; save_a = *sa; *(eona = sa++) = 0;
-  while (*sb && *sb != ' ' && *sb != '[') ++sb; save_b = *sb; *(eonb = sb++) = 0;
-  if (save_a)
+  while (*sa && *sa != ' ' && *sa != '[' && *sa != '<' && *sa != '>' && *sa != '=' && *sa == *sb) {
+    ++sa;
+    ++sb;
+  }
+  if (*sa && *sa != ' ' && *sa != '[' && *sa != '<' && *sa != '>' && *sa != '=') {
+    /* the strings are sure to be different */
+    RETVAL = 0;
+  } else {
     while (*sa) {
-      switch (*sa++) {
-      case '<': aflags |= RPMSENSE_LESS; break;
-      case '>': aflags |= RPMSENSE_GREATER; break;
-      case '=': aflags |= RPMSENSE_EQUAL; break;
-      case ' ':
-      case '[':
-      case '*':
-      case ']':
-	break;
-      default: goto exit_a;
-      }
+      if (*sa == ' ' || *sa == '[' || *sa == '*' || *sa == ']');
+      else if (*sa == '<') aflags |= RPMSENSE_LESS;
+      else if (*sa == '>') aflags |= RPMSENSE_GREATER;
+      else if (*sa == '=') aflags |= RPMSENSE_EQUAL;
+      else break;
+      ++sa;
     }
-exit_a:
-  if (save_b)
     while (*sb) {
-      switch (*sb++) {
-      case '<': bflags |= RPMSENSE_LESS; break;
-      case '>': bflags |= RPMSENSE_GREATER; break;
-      case '=': bflags |= RPMSENSE_EQUAL; break;
-      case ' ':
-      case '[':
-      case '*':
-      case ']':
-	break;
-      default: goto exit_b;
-      }
+      if (*sb == ' ' || *sb == '[' || *sb == '*' || *sb == ']');
+      else if (*sb == '<') bflags |= RPMSENSE_LESS;
+      else if (*sb == '>') bflags |= RPMSENSE_GREATER;
+      else if (*sb == '=') bflags |= RPMSENSE_EQUAL;
+      else break;
+      ++sb;
     }
-exit_b:
-  if ((eosa = strchr(--sa, ']')) != NULL) *eosa = 0;
-  if ((eosb = strchr(--sb, ']')) != NULL) *eosb = 0;
-  RETVAL = rpmRangesOverlap(a, sa, aflags, b, sb, bflags);
-  if (eosb) *eosb = ']';
-  if (eosa) *eosa = ']';
-  *eonb = save_b;
-  *eona = save_a;
+    if (!aflags || !bflags)
+      RETVAL = 1; /* really faster to test it there instead of later */
+    else {
+      char *eosa = strchr(sa, ']');
+      char *eosb = strchr(sb, ']');
+
+      if (eosa) *eosa = 0;
+      if (eosb) *eosb = 0;
+      RETVAL = rpmRangesOverlap("", sa, aflags, "", sb, bflags);
+      if (eosb) *eosb = ']';
+      if (eosa) *eosa = ']';
+    }
+  }
   OUTPUT:
   RETVAL
 

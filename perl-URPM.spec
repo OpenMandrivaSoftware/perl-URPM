@@ -48,8 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Tue Jun 11 2002 François Pons <fpons@mandrakesoft.com> 0.04-1mdk
-- added Resolve.pm file.
+* Thu Jun 13 2002 François Pons <fpons@mandrakesoft.com> 0.04-1mdk
+- added Resolve.pm file (resolve requires)
+- added ranges_overlap method (uses rpmRangesOverlap in rpmlib).
 
 * Thu Jun  6 2002 François Pons <fpons@mandrakesoft.com> 0.03-2mdk
 - fixed incomplete compare_pkg not taking into account score
