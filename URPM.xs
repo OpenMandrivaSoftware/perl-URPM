@@ -1041,7 +1041,7 @@ update_provides(URPM__Package pkg, HV *provides) {
       for (i = 0; i < count; ++i) {
 	len = strlen(list[i]);
 	if (!strncmp(list[i], "rpmlib(", 7)) continue;
-	update_provide_entry(list[i], len, 1, flags && flags[i] & (RPMSENSE_PREREQ|RPMSENSE_LESS|RPMSENSE_EQUAL|RPMSENSE_GREATER),
+	update_provide_entry(list[i], len, 1, flags && flags[i] & (RPMSENSE_PREREQ|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POSTUN|RPMSENSE_SCRIPT_POST|RPMSENSE_LESS|RPMSENSE_EQUAL|RPMSENSE_GREATER),
 			     pkg, provides);
       }
     }
