@@ -52,7 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Tue Jun 17 2003 François Pons <fpons@mandrakesoft.com> 0.91-2mdk
-- fixed promotion of epoch to be rpm 4.2 compliant.
+- fixed promotion of epoch to be rpm 4.2 compliant :
+   - added promotion boolean to URPM::ranges_overlap.
+   - changed URPM::find_candidate_packages interface.
 
 * Mon Jun 16 2003 François Pons <fpons@mandrakesoft.com> 0.91-1mdk
 - added transaction set methods.

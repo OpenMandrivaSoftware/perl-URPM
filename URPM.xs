@@ -2752,9 +2752,10 @@ Urpm_read_config_files()
   read_config_files(1); /* force re-read of configuration files */
 
 int
-Urpm_ranges_overlap(a, b)
+Urpm_ranges_overlap(a, b, b_nopromote=0)
   char *a
   char *b
+  int b_nopromote
   PREINIT:
   char *sa = a, *sb = b;
   int aflags = 0, bflags = 0;
@@ -2817,8 +2818,10 @@ Urpm_ranges_overlap(a, b)
       /* now compare epoch */
       if (ea && eb)
 	sense = rpmvercmp(*ea ? ea : "0", *eb ? eb : "0");
+#ifdef RPM_42
       else if (ea && *ea && atol(ea) > 0)
-	sense = PROMOTE_EPOCH_SENSE;
+	sense = b_nopromote ? 1 : 0;
+#endif
       else if (eb && *eb && atol(eb) > 0)
 	sense = -1;
       /* now compare version and release if epoch has not been enough */

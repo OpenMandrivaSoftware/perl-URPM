@@ -5,7 +5,7 @@ use strict;
 #- find candidates packages from a require string (or id),
 #- take care of direct choices using | sepatator.
 sub find_candidate_packages {
-    my ($urpm, $dep, $avoided) = @_;
+    my ($urpm, $dep, %options) = @_;
     my %packages;
 
     foreach (split '\|', $dep) {
@@ -13,19 +13,19 @@ sub find_candidate_packages {
 	    my $pkg = $urpm->{depslist}[$_];
 	    $pkg->flag_skip and next;
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
-	    $avoided && exists $avoided->{$pkg->fullname} and next;
+	    $options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
 	    push @{$packages{$pkg->name}}, $pkg;
 	} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->flag_skip and next;
 		$pkg->is_arch_compat or next;
-		$avoided && exists $avoided->{$pkg->fullname} and next;
+		$options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
 		my $satisfied = !$urpm->{provides}{$name}{$_};
 		unless ($satisfied) {
 		    foreach ($pkg->provides) {
-			ranges_overlap($_, $property) and ++$satisfied, last;
+			ranges_overlap($_, $property, $options{nopromoteepoch}) and ++$satisfied, last;
 		    }
 		}
 		$satisfied and push @{$packages{$pkg->name}}, $pkg;
@@ -163,7 +163,7 @@ sub unsatisfied_requires {
 		if ($urpm->{provides}{$n}{$_}) {
 		    #- sense information are used, this means we have to examine carrefully the provides.
 		    foreach ($p->provides) {
-			ranges_overlap($_, $dep) and next REQUIRES;
+			ranges_overlap($_, $dep, $options{nopromoteepoch}) and next REQUIRES;
 		    }
 		} else {
 		    next REQUIRES;
@@ -187,7 +187,7 @@ sub unsatisfied_requires {
 					  if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 					      $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
 					      $pn eq $n or next;
-					      ranges_overlap($ps, $s) and ++$satisfied;
+					      ranges_overlap($ps, $s, $options{nopromoteepoch}) and ++$satisfied;
 					  }
 				      }
 				  });
@@ -196,6 +196,7 @@ sub unsatisfied_requires {
 	    $satisfied or $properties{$dep} = undef;
 	}
     }
+
     keys %properties;
 }
 
@@ -495,12 +496,16 @@ sub resolve_requested {
 	    foreach my $n (keys %diff_provides) {
 		$db->traverse_tag('whatrequires', [ $n ], sub {
 				      my ($p) = @_;
-				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p)) {
+				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1)) {
 					  #- try if upgrading the package will be satisfying all the requires
 					  #- else it will be necessary to ask the user for removing it.
-					  my $packages = $urpm->find_candidate_packages($p->name, $state->{rejected});
+					  my $packages = $urpm->find_candidate_packages($p->name,
+											nopromoteepoch => 1,
+											avoided => $state->{rejected});
 					  my $best = join '|', map { $_->id }
-					    grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
+					    grep { $urpm->unsatisfied_requires($db, $state, $_,
+									       nopromoteepoch => 1,
+									       name => $n) == 0 }
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
@@ -510,7 +515,9 @@ sub resolve_requested {
 					      #- there exists a package that provided the unsatisfied requires.
 					      my @best;
 					      foreach (@l) {
-						  $packages = $urpm->find_candidate_packages($_, $state->{rejected});
+						  $packages = $urpm->find_candidate_packages($_,
+											     nopromoteepoch => 1,
+											     avoided => $state->{rejected});
 						  $best = join('|', map { $_->id } map { @{$_ || []} } values %$packages);
 						  $best and push @best, $best;
 					      }
@@ -563,7 +570,7 @@ sub resolve_requested {
 					  #- version will be ok, else ask to remove the old.
 					  my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
 					                                     $p->version . "-" . $p->release;
-					  my $packages = $urpm->find_candidate_packages($need_deps, $state->{rejected});
+					  my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
 					  my $best = join '|', map { $_->id }
 					    grep { ! grep { ranges_overlap($_, $property) } $_->provides }
 					      @{$packages->{$p->name}};
