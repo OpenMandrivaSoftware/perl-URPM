@@ -4095,4 +4095,34 @@ Urpm_stream2header(fp)
         Fclose(fd);
     }
 
+void
+expand(name)
+    char * name
+    PPCODE:
+    const char * value = rpmExpand(name, NULL);
+    XPUSHs(sv_2mortal(newSVpv(value, 0)));
+
+void
+add_macro(macro)
+    char * macro
+    CODE:
+    rpmDefineMacro(NULL, macro, RMIL_DEFAULT);
+
+void
+del_macro(name)
+    char * name
+    CODE:
+    delMacro(NULL, name);
+
+void
+loadmacrosfile(filename)
+    char * filename
+    PPCODE:
+    rpmInitMacros(NULL, filename);
+
+void
+resetmacros()
+    PPCODE:
+    rpmFreeMacros(NULL);
+
   /* vim:set ts=8 sts=2 sw=2: */

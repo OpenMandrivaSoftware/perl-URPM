@@ -609,10 +609,36 @@ They roughly correspond to command-line options to rpm(1).
 
 =back
 
+=head2 Macro handling functions
+
+=item loadmacrosfile($filename)
+
+Load the specified macro file. Sets $! if the file can't be read.
+
+=item expand($name)
+
+Expands the specified macro.
+
+=item add_macro($macro_definition)
+
+Define a macro. For example,
+
+    URPM::add_macro("vendor Mandrakesoft");
+    my $vendor = URPM::expand("%vendor");
+
+=item del_macro($name)
+
+Delete a macro.
+
+=item resetmacros()
+
+Destroys macros.
+
 =head1 COPYRIGHT
 
-Copyright 2002, 2003, 2004 MandrakeSoft (François Pons
-<fpons@mandrakesoft.com>)
+Copyright 2002-2005 Mandrakesoft
+
+Original author: François Pons
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
