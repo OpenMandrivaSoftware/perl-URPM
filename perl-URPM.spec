@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.92
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 30 2003 François Pons <fpons@mandrakesoft.com> 0.92-2mdk
+- fixed some missing unsatisfied in reason of rejected.
+- fixed provide obsoleted which should not be taken into account
+  when looking for obsoletes (arts problem).
+
 * Mon Jul 28 2003 François Pons <fpons@mandrakesoft.com> 0.92-1mdk
 - added keep option to URPM::resolve_requested to avoid removing
   packages.
