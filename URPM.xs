@@ -351,7 +351,7 @@ pack_header(URPM__Package pkg) {
       if (!filename || !strcmp(p, filename)) {
 	p[-1] = 0;
       } else {
-	p = p + snprintf(p, sizeof(buff) - (p-buff), "%s", filename);
+	p = p + 1 + snprintf(p, sizeof(buff) - (p-buff), "%s", filename);
       }
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
     }
