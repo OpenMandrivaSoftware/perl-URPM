@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,14 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jun  2 2003 François Pons <fpons@mandrakesoft.com> 0.90-4mdk
+- added an option to disable unrequested dependencies when
+  backtracking a selection.
+- added an option to avoid deselecting package with broken
+  dependencies.
+- simplified update_header and parse_rpm methods.
+- cleaned XS code.
+
 * Wed May 28 2003 Warly <warly@mandrakesoft.com> 0.90-3mdk
 - add license function for urpm->{depslist}[$id]
 

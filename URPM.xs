@@ -900,6 +900,34 @@ open_archive(char *filename, pid_t *pid) {
   return fd;
 }
 
+static int
+call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
+  if (sv_pkg != NULL && callback != NULL) {
+    int count;
+
+    /* now, a callback will be called for sure */
+    dSP;
+    ENTER;
+    SAVETMPS;
+    PUSHMARK(sp);
+    XPUSHs(urpm);
+    XPUSHs(sv_pkg);
+    PUTBACK;
+    count = call_sv(callback, G_SCALAR);
+    SPAGAIN;
+    if (count == 1 && !POPi) {
+      /* package should not be added in depslist, so we free it */
+      SvREFCNT_dec(sv_pkg);
+      sv_pkg = NULL;
+    }
+    PUTBACK;
+    FREETMPS;
+    LEAVE;
+  }
+
+  return sv_pkg != NULL;
+}
+
 static void
 parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, SV *callback) {
   SV *sv_pkg;
@@ -916,24 +944,7 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, 
       pkg->flag |= 1 + av_len(depslist);
       sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
 			    _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package)));
-      if (callback != NULL) {
-	/* now, a callback will be called for sure */
-	dSP;
-	PUSHMARK(sp);
-	XPUSHs(urpm);
-	XPUSHs(sv_pkg);
-	PUTBACK;
-	if (call_sv(callback, G_SCALAR) == 1) {
-	  SPAGAIN;
-	  if (!POPi) {
-	    /* package should not be added in depslist, so we free it */
-	    SvREFCNT_dec(sv_pkg);
-	    sv_pkg = NULL;
-	  }
-	  PUTBACK;
-	}
-      }
-      if (sv_pkg) {
+      if (call_package_callback(urpm, sv_pkg, callback)) {
 	if (provides) update_provides(_pkg, provides);
 	av_push(depslist, sv_pkg);
       }
@@ -953,7 +964,7 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, 
 }
 
 static int
-update_header(char *filename, URPM__Package pkg, HV *provides, int packing, int keep_all_tags) {
+update_header(char *filename, URPM__Package pkg, int keep_all_tags) {
   int d = open(filename, O_RDONLY);
 
   if (d >= 0) {
@@ -994,12 +1005,7 @@ update_header(char *filename, URPM__Package pkg, HV *provides, int packing, int 
 	  pkg->h = header;
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
 
-	  if (provides) {
-	    update_provides(pkg, provides);
-	    update_provides_files(pkg, provides);
-	  }
-	  if (packing) pack_header(pkg);
-	  else if (!keep_all_tags) {
+	  if (!keep_all_tags) {
 	    headerRemoveEntry(pkg->h, RPMTAG_POSTIN);
 	    headerRemoveEntry(pkg->h, RPMTAG_POSTUN);
 	    headerRemoveEntry(pkg->h, RPMTAG_PREIN);
@@ -1831,13 +1837,31 @@ Pkg_pack_header(pkg)
   pack_header(pkg);
 
 int
-Pkg_update_header(pkg, filename, packing=0, keep_all_tags=0)
+Pkg_update_header(pkg, filename, ...)
   URPM::Package pkg
   char *filename
-  int packing
-  int keep_all_tags
+  PREINIT:
+  int packing = 0;
+  int keep_all_tags = 0;
   CODE:
-  RETVAL = update_header(filename, pkg, NULL, packing, keep_all_tags);
+  /* compability mode with older interface of parse_hdlist */
+  if (items == 3) {
+    packing = SvIV(ST(2));
+  } else if (items > 3) {
+    int i;
+    for (i = 2; i < items-1; i+=2) {
+      STRLEN len;
+      char *s = SvPV(ST(i), len);
+
+      if (len == 7 && !memcmp(s, "packing", 7)) {
+	packing = SvIV(ST(i + 1));
+      } else if (len == 13 && !memcmp(s, "keep_all_tags", 13)) {
+	keep_all_tags = SvIV(ST(i+1));
+      }
+    }
+  }
+  RETVAL = update_header(filename, pkg, !packing && keep_all_tags);
+  if (RETVAL && packing) pack_header(pkg);
   OUTPUT:
   RETVAL
 
@@ -2865,28 +2889,7 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	    pkg.h = header;
 	    sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
 				  _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package)));
-	    if (callback != NULL) {
-	      int count;
-
-	      /* now, a callback will be called for sure */
-	      ENTER;
-	      SAVETMPS;
-	      PUSHMARK(sp);
-	      XPUSHs(urpm);
-	      XPUSHs(sv_pkg);
-	      PUTBACK;
-	      count = call_sv(callback, G_SCALAR);
-	      SPAGAIN;
-	      if (count == 1 && !POPi) {
-		/* package should not be added in depslist, so we free it */
-		SvREFCNT_dec(sv_pkg);
-		sv_pkg = NULL;
-	      }
-	      PUTBACK;
-	      FREETMPS;
-	      LEAVE;
-	    }
-	    if (sv_pkg) {
+	    if (call_package_callback(urpm, sv_pkg, callback)) {
 	      if (provides) {
 		update_provides(_pkg, provides);
 		update_provides_files(_pkg, provides);
@@ -2911,11 +2914,9 @@ Urpm_parse_hdlist(urpm, filename, ...)
   } else croak("first argument should be a reference to HASH");
 
 void
-Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
+Urpm_parse_rpm(urpm, filename, ...)
   SV *urpm
   char *filename
-  int packing;
-  int keep_all_tags;
   PPCODE:
   if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
     SV **fdepslist = hv_fetch((HV*)SvRV(urpm), "depslist", 8, 0);
@@ -2924,7 +2925,10 @@ Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
 
     if (depslist != NULL) {
-      struct s_Package pkg;
+      struct s_Package pkg, *_pkg;
+      SV *sv_pkg;
+      int packing = 0;
+      int keep_all_tags = 0;
       SV *callback = NULL;
 
       /* compability mode with older interface of parse_hdlist */
@@ -2947,7 +2951,17 @@ Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
       }
       memset(&pkg, 0, sizeof(struct s_Package));
       pkg.flag = 1 + av_len(depslist);
-      if (update_header(filename, &pkg, provides, packing, keep_all_tags)) {
+      sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
+			    _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package)));
+      if (update_header(filename, &_pkg, keep_all_tags)) {
+	if (call_package_callback(urpm, sv_pkg, callback)) {
+	  if (provides) {
+	    update_provides(_pkg, provides);
+	    update_provides_files(_pkg, provides);
+	  }
+	  if (packing) pack_header(_pkg);
+	  av_push(depslist, sv_pkg);
+	}
 	av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
 				       memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
 

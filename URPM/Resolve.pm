@@ -221,11 +221,15 @@ sub backtrack_selected {
 		    }
 		}
 		$state->{backtrack}{selected}{$_->id} = undef;
+
 		#- in such case, we need to drop the problem caused so that rejected condition is removed.
 		#- if this is not possible, the next backtrack on the same package will be refused above.
-		$urpm->disable_selected($db, $state,
-					map { $urpm->search($_, strict_fullname => 1) }
-					keys %{($state->{rejected}{$_->fullname} || {})->{closure}});
+		my @l = map { $urpm->search($_, strict_fullname => 1) }
+		  keys %{($state->{rejected}{$_->fullname} || {})->{closure}};
+
+		$options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, @l) :
+		  $urpm->disable_selected_unrequested_dependencies($db, $state, @l);
+
 		return { required => $_->id,
 			 exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 			 exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
@@ -237,9 +241,10 @@ sub backtrack_selected {
     #- at this point, dep cannot be resolved, this means we need to disable
     #- all selection tree, re-enabling removed and obsoleted packages as well.
     if (defined $dep->{from}) {
-	unless (exists $state->{rejected}{$dep->{from}->fullname}) {
+	unless ($options{nodeps} || exists $state->{rejected}{$dep->{from}->fullname}) {
 	    #- package is not currently rejected, compute the closure now.
-	    my @l = $urpm->disable_selected($db, $state, $dep->{from});
+	    my @l = $options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, $dep->{from}) :
+	      $urpm->disable_selected_unrequested_dependencies($db, $state, $dep->{from});
 	    foreach (@l) {
 		#- disable all these packages in order to avoid selecting them again.
 		$_->fullname eq $dep->{from}->fullname or
@@ -366,7 +371,7 @@ sub resolve_requested {
 	#- if multiple packages are possible, simply ask the user which one to choose.
 	#- else take the first one available.
 	if (!@chosen) {
-	    unshift @properties, $urpm->backtrack_selected($db, $state, $dep);
+	    unshift @properties, $urpm->backtrack_selected($db, $state, $dep, %options);
 	    next; #- backtrack code choose to continue with same package or completely new strategy.
 	} elsif ($options{callback_choices} && @chosen > 1) {
 	    unshift @properties, map { +{ required => $_->id,
@@ -638,6 +643,50 @@ sub disable_selected {
 
     #- return all unselected packages.
     @unselected;
+}
+
+#- determine dependencies that can safely been removed and are not requested,
+sub disable_selected_unrequested_dependencies {
+    my ($urpm, $db, $state, @closure) = @_;
+    my @unselected_closure;
+
+    #- disable selected packages, then extend unselection to all required packages
+    #- no more needed and not requested.
+    while (my @unselected = disable_selected($db, $state, @closure)) {
+	my %required;
+
+	#- keep in mind averything that have been unselected.
+	push @unselected_closure, @unselected;
+
+	#- search for unrequested required packages.
+	foreach (@unselected) {
+	    foreach ($_->requires_nosense) {
+		foreach (keys %{$urpm->{provides}{$_} || {}}) {
+		    my $pkg = $urpm->{depslist}[$_] or next;
+		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} or next;
+		    $pkg->flag_requested and next;
+		    $required{$pkg->id} = undef;
+		}
+	    }
+	}
+
+	#- check required packages are not needed by another selected package.
+	foreach (keys %required) {
+	    my $pkg = $urpm->{depslist}[$_] or next;
+	    foreach ($pkg->provides_nosense) {
+		foreach (keys %{$state->{whatrequires}{$_}}) {
+		    my $p = $urpm->{depslist}[$_] or next;
+		    $p eq $pkg and next;
+		    $p->flag_selected and $required{$pkg->id} = 1;
+		}
+	    }
+	}
+
+	#- now required values still undefined indicates packages than can be removed.
+	@closure = map { $urpm->{depslist}[$_] } grep { !$required{$_} } keys %required;
+    }
+
+    @unselected_closure;
 }
 
 #- compute installed flags for all package in depslist.
