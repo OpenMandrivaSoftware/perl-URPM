@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 11mdk
+%define release 12mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 16 2003 François Pons <fpons@mandrakesoft.com> 0.91-12mdk
+- fixed typo in regex handling in URPM::compute_flags.
+- fixed cache contents not taken into account.
+
 * Thu Jul 10 2003 François Pons <fpons@mandrakesoft.com> 0.91-11mdk
 - improved URPM::compute_flags.
 - started coding URPM::unsatisfied_requires in XS (as
