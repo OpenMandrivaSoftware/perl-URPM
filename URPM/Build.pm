@@ -42,8 +42,16 @@ sub parse_rpms_build_headers {
 
 	    if ($cache{$key} && $cache{$key}{time} > 0 && $cache{$key}{time} >= (stat $_)[9]) {
 		($id, undef) = $urpm->parse_hdlist("$dir/$cache{$key}{file}", !$options{callback});
-		defined $id or die "bad header $dir/$cache{$key}{file}\n";
-		$options{callback} and $options{callback}->($urpm, $id, %options);
+		unless (defined $id) {
+		  if ($options{dontdie}) {
+		    print STDERR "bad header $dir/$cache{$key}{file}\n";
+		    next;
+		  } else {
+		    die "bad header $dir/$cache{$key}{file}\n";
+		  }
+		}
+
+		$options{callback} and $options{callback}->($urpm, $id, %options, (file => $_));
 
 		$filename = $cache{$key}{file};
 	    } else {
@@ -56,6 +64,7 @@ sub parse_rpms_build_headers {
 			die "bad rpm $_\n";
 		    }
 		}
+		
 
 		my $pkg = $urpm->{depslist}[$id];
 
