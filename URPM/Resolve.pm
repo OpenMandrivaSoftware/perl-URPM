@@ -122,6 +122,7 @@ sub resolve_requested {
 	    #- of being chosen) by default and ask user.
 	    foreach my $p (values %$packages) {
 		$p or next; #- this could happen if no package are suitable for this arch.
+		exists $state->{obsoleted}{$p->fullname} and next; #- avoid taking what is removed (incomplete).
 		exists $state->{selected}{$p->id} and $pkg = $p, last; #- already selected package is taken.
 		if (exists $requested{$p->id}) {
 		    push @chosen_requested, $p;

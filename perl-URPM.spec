@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.05
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul  1 2002 François Pons <fpons@mandrakesoft.com> 0.05-2mdk
+- fixed selection of obsoleted package already installed but
+  present in depslist.
+
 * Fri Jun 28 2002 François Pons <fpons@mandrakesoft.com> 0.05-1mdk
 - fixed ask_remove not to contains arch.
 - removed relocate_depslist (obsoleted).
