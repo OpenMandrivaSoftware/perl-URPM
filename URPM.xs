@@ -45,7 +45,7 @@ typedef struct s_Package* URPM__Package;
 #define FLAG_REQUESTED      0x08000000U
 #define FLAG_REQUIRED       0x10000000U
 #define FLAG_UPGRADE        0x20000000U
-#define FLAG_RESERVED       0x40000000U
+#define FLAG_OBSOLETE       0x40000000U
 #define FLAG_NO_HEADER_FREE 0x80000000U
 
 #define FLAG_ID_MAX     0x00fffffe
@@ -833,10 +833,12 @@ Pkg_compare_pkg(lpkg, rpkg)
       compare = rpmvercmp(lrelease, rrelease);
       if (!compare) {
 	int lscore, rscore;
+	char *eolarch = strchr(larch, '@');
+	char *eorarch = strchr(rarch, '@');
 
 	read_config_files();
-	lscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, larch);
-	rscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, rarch);
+	if (eolarch) *eolarch = 0; lscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, larch);
+	if (eorarch) *eorarch = 0; rscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, rarch);
 	if (lscore == 0) {
 	  if (rscore == 0)
 	    compare = strcmp(larch, rarch);
@@ -848,6 +850,8 @@ Pkg_compare_pkg(lpkg, rpkg)
 	  else
 	    compare = rscore - lscore; /* score are lower for better */
 	}
+	if (eolarch) *eolarch = '@';
+	if (eorarch) *eorarch = '@';
       }
     }
   }
@@ -1297,6 +1301,25 @@ Pkg_set_flag_upgrade(pkg, value=1)
   RETVAL = pkg->flag & FLAG_UPGRADE;
   if (value) pkg->flag |= FLAG_UPGRADE;
   else       pkg->flag &= ~FLAG_UPGRADE;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_flag_obsolete(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_OBSOLETE;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag_obsolete(pkg, value=1)
+  URPM::Package pkg
+  int value
+  CODE:
+  RETVAL = pkg->flag & FLAG_OBSOLETE;
+  if (value) pkg->flag |= FLAG_OBSOLETE;
+  else       pkg->flag &= ~FLAG_OBSOLETE;
   OUTPUT:
   RETVAL
 
