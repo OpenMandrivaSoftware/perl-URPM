@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 9mdk
+%define release 10mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul  7 2003 François Pons <fpons@mandrakesoft.com> 0.91-10mdk
+- fixed backtracking not applied on promotion which now ends
+  up in removing the initial packages.
+- promote and psel are propagated into selected hash.
+
 * Mon Jul  7 2003 François Pons <fpons@mandrakesoft.com> 0.91-9mdk
 - fixed provides from package not examined for looking into
   unsatisfied requires.

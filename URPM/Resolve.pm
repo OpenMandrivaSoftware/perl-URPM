@@ -208,6 +208,7 @@ sub unsatisfied_requires {
 
 sub backtrack_selected {
     my ($urpm, $db, $state, $dep, %options) = @_;
+    my @properties;
 
     if (defined $dep->{required}) {
 	#- search for all possible packages, first is to try the selection, then if it is
@@ -274,9 +275,24 @@ sub backtrack_selected {
 	}
     }
 
+    if (defined $dep->{promote} && defined $dep->{psel}) {
+	#- the backtrack need to examine diff_provides promotion on $n.
+	$db->traverse_tag('whatrequires', [ $dep->{promote} ], sub {
+			      my ($p) = @_;
+			      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $dep->{promote})) {
+				  #- typically a redo of the diff_provides code should be applied...
+				  $urpm->resolve_rejected($db, $state, $p,
+							  removed => 1,
+							  unsatisfied => \@properties,
+							  from => scalar $dep->{psel}->fullname,
+							  why => { unsatisfied => \@l });
+			      }
+			  });
+    }
+
     #- some packages may have been removed because of selection of this one.
     #- the rejected flags should have been cleaned by disable_selected above.
-    ();
+    @properties;
 }
 
 #- close rejected (as urpme previously) for package to be removable without error.
@@ -442,6 +458,8 @@ sub resolve_requested {
 	push @selected, $pkg;
 	$state->{selected}{$pkg->id} = { exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
 					 exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+					 exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
+					 exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
 					 $pkg->flag_disable_obsolete ? (install => 1) : @{[]},
 				       };
 
@@ -516,7 +534,7 @@ sub resolve_requested {
 	    }
 
 	    foreach my $n (keys %diff_provides) {
-		$db->traverse_tag('whatrequires', [ $n ], sub {
+ 		$db->traverse_tag('whatrequires', [ $n ], sub {
 				      my ($p) = @_;
 				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $n)) {
 					  #- try if upgrading the package will be satisfying all the requires...
@@ -549,8 +567,10 @@ sub resolve_requested {
 						  push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 					      } else {
 						  $urpm->resolve_rejected($db, $state, $p,
-									  removed => 1, unsatisfied => \@properties,
-									  from => scalar $pkg->fullname, why => { unsatisfied => \@l });
+									  removed => 1,
+									  unsatisfied => \@properties,
+									  from => scalar $pkg->fullname,
+									  why => { unsatisfied => \@l });
 					      }
 					  }
 				      }
@@ -559,7 +579,10 @@ sub resolve_requested {
 	}
 
 	#- all requires should be satisfied according to selected package, or installed packages.
-	push @properties, map { +{ required => $_, from => $pkg } } $urpm->unsatisfied_requires($db, $state, $pkg);
+	push @properties, map { +{ required => $_, from => $pkg,
+				   exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
+				   exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
+				 } } $urpm->unsatisfied_requires($db, $state, $pkg);
 
 	#- keep in mind what is requiring each item (for unselect to work).
 	foreach ($pkg->requires_nosense) {
@@ -706,7 +729,8 @@ sub disable_selected_unrequested_dependencies {
 	    foreach ($_->requires_nosense) {
 		foreach (keys %{$urpm->{provides}{$_} || {}}) {
 		    my $pkg = $urpm->{depslist}[$_] or next;
-		    exists $state->{selected}{$pkg->id} or next;
+		    $state->{selected}{$pkg->id} or next;
+		    $state->{selected}{$pkg->id}{psel} && $state->{selected}{$state->{selected}{$pkg->id}{psel}->id} and next;
 		    $pkg->flag_requested and next;
 		    $required{$pkg->id} = undef;
 		}
@@ -720,7 +744,7 @@ sub disable_selected_unrequested_dependencies {
 		foreach (keys %{$state->{whatrequires}{$_} || {}}) {
 		    my $p = $urpm->{depslist}[$_] or next;
 		    exists $required{$p->id} and next;
-		    exists $state->{selected}{$p->id} and $required{$pkg->id} = 1;
+		    $state->{selected}{$p->id} and $required{$pkg->id} = 1;
 		}
 	    }
 	}
