@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.08
+%define version 1.09
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -66,6 +66,10 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Tue Feb 15 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.09-1mdk
+- Force recomputation of rejected packages when deleting some in installation
+  dependency resolution
+
 * Fri Feb 11 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.08-1mdk
 - Add macro handling code (O. Thauvin)
 

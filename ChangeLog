@@ -1,3 +1,20 @@
+2005-02-15 13:48  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Comments and indentation
+
+2005-02-15 12:29  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Force recomputation of rejected packages when
+	  deleting some in installation dependency resolution
+
+2005-02-11 15:17  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm: POD fix.
+
+2005-02-11 15:07  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 1.08-1mdk
+
 2005-02-11 14:59  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM.pm, URPM.xs: Add macro handling code from Olivier Thauvin
