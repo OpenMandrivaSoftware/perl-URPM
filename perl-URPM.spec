@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.93
-%define release 7mdk
+%define version 0.94
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Aug 21 2003 François Pons <fpons@mandrakesoft.com> 0.94-1mdk
+- fix for pubkey name extraction (gc).
+- updated code to be more adapted for both urpmi and DrakX
+  in URPM::Signature.
+
 * Wed Aug 20 2003 François Pons <fpons@mandrakesoft.com> 0.93-7mdk
 - fixed diff provides to be ignored on obsoleted provides which caused
   resolver to choose bad package due to removed obsoleted provides.

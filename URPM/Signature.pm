@@ -25,6 +25,41 @@ sub compare_pubkeys {
     $diff <= $options{diff} ? 0 : $diff;
 }
 
+#- parse an armored file and import in keys hash if the key does not already exists.
+sub parse_armored_file {
+    my ($urpm, $file, %options) = @_;
+    my ($block, $content, @l);
+
+    #- check if an already opened file has been given directly.
+    unless (ref $file) {
+	my $F;
+	open $F, $file;
+	$file = $F;
+    }
+
+    #- read armored file.
+    local $_;
+    while (<$file>) {
+	my $inside_block = /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
+	if ($inside_block) {
+	    $block .= $_;
+	    if ($inside_block =~ /E/) {
+		#- block is needed to import the key if needed.
+		push @l, { block => $block, content => $content };
+		$block = $content = undef;
+	    } else {
+		#- compute content for finding the right key.
+		chomp;
+		/^$/ and $content = '';
+		defined $content and $content .= $_;
+	    }
+	}
+    }
+    close F;
+
+    @l;
+}
+
 #- pare from rpmlib db.
 sub parse_pubkeys {
     my ($urpm, %options) = @_;
@@ -45,6 +80,7 @@ sub parse_pubkeys {
 					  $urpm->{keys}{$p->version} = { $p->summary =~ /^gpg\((.*)\)$/ ? (name => $1) : @{[]},
 									 id => $p->version,
 									 content => $content,
+									 block => $p->description,
 								       };
 					  $block = undef;
 					  $content = '';
@@ -57,68 +93,35 @@ sub parse_pubkeys {
 		      })
 }
 
-#- parse an armored file and import in keys hash if the key does not already exists.
-sub parse_armored_file {
-    my ($urpm, $file, %options) = @_;
-    my ($block, @l, $content);
-    local (*F, $_);
-
-    #- read armored file.
-    open F, $file;
-    while (<F>) {
-	chomp;
-	$block ||= /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/;
-	if ($block) {
-	    my $inside_block = /^$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
-	    if ($inside_block > 1) {
-		if ($inside_block =~ /E/) {
-		    push @l, +{ content => $content };
-		    $block = undef;
-		    $content = '';
-		} else {
-		    $content .= $_;
-		}
-	    }
-	}
-    }
-    close F or die "unable to parse armored file $file";
-
-    #- check if key has been found, remove from list.
-    if ($options{only_unknown_keys}) {
-	@l = grep {
-	    my $found = 0;
-	    foreach my $k (values %{$urpm->{keys} || {}}) {
-		compare_pubkeys($k, $_) == 0 and $found = 1, last;
-	    }
-	    !$found;
-	} @l;
-    }
-
-    @l;
-}
-
-sub import_armored_file {
-    my ($urpm, $file, %options) = @_;
+#- import pubkeys only if it is needed.
+sub import_needed_pubkeys {
+    my ($urpm, $l, %options) = @_;
     local (*F, $_);
     my $block = '';
 
-    #- read armored file.
-    open F, $file;
-    while (<F>) {
-	my $inside_block = /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
-	if ($inside_block) {
-	    $block .= $_;
-	    if ($inside_block =~ /E/) {
-		#- import key using the given database if any else the function will open the rpmdb itself.
-		#- FIXME workaround for rpm 4.2 if the rpmdb is left opened, the keys content are sligtly
-		#- modified by algorithms...
-		URPM::import_pubkey(block => $block, db => $options{db}, root => $options{root})
-		    or die "import of armored file failed";
-		$block = '';
+    #- use the same database handle to avoid re-opening multiple times the database.
+    my $db = $options{db};
+    $db ||= URPM::DB::open($options{root}, 1);
+
+    #- assume $l is a reference to an array containing all the keys to import
+    #- if needed.
+    foreach my $k (@{$l || []}) {
+	my ($id, $imported);
+	foreach my $kv (values %{$urpm->{keys} || {}}) {
+	    compare_pubkeys($k, $kv, %options) == 0 and $id = $kv->{id}, last;
+	}
+	unless ($id) {
+	    $imported = 1;
+	    import_pubkey(block => $k->{block}, db => $db);
+	    $urpm->parse_pubkeys(db => $db);
+	    foreach my $kv (values %{$urpm->{keys} || {}}) {
+		compare_pubkeys($k, $kv, %options) == 0 and $id = $kv->{id}, last;
 	    }
 	}
+	#- let the caller know about what has been found.
+	#- this is an error if the key is not found.
+	$options{callback} and $options{callback}->($urpm, $db, $k, $id, $imported, %options);
     }
-    close F or die "unable to parse armored file $file";
 }
 
 1;
