@@ -10,7 +10,7 @@ eval { $u->parse_hdlist('non-existent'); };
 like( $@, qr/^cannot open hdlist file non-existent/, 'fatal error on hdlist not found' );
 is( $! + 0, $!{EBADF}, '$! is EBADF' );
 eval { $u->parse_synthesis('non-existent'); };
-like( $@, qr/^unable to uncompress synthesis file non-existent/, 'fatal error on synthesis not found' );
+like( $@, qr/^unable to read synthesis file non-existent/, 'fatal error on synthesis not found' );
 is( $! + 0, $!{ENOENT}, '$! is ENOENT' );
 
 my $v = new URPM( nofatal => 1 );

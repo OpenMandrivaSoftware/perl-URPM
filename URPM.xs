@@ -3326,9 +3326,11 @@ Urpm_parse_synthesis(urpm, filename, ...)
 	}
       } else {
 	  SV **nofatal = hv_fetch((HV*)SvRV(urpm), "nofatal", 7, 0);
-	  errno = ENOENT;
+	  if (!errno) errno = EINVAL; /* zlib error */
 	  if (!nofatal || !SvIV(*nofatal))
-	      croak("unable to uncompress synthesis file %s", filename);
+	      croak(errno == ENOENT
+		      ? "unable to read synthesis file %s"
+		      : "unable to uncompress synthesis file %s", filename);
       }
     } else croak("first argument should contain a depslist ARRAY reference");
   } else croak("first argument should be a reference to a HASH");
