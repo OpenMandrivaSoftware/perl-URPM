@@ -97,7 +97,7 @@ sub resolve_closure_ask_remove {
 					closure => { $from => $why },
 				      };
 
-	my @removes = ($pkg);
+	my @removes = $pkg;
 	while ($pkg = shift @removes) {
 	    #- clean state according to provided properties.
 	    foreach ($pkg->provides) {
@@ -294,7 +294,7 @@ sub resolve_requested {
 	$state->{selected}{$pkg->id} = delete $requested->{$dep};
 
 	$options{no_flag_update} or
-	  $state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required;
+	  ($state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required);
 
 	#- check if package is not already installed before trying to use it, compute
 	#- obsoleted package too. this is valable only for non source package.
