@@ -12,24 +12,9 @@ use strict;
 # Return an array of ID tag
 
 sub tag2id {
+	my @l = @_;
 	my %taglist = URPM::list_rpm_tag;
-	map { $taglist{uc("RPMTAG_$_")} || undef } @_;
-}
-
-# id2tag
-# INPUT array of rpm id tag
-# Return an array of tag name
-
-sub id2tag {
-	my @id = @_;
-	my %taglist = URPM::list_rpm_tag;
-	my @ret;
-	foreach my $thisid (@id) {
-		my $res = grep { $taglist{$_} == $thisid } keys (%taglist);
-		$res =~ s/^RPMTAG_//;
-		push (@ret, $res ? $res : undef);
-	}
-	@ret
+	map { $taglist{uc("RPMTAG_$_")} || undef } @l;
 }
 
 sub query_pkg {
