@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.95
-%define release 1mdk
+%define release 2mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -38,7 +38,6 @@ hdlist files and manage them in memory.
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor
 %{__make} OPTIMIZE="$RPM_OPT_FLAGS"
-%{__make} test
 
 %install
 %{__rm} -rf %{buildroot}
@@ -58,6 +57,10 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Fri May 21 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.95-2mdk
+- Don't include older packages than the installed ones in the dependencies
+  (except when urpmi is invoked with --allow-force)
+
 * Thu May 06 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.95-1mdk
 - Add a way to make some error messages non-fatal
 
