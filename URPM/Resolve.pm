@@ -212,7 +212,7 @@ sub backtrack_selected {
 							   dep => $dep, alternatives => $packages, %options) <= 0) {
 			    #- keep in mind a backtrack has happening here...
 			    $state->{rejected}{$_->fullname}{backtrack} ||=
-			      { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
+			      { exists $dep->{promote} ? (promote => [ $dep->{promote} ]) : @{[]},
 				exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
 			      };
 			    #- backtrack callback should return a strictly positive value if the selection of the new
@@ -279,8 +279,7 @@ sub backtrack_selected {
 	    #- the package is already rejected, we assume we can add another reason here!
 	    defined $dep->{promote} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{promote}}, $dep->{promote};
 	    #- to simplify, a reference to list or standalone elements may be set in keep.
-	    defined $dep->{keep} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{keep}},
-	      ref $dep->{keep} ? @{$dep->{keep}} : $dep->{keep};
+	    defined $dep->{keep} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{keep}}, @{$dep->{keep}};
 	} else {
 	    #- the backtrack need to examine diff_provides promotion on $n.
 	    $db->traverse_tag('whatrequires', [ $dep->{promote} ], sub {
@@ -683,7 +682,7 @@ sub resolve_requested {
 					  } else {
 					      if ($options{keep}) {
 						  unshift @properties, $urpm->backtrack_selected($db, $state,
-												 { keep => scalar $p->fullname,
+												 { keep => [ scalar $p->fullname ],
 												   psel => $pkg,
 												 },
 												 %options);
