@@ -1,3 +1,15 @@
+2004-08-29 14:29  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.pm, perl-URPM.spec: - 1.03
+
+2004-08-29 13:56  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs, t/parse.t: - backport rpmvercmp binding from perl-Hdlist
+
+2004-08-24 11:43  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 1.02-1mdk
+
 2004-08-24 11:29  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM.xs: From now, the nopromoteepoch argument will always
