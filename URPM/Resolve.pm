@@ -655,7 +655,7 @@ sub compute_skip_flags {
     #- avoid losing our time.
     %$skip or return;
 
-    foreach my $pkg (@{$urpm->{depslist}[$_]}) {
+    foreach my $pkg (@{$urpm->{depslist}}) {
 	#- check if fullname is matching a regexp.
 	if (grep { exists($skip->{$_}{''}) && /^\/(.*)\/$/ && $pkg->fullname =~ /$1/ } keys %$skip) {
 	    #- a single selection on fullname using a regular expression.
