@@ -2914,6 +2914,8 @@ void
 Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
   SV *urpm
   char *filename
+  int packing;
+  int keep_all_tags;
   PPCODE:
   if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
     SV **fdepslist = hv_fetch((HV*)SvRV(urpm), "depslist", 8, 0);
@@ -2923,8 +2925,6 @@ Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
 
     if (depslist != NULL) {
       struct s_Package pkg;
-      int packing = 0;
-      int keep_all_tags = 0;
       SV *callback = NULL;
 
       /* compability mode with older interface of parse_hdlist */
