@@ -30,5 +30,4 @@ WriteMakefile(
     'DEFINE'    => $define,
     'INC'       => '-I/usr/include/rpm',
     INSTALLDIRS => 'vendor',
-    INSTALLMAN3DIR => 'none',
 );

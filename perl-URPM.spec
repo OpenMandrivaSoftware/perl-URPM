@@ -1,6 +1,12 @@
+# Do not edit this spec from src.rpm
+# This spec is part of MandrakeSoft's cvs
+# See http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/
+
+# $Id$
+
 %define name perl-URPM
 %define real_name URPM
-%define version 0.96
+%define version 0.97
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -49,7 +55,7 @@ hdlist files and manage them in memory.
 %files
 %defattr(-,root,root)
 %doc README
-#%{_mandir}/man3pm/*
+%{_mandir}/man3/*
 %{compat_perl_vendorarch}/URPM.pm
 %{compat_perl_vendorarch}/URPM
 %dir %{compat_perl_vendorarch}/auto/URPM
@@ -57,6 +63,9 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Wed Jul 14 2004 Olivier Thauvin <thauvin@aerov.jussieu.fr> 0.97-1mdk
+- Generate man page
+
 * Mon Jul 12 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.96-1mdk
 - Simplify the parsing of skip.list and inst.list files
 - Segfault fixes by Olivier Thauvin
