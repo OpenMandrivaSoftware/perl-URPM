@@ -575,7 +575,10 @@ sub resolve_requested {
 					      $rv->{obsoleted} = 1;
 					  }
 
+					  #- avoid diff_provides on obsoleted provides.
+					  my %obsoletes; @obsoletes{$p->obsoletes} = ();
 					  foreach ($p->provides) {
+					      exists $obsoletes{$_} and next;
 					      #- check differential provides between obsoleted package and newer one.
 					      if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 						  $diff_provides{$pn} = undef;
@@ -615,6 +618,7 @@ sub resolve_requested {
 	    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 		foreach (keys %{$urpm->{provides}{$n} || {}}) {
 		    my $p = $urpm->{depslist}[$_];
+		    $pkg == $p and next;
 		    $p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
 		    $state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
 		}
@@ -932,13 +936,7 @@ sub request_packages_to_upgrade {
 	    }
 
 	    my $p = $names{$pkg->name};
-	    if ($p) {
-		if ($pkg->compare_pkg($p) > 0) {
-		    $names{$pkg->name} = $pkg;
-		}
-	    } else {
-		$names{$pkg->name} = $pkg;
-	    }
+	    !$p || $pkg->compare_pkg($p) > 0 and $names{$pkg->name} = $pkg;
 	}
     }
 

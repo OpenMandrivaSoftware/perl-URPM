@@ -53,6 +53,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Wed Aug 20 2003 François Pons <fpons@mandrakesoft.com> 0.93-7mdk
+- fixed diff provides to be ignored on obsoleted provides which caused
+  resolver to choose bad package due to removed obsoleted provides.
 - added URPM::Signature::compare_pubkeys to workaround rpm
   importation of key with modified armor.
 
