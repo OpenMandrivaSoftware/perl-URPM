@@ -63,9 +63,10 @@ hdlist files and manage them in memory.
 
 
 %changelog
-* Tue Oct 19 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.03-2mdk
+* Wed Oct 27 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.03-2mdk
+- Support for urpmi --strict-arch option
 - Multiarch fix (Gwenole Beauchesne)
-- Don't use $TMPDIR if not writage
+- Don't use $TMPDIR if not writable
 
 * Sun Aug 29 2004 Olivier Thauvin <thauvin@aerov.jussieu.fr> 1.03-1mdk
 - add rpmvercmp binding (from perl-Hdlist)
