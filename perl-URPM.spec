@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 7mdk
+%define release 8mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Feb 13 2003 François Pons <fpons@mandrakesoft.com> 0.81-8mdk
+- fixed compute_installed_flags to take of compatible arch.
+
 * Thu Jan 23 2003 François Pons <fpons@mandrakesoft.com> 0.81-7mdk
 - fixed unsatisfied requires of already selected package to
   an installed properties which is removed later.
