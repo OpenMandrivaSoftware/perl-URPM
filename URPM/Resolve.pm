@@ -237,16 +237,21 @@ sub backtrack_selected {
     #- at this point, dep cannot be resolved, this means we need to disable
     #- all selection tree, re-enabling removed and obsoleted packages as well.
     if (defined $dep->{from}) {
-	print STDERR "backtracking from ".$dep->{from}->fullname."\n";
-	my @l = $urpm->disable_selected($db, $state, $dep->{from});
-	foreach (@l) {
-	    #- disable all these packages in order to avoid selecting them again.
-	    $state->{rejected}{$_->fullname}{backtrack} = 1;
+	unless (exists $state->{rejected}{$dep->{from}->fullname}) {
+	    #- package is not currently rejected, compute the closure now.
+	    my @l = $urpm->disable_selected($db, $state, $dep->{from});
+	    foreach (@l) {
+		#- disable all these packages in order to avoid selecting them again.
+		$_->fullname eq $dep->{from}->fullname or
+		  $state->{rejected}{$_->fullname}{backtrack}{closure}{$dep->{from}->fullname} = undef;
+	    }
 	}
+	#- the package is already rejected, we assume we can add another reason here!
+	push @{$state->{rejected}{$dep->{from}->fullname}{backtrack}{unsatisfied}}, $dep->{required};
     }
 
-    #- it could happen if removed is used, in such case, the remove should be canceled.
-    #TODO
+    #- some packages may have been removed because of selection of this one.
+    #- the rejected flags should have been cleaned by disable_selected above.
     ();
 }
 
@@ -327,7 +332,7 @@ sub resolve_rejected {
 #-   check : check requires of installed packages.
 sub resolve_requested {
     my ($urpm, $db, $state, $requested, %options) = @_;
-    my (@properties, $dep);
+    my ($dep, @properties, @selected);
 
     #- populate properties with backtrack informations.
     while (my ($r, $v) = each %$requested) {
@@ -412,6 +417,7 @@ sub resolve_requested {
 	#- keep in mind the package has be selected, remove the entry in requested input hash,
 	#- this means required dependencies have undef value in selected hash.
 	#- requested flag is set only for requested package where value is not false.
+	push @selected, $pkg;
 	$state->{selected}{$pkg->id} = { exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
 					 exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 				       };
@@ -435,7 +441,7 @@ sub resolve_requested {
 			    $p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
 			}
 			#- these packages are not yet selected, if they happens to be selected,
-			#- they must first be unselected. TODO
+			#- they must first be unselected.
 			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
 		    }
 		    #- examine rpm db too.
@@ -571,8 +577,9 @@ sub resolve_requested {
 			  });
     }
 
-    #- return what has been selected by this call (not all selected hash).
-    #TODO
+    #- return what has been selected by this call (not all selected hash which may be not emptry
+    #- previously. avoid returning rejected package which have not be selectable.
+    grep { exists $state->{selected}{$_->id} } @selected;
 }
 
 #- do the opposite of the above, unselect a package and extend

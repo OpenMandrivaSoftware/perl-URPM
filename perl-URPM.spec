@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon May 26 2003 François Pons <fpons@mandrakesoft.com> 0.90-2mdk
+- fixed URPM::resolve_requested return value (list of package
+  selected by this call).
+- fixed backtrack reason to be stored in rejected hash (so that
+  urpmi can say why a package is not selected).
+
 * Fri May 23 2003 François Pons <fpons@mandrakesoft.com> 0.90-1mdk
 - extended URPM::search with newer/modified options.
 - fixed URPM::Package::compare_pkg to work with identical
