@@ -31,6 +31,7 @@ struct s_Package {
   char *conflicts;
   char *provides;
   char *rflags;
+  char *summary;
   unsigned flag;
   Header h;
 };
@@ -362,6 +363,12 @@ pack_header(URPM__Package pkg) {
       pkg->conflicts = pack_list(pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION);
     if (pkg->provides == NULL)
       pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION);
+    if (pkg->summary == NULL) {
+      char *summary = get_name(pkg->h, RPMTAG_SUMMARY);
+      int len = 1 + strlen(summary);
+
+      pkg->summary = memcpy(malloc(len), summary, len);
+    }
 
     if (!(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
     pkg->h = 0;
@@ -579,7 +586,9 @@ open_archive(char *filename, pid_t *pid) {
 }
 
 static void
-parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff) {
+parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, SV *callback) {
+  SV *sv_pkg;
+  URPM__Package _pkg;
   char *tag, *data;
   int data_len;
 
@@ -590,9 +599,29 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff) {
       pkg->info = memcpy(malloc(data_len), data, data_len);
       pkg->flag &= ~FLAG_ID;
       pkg->flag |= 1 + av_len(depslist);
-      if (provides) update_provides(pkg, provides);
-      av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
-				     memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package))));
+      sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
+			    _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package)));
+      if (callback != NULL) {
+	/* now, a callback will be called for sure */
+	dSP;
+	PUSHMARK(sp);
+	XPUSHs(urpm);
+	XPUSHs(sv_pkg);
+	PUTBACK;
+	if (call_sv(callback, G_SCALAR) == 1) {
+	  SPAGAIN;
+	  if (!POPi) {
+	    /* package should not be added in depslist, so we free it */
+	    SvREFCNT_dec(sv_pkg);
+	    sv_pkg = NULL;
+	  }
+	  PUTBACK;
+	}
+      }
+      if (sv_pkg) {
+	if (provides) update_provides(_pkg, provides);
+	av_push(depslist, sv_pkg);
+      }
       memset(pkg, 0, sizeof(struct s_Package));
     } else if (!strcmp(tag, "requires")) {
       free(pkg->requires); pkg->requires = memcpy(malloc(data_len), data, data_len);
@@ -602,6 +631,8 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff) {
       free(pkg->conflicts); pkg->conflicts = memcpy(malloc(data_len), data, data_len);
     } else if (!strcmp(tag, "provides")) {
       free(pkg->provides); pkg->provides = memcpy(malloc(data_len), data, data_len);
+    } else if (!strcmp(tag, "summary")) {
+      free(pkg->summary); pkg->summary = memcpy(malloc(data_len), data, data_len);
     }
   }
 }
@@ -767,6 +798,8 @@ static void *rpmRunTransactions_callback(const void *h,
     if (callback != NULL) {
       /* now, a callback will be called for sure */
       dSP;
+      ENTER;
+      SAVETMPS;
       PUSHMARK(sp);
       XPUSHs(td->data);
       XPUSHs(sv_2mortal(newSVpv(callback_type, 0)));
@@ -792,6 +825,8 @@ static void *rpmRunTransactions_callback(const void *h,
 	  fd = NULL;
 	}
       }
+      FREETMPS;
+      LEAVE;
     }
   }
   return fd;
@@ -809,6 +844,7 @@ Pkg_DESTROY(pkg)
   free(pkg->conflicts);
   free(pkg->provides);
   free(pkg->rflags);
+  free(pkg->summary);
   if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
   free(pkg);
 
@@ -893,7 +929,9 @@ void
 Pkg_summary(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->summary) {
+    XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
+  } else if (pkg->h) {
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_SUMMARY), 0)));
   }
 
@@ -1455,6 +1493,10 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
     }
     if (pkg->requires && *pkg->requires) {
       size = snprintf(buff, sizeof(buff), "@requires@%s\n", pkg->requires);
+      if (size < sizeof(buff)) write(fileno, buff, size);
+    }
+    if (pkg->summary && *pkg->summary) {
+      size = snprintf(buff, sizeof(buff), "@summary@%s\n", pkg->summary);
       if (size < sizeof(buff)) write(fileno, buff, size);
     }
     size = snprintf(buff, sizeof(buff), "@info@%s\n", pkg->info);
@@ -2170,7 +2212,7 @@ Urpm_ranges_overlap(a, b)
   RETVAL
 
 void
-Urpm_parse_synthesis(urpm, filename)
+Urpm_parse_synthesis(urpm, filename, ...)
   SV *urpm
   char *filename
   PPCODE:
@@ -2188,6 +2230,19 @@ Urpm_parse_synthesis(urpm, filename)
       gzFile f;
       int start_id = 1 + av_len(depslist);
       int count = 1;
+      SV *callback = NULL;
+
+      if (items > 2) {
+	int i;
+	for (i = 2; i < items-1; i+=2) {
+	  STRLEN len;
+	  char *s = SvPV(ST(i), len);
+
+	  if (len == 8 && !memcmp(s, "callback", 8)) {
+	    callback = ST(i+1);
+	  }
+	}
+      }
 
       if ((f = gzopen(filename, "rb")) != NULL) {
 	memset(&pkg, 0, sizeof(struct s_Package));
@@ -2198,7 +2253,7 @@ Urpm_parse_synthesis(urpm, filename)
 	  if ((eol = strchr(p, '\n')) != NULL) {
 	    do {
 	      *eol++ = 0;
-	      parse_line(depslist, provides, &pkg, p);
+	      parse_line(depslist, provides, &pkg, p, urpm, callback);
 	      p = eol;
 	    } while ((eol = strchr(p, '\n')) != NULL);
 	  } else {
@@ -2206,7 +2261,7 @@ Urpm_parse_synthesis(urpm, filename)
 	    break;
 	  }
 	  if (gzeof(f)) {
-	    parse_line(depslist, provides, &pkg, p);
+	    parse_line(depslist, provides, &pkg, p, urpm, callback);
 	    break;
 	  } else {
 	    memmove(buff, p, buff_len-(p-buff));
@@ -2223,10 +2278,9 @@ Urpm_parse_synthesis(urpm, filename)
   } else croak("first argument should be a reference to HASH");
 
 void
-Urpm_parse_hdlist(urpm, filename, packing=0)
+Urpm_parse_hdlist(urpm, filename, ...)
   SV *urpm
   char *filename
-  int packing
   PPCODE:
   if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
     SV **fdepslist = hv_fetch((HV*)SvRV(urpm), "depslist", 8, 0);
@@ -2246,6 +2300,25 @@ Urpm_parse_hdlist(urpm, filename, packing=0)
       if (fdFileno(fd) >= 0) {
 	Header header;
 	int start_id = 1 + av_len(depslist);
+	int packing = 0;
+	SV *callback = NULL;
+
+	/* compability mode with older interface of parse_hdlist */
+	if (items == 3) {
+	  packing = SvIV(ST(2));
+	} else if (items > 3) {
+	  int i;
+	  for (i = 2; i < items-1; i+=2) {
+	    STRLEN len;
+	    char *s = SvPV(ST(i), len);
+
+	    if (len == 7 && !memcmp(s, "packing", 7)) {
+	      packing = SvIV(ST(i + 1));
+	    } else if (len == 8 && !memcmp(s, "callback", 8)) {
+	      callback = ST(i+1);
+	    }
+	  }
+	}
 
 	do {
 	  int count = 4;
@@ -2264,18 +2337,39 @@ Urpm_parse_hdlist(urpm, filename, packing=0)
 	    --count;
 	  }
 	  if (header != NULL) {
-	    struct s_Package pkg;
+	    struct s_Package pkg, *_pkg;
+	    SV *sv_pkg;
 
 	    memset(&pkg, 0, sizeof(struct s_Package));
 	    pkg.flag = 1 + av_len(depslist);
 	    pkg.h = header;
-	    if (provides) {
-	      update_provides(&pkg, provides);
-	      update_provides_files(&pkg, provides);
+	    sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
+				  _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package)));
+	    if (callback != NULL) {
+	      /* now, a callback will be called for sure */
+	      dSP;
+	      PUSHMARK(sp);
+	      XPUSHs(urpm);
+	      XPUSHs(sv_pkg);
+	      PUTBACK;
+	      if (call_sv(callback, G_SCALAR) == 1) {
+		SPAGAIN;
+		if (!POPi) {
+		  /* package should not be added in depslist, so we free it */
+		  SvREFCNT_dec(sv_pkg);
+		  sv_pkg = NULL;
+		}
+		PUTBACK;
+	      }
 	    }
-	    if (packing) pack_header(&pkg);
-	    av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
-					   memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
+	    if (sv_pkg) {
+	      if (provides) {
+		update_provides(_pkg, provides);
+		update_provides_files(_pkg, provides);
+	      }
+	      if (packing) pack_header(_pkg);
+	      av_push(depslist, sv_pkg);
+	    }
 	  }
 	} while (header != NULL);
 	fdClose(fd);
@@ -2296,8 +2390,6 @@ void
 Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
   SV *urpm
   char *filename
-  int packing
-  int keep_all_tags
   PPCODE:
   if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
     SV **fdepslist = hv_fetch((HV*)SvRV(urpm), "depslist", 8, 0);
@@ -2307,7 +2399,28 @@ Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
 
     if (depslist != NULL) {
       struct s_Package pkg;
+      int packing = 0;
+      int keep_all_tags = 0;
+      SV *callback = NULL;
 
+      /* compability mode with older interface of parse_hdlist */
+      if (items == 3) {
+	packing = SvIV(ST(2));
+      } else if (items > 3) {
+	int i;
+	for (i = 2; i < items-1; i+=2) {
+	  STRLEN len;
+	  char *s = SvPV(ST(i), len);
+
+	  if (len == 7 && !memcmp(s, "packing", 7)) {
+	    packing = SvIV(ST(i + 1));
+	  } else if (len == 13 && !memcmp(s, "keep_all_tags", 13)) {
+	    keep_all_tags = SvIV(ST(i+1));
+	  } else if (len == 8 && !memcmp(s, "callback", 8)) {
+	    callback = ST(i+1);
+	  }
+	}
+      }
       memset(&pkg, 0, sizeof(struct s_Package));
       pkg.flag = 1 + av_len(depslist);
       if (update_header(filename, &pkg, provides, packing, keep_all_tags)) {

@@ -1,6 +1,6 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.71
+%define version 0.80
 %define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
@@ -49,6 +49,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Dec  5 2002 François Pons <fpons@mandrakesoft.com> 0.80-1mdk
+- added %%options for parse_(hdlist|synthesis|rpm) to support
+  callback (for urpmf in perl).
+- added summary in synthesis when parsing (for urpmf --summary
+  with synthesis).
+
 * Tue Dec  3 2002 François Pons <fpons@mandrakesoft.com> 0.71-1mdk
 - added options to URPM::Transaction::add to handle excludepath
   option of rpm.
