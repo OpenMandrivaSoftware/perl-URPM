@@ -499,7 +499,7 @@ sub resolve_requested {
 		my (%diff_provides);
 
 		foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
-		    $pkg->name eq $_ and next; #- this package obsoletes itself ?? Ignore.
+		    #$pkg->name eq $_ and print STDERR "avoiding same name for package ".$pkg->fullname."\n", next; #- this package obsoletes itself ?? Ignore.
 		    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 			#- populate avoided entries according to what is selected.
 			foreach (keys %{$urpm->{provides}{$n} || {}}) {
@@ -536,7 +536,7 @@ sub resolve_requested {
 				if ($p->name eq $pkg->name) {
 				    #- all packages older than the current one are obsoleted,
 				    #- the others are simply removed (the result is the same).
-				    if ($comparison > 0) {
+				    if ($o && $comparison > 0) {
 					#- installed package is newer
 					#- remove this package from the list of packages to install,
 					#- unless urpmi was invoked with --allow-force (in which
