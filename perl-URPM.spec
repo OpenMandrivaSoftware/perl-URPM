@@ -30,7 +30,7 @@ URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.0.3 bzip2-devel
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 Requires:	packdrake >= 5.0.2
-Requires:	perl-base >= 5.8.6
+Requires:	perl-base >= 2:5.8.6
 Provides:	perl(URPM::Build) = %{version}-%{release}
 Provides:	perl(URPM::Resolve) = %{version}-%{release}
 Provides:	perl(URPM::Signature) = %{version}-%{release}
