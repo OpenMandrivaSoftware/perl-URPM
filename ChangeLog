@@ -1,4 +1,13 @@
-2003-12-09 19:40  Fançois Pons <fpons@mandrakesoft.com>
+2004-02-25 23:35  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* perl-URPM.spec: 0.94-11mdk
+
+2004-01-18 03:25  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM/Build.pm: - parse_rpm_build_headers have same behaviour with
+	  dontdie and callback	 when using cache or the rpm
+
+2003-12-09 20:40  Fançois Pons <fpons@mandrakesoft.com>
 
 	* URPM.xs, perl-URPM.spec, URPM/Resolve.pm: added support for RH
 	  7.3
