@@ -3234,6 +3234,11 @@ Urpm_list_rpm_tag(urpm=Nullsv)
        }
 
 int
+rpmvercmp(one, two)
+    char *one
+    char *two        
+       
+int
 Urpm_ranges_overlap(a, b, b_nopromote=1)
   char *a
   char *b
