@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Dec 18 2002 Pixel <pixel@mandrakesoft.com> 0.81-3mdk
+- help perl_checker recognise packages used as classes
+
 * Wed Dec 18 2002 Pixel <pixel@mandrakesoft.com> 0.81-2mdk
 - perl_checker fixes
 

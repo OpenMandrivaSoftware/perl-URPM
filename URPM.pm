@@ -133,3 +133,14 @@ sub traverse_tag {
 
     $count;
 }
+
+package URPM::Package;
+our @ISA = qw(); # help perl_checker
+
+package URPM::Transaction;
+our @ISA = qw(); # help perl_checker
+
+package URPM::DB;
+our @ISA = qw(); # help perl_checker
+
+1;
