@@ -1,3 +1,17 @@
+2004-07-22 05:15  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.xs, t/parse.t: Add URPM::stream2header (borrowed from
+	  perl-Hdlist, thanks to Olivier Thauvin)
+
+2004-07-14 11:14  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* Makefile.PL, URPM.pm, perl-URPM.spec: - generate the manpage -
+	  0.97
+
+2004-07-12 08:12  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: Version 0.96
+
 2004-07-12 03:23  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM/Resolve.pm: Don't use keys() in scalar context
