@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Sep  2 2003 François Pons <fpons@mandrakesoft.com> 0.94-3mdk
+- fixed updating with older package not properly handled.
+
 * Fri Aug 22 2003 François Pons <fpons@mandrakesoft.com> 0.94-2mdk
 - fixed potential deadlock on backtrack (use keep on the fly
   algorithm to complete backtracking).
