@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.93
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug 11 2003 François Pons <fpons@mandrakesoft.com> 0.93-2mdk
+- fixed pubkey management, fixed importation of pubkey in rpmdb.
+
 * Wed Aug  6 2003 François Pons <fpons@mandrakesoft.com> 0.93-1mdk
 - added URPM::Signature for handling armored gpg file and
   internal rpm pubkey.

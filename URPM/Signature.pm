@@ -35,7 +35,7 @@ sub parse_pubkeys {
 
 #- parse an armored file and import in keys hash if the key does not already exists.
 sub parse_armored_file {
-    my ($urpm, $file) = @_;
+    my ($urpm, $file, %options) = @_;
     my ($block, @l, $content);
     local (*F, $_);
 
@@ -64,13 +64,15 @@ sub parse_armored_file {
     @l < 1 and die "no key found while parsing armored file";
 
     #- check if key has been found, remove from list.
-    @l = grep {
-	my $found = 0;
-	foreach my $k (values %{$urpm->{keys} || {}}) {
-	    $k->{content} eq $_ and $found = 1, last;
-	}
-	!$found;
-    } @l;
+    if ($options{only_unknown_keys}) {
+	@l = grep {
+	    my $found = 0;
+	    foreach my $k (values %{$urpm->{keys} || {}}) {
+		$k->{content} eq $_ and $found = 1, last;
+	    }
+	    !$found;
+	} @l;
+    }
 
     #- now return something (true) which reflect what should be found in keys.
     map { +{ content => $_ } } @l;
@@ -80,7 +82,7 @@ sub import_armored_file {
     my ($urpm, $file, %options) = @_;
 
     #- this is a tempory operation currently...
-    system "$ENV{LD_LOADER} rpm ".($options{root} && "--root '$options{root}'" || "")."--import '$file'" == 0 or
+    system("rpm", ($options{root} ? ("--root", $options{root}) : @{[]}), "--import", $file) == 0 or
       die "import of armored file failed";
 }
 1;
