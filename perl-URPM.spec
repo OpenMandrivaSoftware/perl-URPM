@@ -6,8 +6,8 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.03
-%define release 2mdk
+%define version 1.04
+%define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -49,7 +49,7 @@ hdlist files and manage them in memory.
 %{__rm} -rf %{buildroot}
 %{compat_makeinstall_std}
 
-%clean 
+%clean
 %{__rm} -rf %{buildroot}
 
 %files
@@ -61,8 +61,10 @@ hdlist files and manage them in memory.
 %dir %{compat_perl_vendorarch}/auto/URPM
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
-
 %changelog
+* Wed Nov 10 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.04-1mdk
+- More info reported about failures in dependency resolution.
+
 * Wed Oct 27 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.03-2mdk
 - Support for urpmi --strict-arch option
 - Multiarch fix (Gwenole Beauchesne)
@@ -118,7 +120,7 @@ hdlist files and manage them in memory.
 * Wed Feb 25 2004 Olivier Thauvin <thauvin@aerov.jussieu.fr> 0.94-11mdk
 - parse_rpm_build_headers
 - rebuild for perl
- 
+
 * Tue Dec  9 2003 François Pons <fpons@mandrakesoft.com> 0.94-10mdk
 - added compability with RH 7.3.
 
