@@ -7,7 +7,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 1.07
-%define release 1mdk
+%define release 2mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -29,7 +29,7 @@ Source:		%{real_name}-%{version}.tar.bz2
 URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.0.3 bzip2-devel
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
-Requires:	rpmtools >= 5.0.0
+Requires:	packdrake >= 5.0.2
 Provides:	perl(URPM::Build) = %{version}-%{release}
 Provides:	perl(URPM::Resolve) = %{version}-%{release}
 Provides:	perl(URPM::Signature) = %{version}-%{release}
@@ -65,6 +65,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Mon Dec 13 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.07-2mdk
+- Require packdrake (and no longer rpmtools)
+
 * Mon Dec 13 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.07-1mdk
 - Now returns the list of chosen packages sorted by descending version.
 
