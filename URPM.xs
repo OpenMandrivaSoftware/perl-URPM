@@ -2313,7 +2313,9 @@ Pkg_queryformat(pkg, fmt)
   if (pkg->h) {
       s = headerSprintf(pkg->h, fmt,
     	rpmTagTable, rpmHeaderFormats, NULL);
-      XPUSHs(sv_2mortal(newSVpv(s,0)));
+      if (s) {
+        XPUSHs(sv_2mortal(newSVpv(s,0)));
+      }
   }
   
 void
