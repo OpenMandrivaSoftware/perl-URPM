@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.20
-%define release 2mdk
+%define version 0.50
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jul 23 2002 François Pons <fpons@mandrakesoft.com> 0.50-1mdk
+- changed existing interface for resolve_requested and
+  resolve_unrequested having the same signature.
+- fixed ask_unselect may containing erroneous id after resolution.
+
 * Tue Jul 23 2002 François Pons <fpons@mandrakesoft.com> 0.20-2mdk
 - fixed unrequested code resolution.
 

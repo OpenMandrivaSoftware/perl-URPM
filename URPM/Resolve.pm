@@ -88,7 +88,6 @@ sub resolve_closure_ask_remove {
     unless ($state->{ask_remove}{$name}) {
 	my @removes = ($pkg);
 
-#TODO	print STDERR "resolving closure to remove $name\n";
 	while ($pkg = shift @removes) {
 	    foreach ($pkg->provides) {
 		#- clean state according to provided properties.
@@ -123,12 +122,12 @@ sub resolve_closure_ask_remove {
 #- the following options are recognized :
 #-   check : check requires of installed packages.
 sub resolve_requested {
-    my ($urpm, $db, $state, %options) = @_;
+    my ($urpm, $db, $state, $requested, %options) = @_;
     my (@properties, @obsoleted, %requested, $dep);
 
     #- keep in mind the requested id (if given) in order to prefer these packages
     #- on choices instead of anything other one.
-    @properties = keys %{$state->{requested}};
+    @properties = keys %$requested;
     foreach my $dep (@properties) {
 	@requested{split '\|', $dep} = ();
     }
@@ -195,7 +194,6 @@ sub resolve_requested {
 				  });
 	    }
 	    if ($pkg->flag_installed && !$pkg->flag_upgrade) {
-#TODO		print STDERR "found installed package ".$pkg->fullname." (currently examining $dep)\n";
 		#- the same or a more recent package is installed,
 		#- but this package may be required explicitely, in such
 		#- case we can ask to remove all the previous one and
@@ -218,7 +216,7 @@ sub resolve_requested {
 	#- keep in mind the package has be selected, remove the entry in requested input hasj,
 	#- this means required dependencies have undef value in selected hash.
 	#- requested flag is set only for requested package where value is not false.
-	$state->{selected}{$pkg->id} = delete $state->{requested}{$dep};
+	$state->{selected}{$pkg->id} = delete $requested->{$dep};
 	$options{no_flag_update} or
 	  $state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required;
 
@@ -343,6 +341,7 @@ sub resolve_requested {
 		if (my ($name) = /^([^\s\[]*)/) {
 		    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 			my $p = $urpm->{depslist}[$_];
+			$p->name eq $pkg->name or next;
 			$p->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
 		    }
 		}
@@ -387,9 +386,11 @@ sub resolve_requested {
 	}
     } else {
 	#- obsoleted packages are no longer marked as being asked to be removed.
-#TODO	print STDERR "removing ask_remove: ". join(", ", keys %{$state->{obsoleted}}) . "\n";
 	delete @{$state->{ask_remove}}{map { /(.*)\.[^\.]*$/ && $1 } keys %{$state->{obsoleted}}};
     }
+
+    #- return requested if not empty.
+    %$requested && $requested;
 }
 
 #- do the opposite of the above, unselect a package and extend
@@ -397,19 +398,19 @@ sub resolve_requested {
 #- any other package.
 sub resolve_unrequested {
     my ($urpm, $db, $state, $unrequested, %options) = @_;
-    my (%unrequested, $id);
+    my (@unrequested, %unrequested, $id);
 
     #- keep in mind unrequested package in order to allow unselection
     #- of requested package.
-    #NOT YET USED TODO
-    @unrequested{@$unrequested} = ();
+    @unrequested = keys %$unrequested;
+    @unrequested{@unrequested} = ();
 
     #- iterate over package needing unrequested one.
-    while (defined($id = shift @$unrequested)) {
+    while (defined($id = shift @unrequested)) {
 	my (%diff_provides);
 
 	my $pkg = $urpm->{depslist}[$id];
-	$pkg->flag_selected or next;
+	$pkg->flag_selected || exists $state->{unselected}{$pkg->id} or next;
 
 	#- the package being examined has to be unselected.
 	$options{no_flag_update} or
@@ -450,19 +451,19 @@ sub resolve_unrequested {
 					  #- the package has broken dependencies, but it is already installed.
 					  #- we can remove it (well this is problably not normal).
 					  #TODO
-					  print STDERR "strange broken ".$p->fullname."\n";
+					  $urpm->resolve_closure_ask_remove($db, $state, $p,
+									    { unrequested => 1, pkg => $pkg });
 				      }
 				  });
 		#- check a whatrequires on selected packages directly.
 		foreach (keys %{$state->{whatrequires}{$n} || {}}) {
 		    my $p = $urpm->{depslist}[$_];
-		    print STDERR "examine to drop ".$p->fullname."\n";
 		    $p->flag_selected || exists $state->{unselected}{$p->id} or next;
 		    if ($urpm->unsatisfied_requires($db, $state, $p, $n)) {
 			#- this package has broken dependencies, but it is installed.
 			#- just add it to unrequested.
-			print STDERR "dropping ".$p->fullname."\n";
-			push @$unrequested, $p->id;
+			exists $unrequested{$p->id} or push @unrequested, $p->id;
+			$unrequested{$p->id} = undef;
 		    }
 		}
 	    }
@@ -472,6 +473,9 @@ sub resolve_unrequested {
 	#- no more required.
 	#TODO
     }
+
+    #- return unrequested if not empty.
+    %$unrequested && $unrequested;
 }
 
 #- compute installed flags for all package in depslist.
@@ -499,8 +503,8 @@ sub compute_installed_flags {
 #- select packages to upgrade, according to package already registered.
 #- by default, only takes best package and its obsoleted and compute
 #- all installed or upgrade flag.
-sub resolve_packages_to_upgrade {
-    my ($urpm, $db, $state, %options) = @_;
+sub request_packages_to_upgrade {
+    my ($urpm, $db, $state, $requested, %options) = @_;
     my (%names, %skip, %obsoletes);
 
     #- build direct access to best package according to name.
@@ -546,7 +550,7 @@ sub resolve_packages_to_upgrade {
 			      $pkg->set_flag_upgrade(0);
 			  } elsif ($pkg->flag_upgrade) {
 			      #- the depslist version is better than existing one and no existing package is still better.
-			      $state->{requested}{$pkg->id} = $options{requested};
+			      $requested->{$pkg->id} = $options{requested};
 			      return;
 			  }
 		      }
@@ -564,7 +568,7 @@ sub resolve_packages_to_upgrade {
 					  if (ranges_overlap($property, $_)) {
 					      #- the package being examined can be obsoleted.
 					      #- do not set installed and provides flags.
-					      $state->{requested}{$pkg->id} = $options{requested};
+					      $requested->{$pkg->id} = $options{requested};
 					      return;
 					  }
 				      }
@@ -576,6 +580,8 @@ sub resolve_packages_to_upgrade {
 
     #TODO is conflicts for selection of package, it is important to choose
     #TODO right package to install.
+
+    $requested;
 }
 
 1;
