@@ -571,7 +571,8 @@ sub request_packages_to_upgrade {
 			    if (my ($pn, $pevr) = /^([^\s\[]*)(?:\[\*\])?\[?=+\s*([^\s\]]*)/) {
 				$pn eq $n or next;
 				if (ranges_overlap("< $evr", "== $pevr")) {
-				    $skip{$provides{$n}->name} = undef; #- this package looks like too old ?
+				    #- this package looks like too old ?
+				    $provides{$n}->name ne $pkg->name and $skip{$provides{$n}->name} = undef;
 				    $provides{$n} = $pkg;
 				}
 				last;
@@ -621,11 +622,15 @@ sub request_packages_to_upgrade {
 		      if (my $pkg = $names{$p->name}) {
 			  unless ($pkg->flag_upgrade || $pkg->flag_installed) {
 			      $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
-			      $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
+			      $pkg->set_flag_upgrade;
 			  }
-			  $pkg->flag_upgrade or delete $names{$p->name};
+			  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 			  #- keep in mind the package is requested.
-			  $pkg->flag_upgrade and $requested{$p->name} = undef;
+			  if ($pkg->flag_upgrade) {
+			      $requested{$p->name} = undef;
+			  } else {
+			      delete $names{$p->name};
+			  }
 		      }
 
 		      #- check provides of existing package to see if a obsolete
@@ -663,7 +668,11 @@ sub request_packages_to_upgrade {
 				  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 			      });
 	}
-	$pkg->flag_installed && !$pkg->flag_upgrade and delete $names{$pkg->name};
+	if ($pkg->flag_installed && !$pkg->flag_upgrade) {
+	    delete $names{$pkg->name};
+	} else {
+	    $requested{$pkg->name} = undef;
+	}
     }
 
     #- examine all packages which may be conflicting, it a package conflicts, it should not be requested.

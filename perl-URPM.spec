@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.60
-%define release 7mdk
+%define release 8mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Aug 13 2002 François Pons <fpons@mandrakesoft.com> 0.60-8mdk
+- fixed request_packages_to_upgrade no more working correctly.
+
 * Mon Aug 12 2002 François Pons <fpons@mandrakesoft.com> 0.60-7mdk
 - fixed bad behaviour of request_packages_to_upgrade if upgrade flag
   has been computed before.
