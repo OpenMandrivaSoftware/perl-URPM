@@ -227,11 +227,11 @@ Force the re-reading of the RPM configuration files.
 
 =item list_rpm_tag()
 
-Return a hash containing the key/id values of know rpm tags
+Return a hash containing the key/id values of known rpm tags
 
 =item ranges_overlap($range1, $range2 [, $nopromoteepoch])
 
-This utility function compares to version ranges, in order to calculate
+This utility function compares two version ranges, in order to calculate
 dependencies properly. The ranges have roughly the form
 
     [<|<=|==|=>|>] [epoch:]version[-release]
