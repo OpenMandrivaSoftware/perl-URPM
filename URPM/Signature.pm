@@ -7,7 +7,8 @@ sub parse_pubkeys {
     my ($urpm, %options) = @_;
     my ($block, @l, $content);
 
-    my $db = URPM::DB::open($options{root});
+    my $db = $options{db};
+    $db ||= URPM::DB::open($options{root});
 
     $db->traverse_tag('name', [ 'gpg-pubkey' ], sub {
 			  my ($p) = @_;
@@ -59,8 +60,7 @@ sub parse_armored_file {
     }
     close F or die "unable to parse armored file $file";
 
-    #- check only one key has been found.
-    @l > 1 and die "armored file contains more than one key";
+    #- check at least one key has been found.
     @l < 1 and die "no key found while parsing armored file";
 
     #- check if key has been found, remove from list.
@@ -80,9 +80,26 @@ sub parse_armored_file {
 
 sub import_armored_file {
     my ($urpm, $file, %options) = @_;
+    local (*F, $_);
+    my $block = '';
 
-    #- this is a tempory operation currently...
-    system("rpm", ($options{root} ? ("--root", $options{root}) : @{[]}), "--import", $file) == 0 or
-      die "import of armored file failed";
+    #- read armored file.
+    open F, $file;
+    while (<F>) {
+	my $inside_block = /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
+	if ($inside_block) {
+	    $block .= $_;
+	    if ($inside_block =~ /E/) {
+		#- import key using the given database if any else the function will open the rpmdb itself.
+		#- FIXME workaround for rpm 4.2 if the rpmdb is left opened, the keys content are sligtly
+		#- modified by algorithms...
+		URPM::import_pubkey(block => $block, db => $options{db}, root => $options{root})
+		    or die "import of armored file failed";
+		$block = '';
+	    }
+	}
+    }
+    close F or die "unable to parse armored file $file";
 }
+
 1;
