@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.82
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Apr 14 2003 François Pons <fpons@mandrakesoft.com> 0.82-2mdk
+- fixed skip flag computation.
+
 * Fri Apr 11 2003 François Pons <fpons@mandrakesoft.com> 0.82-1mdk
 - added flag skip for each package, added URPM::Package::flag_skip
   and URPM::Package::set_flag_skip as well as compute_skip_flags.

@@ -660,7 +660,7 @@ sub compute_skip_flags {
 	if (grep { exists($skip->{$_}{''}) && /^\/(.*)\/$/ && $pkg->fullname =~ /$1/ } keys %$skip) {
 	    #- a single selection on fullname using a regular expression.
 	    unless ($pkg->flag_skip) {
-		$pkg->set_flag_skip;
+		$pkg->set_flag_skip(1);
 		$options{callback} and $options{callback}->($urpm, $pkg, %options);
 	    }
 	} else {
@@ -670,7 +670,7 @@ sub compute_skip_flags {
 		    foreach my $sn ($n, grep { /^\/(.*)\/$/ && $n =~ /$1/ } keys %$skip) {
 			foreach (keys %{$skip->{$sn} || {}}) {
 			    if (URPM::ranges_overlap($_, $s) && !$pkg->flag_skip) {
-				$pkg->set_flag_skip;
+				$pkg->set_flag_skip(1);
 				$options{callback} and $options{callback}->($urpm, $pkg, %options);
 			    }
 			}
