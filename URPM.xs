@@ -3201,8 +3201,6 @@ Urpm_list_rpm_tag(urpm=Nullsv)
    PPCODE:
        read_config_files(0);
       
-	
-       
        for (i = 0; i < rpmTagTableSize; i++) {
 	XPUSHs(sv_2mortal(newSVpv(rpmTagTable[i].name + 7, 0)));
 	XPUSHs(sv_2mortal(newSViv(rpmTagTable[i].val)));
