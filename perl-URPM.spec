@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.83
-%define release 4mdk
+%define version 0.84
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,17 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri May 16 2003 François Pons <fpons@mandrakesoft.com> 0.84-1mdk
+- removed provided hash from state and added use_sense value to
+  provides hash values when using sense.
+- removed installed hash from state and added cached_installed
+  which is no more updated and cached installed provides without
+  sense associated.
+- allow removing of package by giving the fullname (with arch).
+- changed ask_remove hash keys to be fullname compliant.
+- light improvement of speed (10%% faster on dependencies
+  computation) and memory usage (provided hashes removed).
+
 * Wed May 14 2003 François Pons <fpons@mandrakesoft.com> 0.83-4mdk
 - completed URPM::Transaction::verify_rpm for signature checking
   and added a lot of more options (including db to avoid openning

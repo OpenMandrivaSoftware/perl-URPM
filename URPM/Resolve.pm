@@ -35,50 +35,65 @@ sub find_candidate_packages {
 
 #- return unresolved requires of a package (a new one or a existing one).
 sub unsatisfied_requires {
-    my ($_urpm, $db, $state, $pkg, %options) = @_;
+    my ($urpm, $db, $state, $pkg, %options) = @_;
     my %properties;
 
     #- all requires should be satisfied according to selected package, or installed packages.
-    foreach ($pkg->requires) {
-	if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+  REQUIRES: foreach my $dep ($pkg->requires) {
+	if (my ($n, $s) = $dep =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 	    #- allow filtering on a given name (to speed up some search).
-	    ! defined $options{name} || $n eq $options{name} or next;
+	    ! defined $options{name} || $n eq $options{name} or next REQUIRES;
 
 	    #- avoid recomputing the same all the time.
-	    exists $properties{$_} || $state->{installed}{$_} and next;
+	    exists $properties{$dep} and next REQUIRES;
 
-	    #- keep track if satisfied.
-	    my $satisfied = 0;
-	    #- check on selected package if a provide is satisfying the resolution (need to do the ops).
-	    foreach my $sense (keys %{$state->{provided}{$n} || {}}) {
-		ranges_overlap($sense, $s) and ++$satisfied, last;
+	    #- check for installed package in the cache (only without sense to speed up)
+	    foreach (keys %{$state->{cached_installed}{$n} || {}}) {
+		exists $state->{obsoleted}{$_} and next;
+		exists $state->{ask_remove}{$_} and next;
+		next REQUIRES;
 	    }
-	    #- check on installed system a package which is not obsoleted is satisfying the require.
-	    unless ($satisfied) {
-		if ($n =~ /^\//) {
-		    $db->traverse_tag('path', [ $n ], sub {
-					  my ($p) = @_;
-					  exists $state->{obsoleted}{$p->fullname} and return;
-					  $state->{ask_remove}{join '-', ($p->fullname)[0..2]} and return;
-					  ++$satisfied;
-				      });
+
+	    #- check on selected package if a provide is satisfying the resolution (need to do the ops).
+	    foreach (keys %{$urpm->{provides}{$n} || {}}) {
+		exists $state->{selected}{$_} or next;
+		my $p = $urpm->{depslist}[$_];
+		if ($urpm->{provides}{$n}{$_}) {
+		    #- sense information are used, this means we have to examine carrefully the provides.
+		    foreach ($p->provides) {
+			ranges_overlap($_, $dep) and next REQUIRES;
+		    }
 		} else {
-		    $db->traverse_tag('whatprovides', [ $n ], sub {
-					  my ($p) = @_;
-					  exists $state->{obsoleted}{$p->fullname} and return;
-					  $state->{ask_remove}{join '-', ($p->fullname)[0..2]} and return;
-					  foreach ($p->provides) {
-					      $options{keep_state} or $state->{installed}{$_}{$p->fullname} = undef;
-					      if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-						  $pn eq $n or next;
-						  ranges_overlap($ps, $s) and ++$satisfied;
-					      }
-					  }
-				      });
+		    next REQUIRES;
 		}
 	    }
+
+	    #- check on installed system a package which is not obsoleted is satisfying the require.
+	    my $satisfied = 0;
+	    if ($n =~ /^\//) {
+		$db->traverse_tag('path', [ $n ], sub {
+				      my ($p) = @_;
+				      exists $state->{obsoleted}{$p->fullname} and return;
+				      exists $state->{ask_remove}{$p->fullname} and return;
+				      $state->{cached_installed}{$n}{$p->fullname} = undef;
+				      ++$satisfied;
+				  });
+	    } else {
+		$db->traverse_tag('whatprovides', [ $n ], sub {
+				      my ($p) = @_;
+				      exists $state->{obsoleted}{$p->fullname} and return;
+				      exists $state->{ask_remove}{$p->fullname} and return;
+				      foreach ($p->provides) {
+					  if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+					      $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
+					      $pn eq $n or next;
+					      ranges_overlap($ps, $s) and ++$satisfied;
+					  }
+				      }
+				  });
+	    }
 	    #- if nothing can be done, the require should be resolved.
-	    $satisfied or $properties{$_} = undef;
+	    $satisfied or $properties{$dep} = undef;
 	}
     }
     keys %properties;
@@ -87,30 +102,23 @@ sub unsatisfied_requires {
 #- close ask_remove (as urpme previously) for package to be removable without error.
 sub resolve_closure_ask_remove {
     my ($urpm, $db, $state, $pkg, $from, $why, $avoided) = @_;
-    my $name = join '-', ($pkg->fullname)[0..2]; #- specila name (without arch) to allow selection.
     my @unsatisfied;
 
     #- allow default value for 'from' to be taken.
-    $from ||= $name;
+    $from ||= $pkg->fullname;
 
     #- keep track to avoided removed package.
     $avoided and $avoided->{$pkg->fullname} = undef;
 
     #- check if the package has already been asked to be removed,
     #- this means only add the new reason and return.
-    unless ($state->{ask_remove}{$name}) {
-	$state->{ask_remove}{$name} = { size    => $pkg->size,
-					closure => { $from => $why },
-				      };
+    unless ($state->{ask_remove}{$pkg->fullname}) {
+	$state->{ask_remove}{$pkg->fullname} = { size    => $pkg->size,
+						 closure => { $from => $why },
+					       };
 
 	my @removes = $pkg;
 	while ($pkg = shift @removes) {
-	    #- clean state according to provided properties.
-	    foreach ($pkg->provides) {
-		delete $state->{installed}{$_}{$pkg->fullname};
-		%{$state->{installed}{$_} || {}} or delete $state->{installed}{$_};
-	    }
-
 	    #- close what requires this property, but check with selected package requiring old properties.
 	    foreach ($pkg->provides) {
 		if (my ($n) = /^([^\s\[]*)/) {
@@ -125,13 +133,13 @@ sub resolve_closure_ask_remove {
 		    $db->traverse_tag('whatrequires', [ $n ], sub {
 					  my ($p) = @_;
 					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n, keep_state => 1)) {
-					      my $v = $state->{ask_remove}{join '-', ($p->fullname)[0..2]} ||= {};
+					      my $v = $state->{ask_remove}{$p->fullname} ||= {};
 
 					      #- keep track to avoided removed package.
 					      $avoided and $avoided->{$p->fullname} = undef;
 
 					      #- keep track of what cause closure.
-					      $v->{closure}{$name} = { unsatisfied => \@l };
+					      $v->{closure}{$pkg->fullname} = { unsatisfied => \@l };
 					      exists $v->{size} and return;
 					      $v->{size} = $p->size;
 
@@ -143,7 +151,7 @@ sub resolve_closure_ask_remove {
 	    }
 	}
     } else {
-	$state->{ask_remove}{$name}{closure}{$from} = $why;
+	$state->{ask_remove}{$pkg->fullname}{closure}{$from} = $why;
     }
 
     @unsatisfied;
@@ -158,16 +166,6 @@ sub resolve_closure_ask_remove {
 #- the following options are recognized :
 #-   check : check requires of installed packages.
 sub resolve_requested {
-    #- internal method to simplify code.
-    sub update_state_provides {
-	my ($state, $pkg) = @_;
-	foreach ($pkg->provides) {
-	    if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-		$state->{provided}{$n}{$s}{$pkg->id} = undef;
-	    }
-	}
-    };
-
     my ($urpm, $db, $state, $requested, %options) = @_;
     my (@properties, @obsoleted, %requested, %avoided, $dep);
 
@@ -175,7 +173,9 @@ sub resolve_requested {
     #- on choices instead of anything other one.
     @properties = keys %$requested;
     foreach my $dep (@properties) {
-	@requested{split '\|', $dep} = ();
+	foreach (split '\|', $dep) {
+	    $requested{$_} = $requested->{$dep};
+	}
     }
 
     #- for each dep property evaluated, examine which package will be obsoleted on $db,
@@ -294,7 +294,6 @@ sub resolve_requested {
 		$db->traverse_tag('name', [ $pkg->name ], sub {
 				      my ($p) = @_;
 				      if ($pkg->compare_pkg($p) < 0) {
-					  $allow or update_state_provides($state, $pkg);
 					  $allow = ++$state->{oldpackage};
 					  $options{keep_state} or
 					    push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
@@ -318,10 +317,6 @@ sub resolve_requested {
 	#- check if package is not already installed before trying to use it, compute
 	#- obsoleted package too. this is valable only for non source package.
 	if ($pkg->arch ne 'src') {
-	    #- keep in mind the provides of this package, so that future requires can be satisfied
-	    #- with this package potentially.
-	    $allow or update_state_provides($state, $pkg);
-
 	    foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
 		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 		    #- populate avoided entries according to what is selected.
@@ -349,14 +344,17 @@ sub resolve_requested {
 					  $state->{obsoleted}{$p->fullname}{$pkg->id} = undef;
 
 					  foreach ($p->provides) {
-					      #- clean installed property.
-					      if (my ($ip) = $state->{installed}{$_}) {
-						  delete $ip->{$p->fullname};
-						  %$ip or delete $state->{installed}{$_};
-					      }
 					      #- check differential provides between obsoleted package and newer one.
 					      if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-						  ($state->{provided}{$pn} || {})->{$ps} or $diff_provides{$pn} = undef;
+						  $diff_provides{$pn} = undef;
+						  foreach (grep { exists $state->{selected}{$_} }
+							   keys %{$urpm->{provides}{$pn} || {}}) {
+						      my $pp = $urpm->{depslist}[$_];
+						      foreach ($pp->provides) {
+							  /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/ && $1 eq $pn or next;
+							  $2 eq $ps and delete $diff_provides{$pn};
+						      }
+						  }
 					      }
 					  }
 				      });
@@ -481,18 +479,6 @@ sub resolve_requested {
     }
 
     if ($options{keep_state}) {
-	#- clear state provided according to selection done.
-	foreach (keys %{$state->{selected} || {}}) {
-	    my $pkg = $urpm->{depslist}[$_];
-
-	    foreach ($pkg->provides) {
-		if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-		    delete $state->{provided}{$n}{$s}{$pkg->id};
-		    %{$state->{provided}{$n}{$s}} or delete $state->{provided}{$n}{$s};
-		}
-	    }
-	}
-
 	#- clear state obsoleted according to saved obsoleted.
 	foreach (@obsoleted) {
 	    if (ref $_) {
@@ -537,10 +523,6 @@ sub resolve_unrequested {
 	#- state should be cleaned by any reference to it.
 	foreach ($pkg->provides) {
 	    $diff_provides{$_} = undef;
-	    if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-		delete $state->{provided}{$n}{$s}{$pkg->id};
-		%{$state->{provided}{$n}{$s}} or delete $state->{provided}{$n}{$s};
-	    }
 	}
 	foreach ($pkg->name, $pkg->obsoletes_nosense) {
 	    $db->traverse_tag('name', [ $_ ], sub {

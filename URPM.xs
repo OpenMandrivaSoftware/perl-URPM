@@ -693,7 +693,7 @@ pack_header(URPM__Package pkg) {
 }
 
 static void
-update_provide_entry(char *name, STRLEN len, int force, URPM__Package pkg, HV *provides) {
+update_provide_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
   SV** isv;
 
   if (!len) len = strlen(name);
@@ -712,7 +712,8 @@ update_provide_entry(char *name, STRLEN len, int force, URPM__Package pkg, HV *p
     if (isv && *isv != &PL_sv_undef) {
       char id[8];
       STRLEN id_len = snprintf(id, sizeof(id), "%d", pkg->flag & FLAG_ID);
-      hv_fetch((HV*)SvRV(*isv), id, id_len, 1);
+      SV **sense = hv_fetch((HV*)SvRV(*isv), id, id_len, 1);
+      if (sense && use_sense) sv_setiv(*sense, use_sense);
     }
   }
 }
@@ -723,6 +724,7 @@ update_provides(URPM__Package pkg, HV *provides) {
     int len;
     int_32 type, count;
     char **list = NULL;
+    int_32 *flags = NULL;
     int i;
 
     /* examine requires for files which need to be marked in provides */
@@ -737,10 +739,12 @@ update_provides(URPM__Package pkg, HV *provides) {
     /* update all provides */
     headerGetEntry(pkg->h, RPMTAG_PROVIDENAME, &type, (void **) &list, &count);
     if (list) {
+      headerGetEntry(pkg->h, RPMTAG_PROVIDEFLAGS, &type, (void **) &flags, &count);
       for (i = 0; i < count; ++i) {
 	len = strlen(list[i]);
 	if (!strncmp(list[i], "rpmlib(", 7)) continue;
-	update_provide_entry(list[i], len, 1, pkg, provides);
+	update_provide_entry(list[i], len, 1, flags && flags[i] & (RPMSENSE_PREREQ|RPMSENSE_LESS|RPMSENSE_EQUAL|RPMSENSE_GREATER),
+			     pkg, provides);
       }
     }
   } else {
@@ -767,11 +771,11 @@ update_provides(URPM__Package pkg, HV *provides) {
       ps = strchr(s, '@');
       while(ps != NULL) {
 	*ps = 0; es = strchr(s, '['); if (!es) es = strchr(s, ' '); *ps = '@';
-	update_provide_entry(s, es != NULL ? es-s : ps-s, 1, pkg, provides);
+	update_provide_entry(s, es != NULL ? es-s : ps-s, 1, es != NULL, pkg, provides);
 	s = ps + 1; ps = strchr(s, '@');
       }
       es = strchr(s, '['); if (!es) es = strchr(s, ' ');
-      update_provide_entry(s, es != NULL ? es-s : 0, 1, pkg, provides);
+      update_provide_entry(s, es != NULL ? es-s : 0, 1, es != NULL, pkg, provides);
     }
   }
 }
@@ -802,7 +806,7 @@ update_provides_files(URPM__Package pkg, HV *provides) {
 	if (p - buff + len >= sizeof(buff)) continue;
 	memcpy(p, baseNames[i], len + 1); p += len;
 
-	update_provide_entry(buff, p-buff, 0, pkg, provides);
+	update_provide_entry(buff, p-buff, 0, 0, pkg, provides);
       }
 
       free(baseNames);
@@ -813,7 +817,7 @@ update_provides_files(URPM__Package pkg, HV *provides) {
 	for (i = 0; i < count; i++) {
 	  len = strlen(list[i]);
 
-	  update_provide_entry(list[i], len, 0, pkg, provides);
+	  update_provide_entry(list[i], len, 0, 0, pkg, provides);
 	}
 
 	free(list);
@@ -2403,7 +2407,21 @@ Trans_remove(trans, name)
   Header h;
   rpmdbMatchIterator mi;
   int count = 0;
+  char *boa = NULL, *bor = NULL;
   CODE:
+  /* hide arch in name if present */
+  if ((boa = strrchr(name, '.'))) {
+    *boa = 0;
+    if ((bor = strrchr(name, '-'))) {
+      *bor = 0;
+      if (!strrchr(name, '-')) {
+	*boa = '.'; boa = NULL;
+      }
+      *bor = '-'; bor = NULL;
+    } else {
+      *boa = '.'; boa = NULL;
+    }
+  }
 #ifdef RPM_42
   mi = rpmtsInitIterator(trans->ts, RPMDBI_LABEL, name, 0);
 #else
@@ -2421,6 +2439,7 @@ Trans_remove(trans, name)
     }
   }
   rpmdbFreeIterator(mi);
+  if (boa) *boa = '.';
   RETVAL=count;
   OUTPUT:
   RETVAL
