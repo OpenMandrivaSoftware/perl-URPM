@@ -1,3 +1,17 @@
+2004-11-25 20:18  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, URPM/Build.pm: Inspired changes on top of Olivier's
+	  changes
+
+2004-11-25 15:28  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.pm, URPM/Build.pm, URPM/Resolve.pm: - allow to use an array
+	  of id instead (start .. end) in functions.
+
+2004-11-10 18:31  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: 1.04-1mdk
+
 2004-11-10 18:26  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM.pm: Version bump
