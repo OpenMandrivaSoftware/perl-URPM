@@ -116,18 +116,19 @@ sub resolve_closure_ask_remove {
 #-   check : check requires of installed packages.
 sub resolve_requested {
     my ($urpm, $db, $state, %options) = @_;
-    my (@properties, %requested, $dep);
+    my (@properties, @obsoleted, %requested, $dep);
+
+    #- keep in mind the requested id (if given) in order to prefer these packages
+    #- on choices instead of anything other one.
+    @properties = keys %{$state->{requested}};
+    foreach my $dep (@properties) {
+	@requested{split '\|', $dep} = ();
+    }
 
     #- for each dep property evaluated, examine which package will be obsoleted on $db,
     #- then examine provides that will be removed (which need to be satisfied by another
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
-    @properties = keys %{$state->{requested}};
-    foreach my $dep (@properties) {
-	foreach (split '\|', $dep) {
-	    $requested{$_} = $state->{requested}{$dep};
-	}
-    }
     while (defined ($dep = shift @properties)) {
 	my (@chosen_requested, @chosen_upgrade, @chosen, %diff_provides, $pkg);
 	#- take the best package for each choices of same name.
@@ -153,7 +154,7 @@ sub resolve_requested {
 		exists $state->{obsoleted}{$p->fullname} and next; #- avoid taking what is removed (incomplete).
 		exists $state->{selected}{$p->id} and $pkg = $p, last; #- already selected package is taken.
 		if (exists $requested{$p->id}) {
-		    push @chosen_requested, $p;
+		    push @chosen_requested, $p; #- this only works if id (or choices of id) are used in requested.
 		} elsif ($db->traverse_tag('name', [ $p->name ], undef) > 0) {
 		    push @chosen_upgrade, $p;
 		} else {
@@ -171,7 +172,7 @@ sub resolve_requested {
 	    $pkg or next; #- callback may decide to not continue (or state is already updated).
 	}
 	$pkg ||= $chosen[0];
-	!$pkg || $pkg->flag_requested || $pkg->flag_required || exists $state->{selected}{$pkg->id} and next;
+	!$pkg || $pkg->flag_selected || exists $state->{selected}{$pkg->id} and next;
 
 	if ($pkg->arch eq 'src') {
 	    $pkg->set_flag_upgrade;
@@ -188,8 +189,10 @@ sub resolve_requested {
 	    $pkg->flag_installed && !$pkg->flag_upgrade and next;
 	}
 
-	#- keep in mind the package has be selected.
-	$state->{selected}{$pkg->id} = delete $requested{$dep};
+	#- keep in mind the package has be selected, remove the entry in requested input hasj,
+	#- this means required dependencies have undef value in selected hash.
+	#- requested flag is set only for requested package where value is not false.
+	$state->{selected}{$pkg->id} = delete $state->{requested}{$dep};
 	$options{no_flag_update} or
 	  $state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required;
 
@@ -210,6 +213,10 @@ sub resolve_requested {
 					  my ($p) = @_;
 					  !$o || eval($p->compare($v) . $o . 0) or return;
 
+					  if ($options{keep_state}) {
+					      push @obsoleted, exists $state->{obsoleted}{$p->fullname} ?
+						[ $p->fullname, $pkg->id ] : $p->fullname;
+					  }
 					  $state->{obsoleted}{$p->fullname}{$pkg->id} = undef;
 
 					  foreach ($p->provides) {
@@ -247,8 +254,9 @@ sub resolve_requested {
 					      push @properties, $best->id;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
-					      $urpm->resolve_closure_ask_remove($db, $state, $p,
-										{ unsatisfied => \@l, pkg => $pkg });
+					      $options{keep_state} or
+						$urpm->resolve_closure_ask_remove($db, $state, $p,
+										  { unsatisfied => \@l, pkg => $pkg });
 					  }
 				      }
 				  });
@@ -266,8 +274,9 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      $state->{conflicts}{$p->fullname}{$pkg->id} = undef;
 				      #- all these packages should be removed.
-				      $urpm->resolve_closure_ask_remove($db, $state, $p,
-									{ conflicts => $file, pkg => $pkg });
+				      $options{keep_state} or
+					$urpm->resolve_closure_ask_remove($db, $state, $p,
+									  { conflicts => $file, pkg => $pkg });
 				  });
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
@@ -290,29 +299,28 @@ sub resolve_requested {
 					      push @properties, $best->id;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
-					      $urpm->resolve_closure_ask_remove($db, $state, $p,
-										{ conflicts => $property, pkg => $pkg });
+					      $options{keep_state} or
+						$urpm->resolve_closure_ask_remove($db, $state, $p,
+										  { conflicts => $property, pkg => $pkg });
 					  }
 				      }
 				  });
 	    }
 	    #- we need to check a selected package is not selected.
 	    #- if true, it should be unselected.
-	    if (my ($name) =~ /^([^\s\[]*)/) {
-		foreach (keys %{$urpm->{provides}{$name} || {}}) {
-		    my $p = $urpm->{depslist}[$_];
-		    $p->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
+	    unless ($options{keep_state}) {
+		if (my ($name) =~ /^([^\s\[]*)/) {
+		    foreach (keys %{$urpm->{provides}{$name} || {}}) {
+			my $p = $urpm->{depslist}[$_];
+			$p->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
+		    }
 		}
 	    }
 	}
     }
 
-    #- obsoleted packages are no longer marked as being asked to be removed.
-    delete @{$state->{ask_remove}}{map { /(.*)\.[^\.]*$/ && $1 } keys %{$state->{obsoleted}}};
-
-    #- clear state according to selection done, this is usefull for
-    #- canceling a selection (works after second call with empty requested).
-    if ($options{clear_state}) {
+    if ($options{keep_state}) {
+	#- clear state provided according to selection done.
 	foreach (keys %{$state->{selected} || {}}) {
 	    my $pkg = $urpm->{depslist}[$_];
 
@@ -322,22 +330,19 @@ sub resolve_requested {
 		    %{$state->{provided}{$n}{$s}} or delete $state->{provided}{$n}{$s};
 		}
 	    }
+	}
 
-	    foreach ($pkg->obsoletes) {
-		delete $state->{obsoleted}{$pkg->fullname}{$pkg->id};
-		%{$state->{obsoleted}{$pkg->fullname}} or delete $state->{obsoleted}{$pkg->fullname};
-	    }
-
-	    foreach (keys %{$state->{ask_remove} || {}}) {
-		$state->{ask_remove}{$_} = [ grep { $_->{pkg} ne $pkg } @{$state->{ask_remove}{$_} || []} ];
-		@{$state->{ask_remove}{$_}} or delete $state->{ask_remove}{$_};
-	    }
-
-	    foreach (keys %{$state->{ask_unselect} || {}}) {
-		delete $state->{ask_unselect}{$_}{$pkg->id};
-		%{$state->{ask_unselect}{$_}} or delete $state->{ask_unselect}{$_};
+	#- clear state obsoleted according to saved obsoleted.
+	foreach (@obsoleted) {
+	    if (ref $_) {
+		exists $state->{obsoleted}{$_->[0]} and delete $state->{obsoleted}{$_->[0]}{$_->[1]};
+	    } else {
+		delete $state->{obsoleted}{$_};
 	    }
 	}
+    } else {
+	#- obsoleted packages are no longer marked as being asked to be removed.
+	delete @{$state->{ask_remove}}{map { /(.*)\.[^\.]*$/ && $1 } keys %{$state->{obsoleted}}};
     }
 }
 

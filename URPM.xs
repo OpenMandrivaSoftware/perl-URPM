@@ -1585,7 +1585,7 @@ int
 Pkg_flag_selected(pkg)
   URPM::Package pkg
   CODE:
-  RETVAL = pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_REQUESTED | FLAG_REQUIRED) : 0;
+  RETVAL = pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUESTED | FLAG_REQUIRED) : 0;
   OUTPUT:
   RETVAL
 
@@ -1593,7 +1593,7 @@ int
 Pkg_flag_available(pkg)
   URPM::Package pkg
   CODE:
-  RETVAL = pkg->flag & FLAG_INSTALLED || (pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_REQUESTED | FLAG_REQUIRED) : 0);
+  RETVAL = pkg->flag & FLAG_INSTALLED || (pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUESTED | FLAG_REQUIRED) : 0);
   OUTPUT:
   RETVAL
 
