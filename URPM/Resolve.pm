@@ -35,12 +35,12 @@ sub find_chosen_packages {
     my %packages;
 
     #- search for possible packages, try to be as fast as possible, backtrack can be longer.
-    foreach (split '\|', $dep) {
+    foreach (split /\|/, $dep) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
-	    #- determine if this packages is better than a possibly previously chosen package.
+	    #- determine if this package is better than a possibly previously chosen package.
 	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
 	    if (my $p = $packages{$pkg->name}) {
 		$pkg->flag_requested > $p->flag_requested ||
@@ -103,6 +103,9 @@ sub find_chosen_packages {
 	    push @chosen, $p;
 	}
 
+	#- if several packages are installed, trim the choices.
+	if (!$urpm->{options}{morechoices} && $mode == 3 && @chosen > 1) { @chosen = ($chosen[0]) }
+
 	#- packages that require locales-xxx when the corresponding locales are
 	#- already installed should be preferred over packages that require locales
 	#- which are not installed.
@@ -118,6 +121,7 @@ sub find_chosen_packages {
 		push @chosen_other, $_;
 	    }
 	}
+
 	#- sort packages in order to have preferred ones first
 	#- (this means good locales, no locales, bad locales).
 	return (sort { $a->id <=> $b->id } @chosen_good_locales),
