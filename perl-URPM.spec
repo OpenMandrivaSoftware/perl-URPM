@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.04
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jun 13 2002 François Pons <fpons@mandrakesoft.com> 0.04-4mdk
+- fixed too many package selected on --auto-select.
+
 * Thu Jun 13 2002 François Pons <fpons@mandrakesoft.com> 0.04-3mdk
 - fixed compare_pkg (invalid arch comparisons sometimes).
 - added (still unused) obsolete flag.

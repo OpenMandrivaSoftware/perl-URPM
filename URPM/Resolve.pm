@@ -354,16 +354,20 @@ sub resolve_packages_to_upgrade {
 
 		      #- check provides of existing package to see if a obsolete
 		      #- may allow selecting it.
-		      foreach ($p->provides) {
-			  if (my ($n) = /^([^\s\[]*)/) {
-			      foreach my $pkg (@{$obsoletes{$n} || []}) {
-				  next if $pkg->name eq $p->name;
-				  foreach my $property ($pkg->obsoletes) {
-				      if (ranges_overlap($property, $_)) {
-					  #- the package being examined can be obsoleted.
-					  #- do not set installed and provides flags.
-					  $state->{requested}{$pkg->id} = $options{requested};
-					  return;
+		      foreach my $property ($p->provides) {
+			  #- only real provides should be taken into account, this means internal obsoletes
+			  #- should be avoided.
+			  unless (grep { ranges_overlap($property, $_) } $p->obsoletes) {
+			      if (my ($n) = $property =~ /^([^\s\[]*)/) {
+				  foreach my $pkg (@{$obsoletes{$n} || []}) {
+				      next if $pkg->name eq $p->name;
+				      foreach ($pkg->obsoletes) {
+					  if (ranges_overlap($property, $_)) {
+					      #- the package being examined can be obsoleted.
+					      #- do not set installed and provides flags.
+					      $state->{requested}{$pkg->id} = $options{requested};
+					      return;
+					  }
 				      }
 				  }
 			      }
