@@ -16,7 +16,8 @@ WriteMakefile(
     'MAKEFILE'  => 'Makefile',
     'OBJECT'    => 'URPM.o',
     'VERSION_FROM'   => 'URPM.pm',
-    'LIBS'      => [ $libs ],   # e.g., '-lm' 
+    'LIBS'      => [ $libs ],
     'DEFINE'    => $define,
-    'INC'       => '-I/usr/include/rpm',     # e.g., '-I/usr/include/other' 
+    'INC'       => '-I/usr/include/rpm',
+    INSTALLDIRS => 'vendor',
 );
