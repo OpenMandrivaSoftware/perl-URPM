@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Aug 22 2003 François Pons <fpons@mandrakesoft.com> 0.94-2mdk
+- fixed potential deadlock on backtrack (use keep on the fly
+  algorithm to complete backtracking).
+
 * Thu Aug 21 2003 François Pons <fpons@mandrakesoft.com> 0.94-1mdk
 - fix for pubkey name extraction (gc).
 - updated code to be more adapted for both urpmi and DrakX
