@@ -335,9 +335,9 @@ sub build_hdlist {
     $split = $options{split} || 400000;
 
     open B, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
-    foreach (@{$urpm->{depslist}}[$start .. $end]) {
-	my $filename = $_->fullname;
-	"$filename.rpm" ne $_->filename && $_->filename =~ /([^\/]*)\.rpm$/ and $filename .= ":$1";
+    foreach my $pkg (@{$urpm->{depslist}}[$start .. $end]) {
+	my $filename = $pkg->fullname;
+	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ /([^\/]*)\.rpm$/ and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
 	print B "$filename\n";
     }

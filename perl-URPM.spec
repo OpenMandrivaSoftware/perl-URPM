@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.05
-%define release 2mdk
+%define version 0.06
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul  3 2002 François Pons <fpons@mandrakesoft.com> 0.06-1mdk
+- added header_filename and update_header to URPM::Package.
+- added virtual flag selected to URPM::Package.
+- added rate and rflags tags to URPM::Package.
+- added URPM::DB::rebuild.
+- fixed build of hdlist with non standard rpm filename.
+
 * Mon Jul  1 2002 François Pons <fpons@mandrakesoft.com> 0.05-2mdk
 - fixed selection of obsoleted package already installed but
   present in depslist.

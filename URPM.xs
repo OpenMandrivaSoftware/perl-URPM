@@ -30,7 +30,7 @@ struct s_Package {
   char *obsoletes;
   char *conflicts;
   char *provides;
-  char *rates;
+  char *rflags;
   unsigned flag;
   Header h;
 };
@@ -38,7 +38,8 @@ struct s_Package {
 typedef rpmdb URPM__DB;
 typedef struct s_Package* URPM__Package;
 
-#define FLAG_ID             0x00ffffffU
+#define FLAG_ID             0x001fffffU
+#define FLAG_RATE           0x00e00000U
 #define FLAG_BASE           0x01000000U
 #define FLAG_FORCE          0x02000000U
 #define FLAG_INSTALLED      0x04000000U
@@ -48,8 +49,13 @@ typedef struct s_Package* URPM__Package;
 #define FLAG_OBSOLETE       0x40000000U
 #define FLAG_NO_HEADER_FREE 0x80000000U
 
-#define FLAG_ID_MAX     0x00fffffe
-#define FLAG_ID_INVALID 0x00ffffff
+#define FLAG_ID_MAX         0x001ffffe
+#define FLAG_ID_INVALID     0x001fffff
+
+#define FLAG_RATE_POS       21
+#define FLAG_RATE_MAX       5
+#define FLAG_RATE_INVALID   0
+
 
 #define FILENAME_TAG 1000000
 #define FILESIZE_TAG 1000001
@@ -576,6 +582,82 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff) {
   }
 }
 
+static int
+update_header(char *filename, URPM__Package pkg, HV *provides, int packing) {
+  int d = open(filename, O_RDONLY);
+
+  if (d >= 0) {
+    unsigned char sig[4];
+
+    if (read(d, &sig, sizeof(sig)) == sizeof(sig)) {
+      lseek(d, 0, SEEK_SET);
+      if (sig[0] == 0xed && sig[1] == 0xab && sig[2] == 0xee && sig[3] == 0xdb) {
+	FD_t fd = fdDup(d);
+	Header header;
+	int isSource;
+
+	if (rpmReadPackageHeader(fd, &header, &isSource, NULL, NULL) == 0) {
+	  struct stat sb;
+	  char *basename;
+	  int_32 size;
+
+	  basename = strrchr(filename, '/');
+	  fstat(fdFileno(fd), &sb);
+	  size = sb.st_size;
+	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
+	  headerAddEntry(header, FILESIZE_TAG, RPM_INT32_TYPE, &size, 1);
+
+	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+	  pkg->h = header;
+	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
+
+	  if (provides) {
+	    update_provides(pkg, provides);
+	    update_provides_files(pkg, provides);
+	  }
+	  if (packing) pack_header(pkg);
+	  else {
+	    headerRemoveEntry(pkg->h, RPMTAG_POSTIN);
+	    headerRemoveEntry(pkg->h, RPMTAG_POSTUN);
+	    headerRemoveEntry(pkg->h, RPMTAG_PREIN);
+	    headerRemoveEntry(pkg->h, RPMTAG_PREUN);
+	    headerRemoveEntry(pkg->h, RPMTAG_FILEUSERNAME);
+	    headerRemoveEntry(pkg->h, RPMTAG_FILEGROUPNAME);
+	    headerRemoveEntry(pkg->h, RPMTAG_FILEVERIFYFLAGS);
+	    headerRemoveEntry(pkg->h, RPMTAG_FILERDEVS);
+	    headerRemoveEntry(pkg->h, RPMTAG_FILEMTIMES);
+	    headerRemoveEntry(pkg->h, RPMTAG_FILEDEVICES);
+	    headerRemoveEntry(pkg->h, RPMTAG_FILEINODES);
+	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERSCRIPTS);
+	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERVERSION);
+	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERFLAGS);
+	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERNAME);
+	    headerRemoveEntry(pkg->h, RPMTAG_CHANGELOGTIME);
+	    headerRemoveEntry(pkg->h, RPMTAG_CHANGELOGNAME);
+	    headerRemoveEntry(pkg->h, RPMTAG_CHANGELOGTEXT);
+	    headerRemoveEntry(pkg->h, RPMTAG_ICON);
+	    headerRemoveEntry(pkg->h, RPMTAG_GIF);
+	    headerRemoveEntry(pkg->h, RPMTAG_VENDOR);
+	    headerRemoveEntry(pkg->h, RPMTAG_EXCLUDE);
+	    headerRemoveEntry(pkg->h, RPMTAG_EXCLUSIVE);
+	    headerRemoveEntry(pkg->h, RPMTAG_DISTRIBUTION);
+	    headerRemoveEntry(pkg->h, RPMTAG_VERIFYSCRIPT);
+	  }
+	  return 1;
+	}
+      } else if (sig[0] == 0x8e && sig[1] == 0xad && sig[2] == 0xe8 && sig[3] == 0x01) {
+	FD_t fd = fdDup(d);
+
+	if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+	pkg->h = headerRead(fd, HEADER_MAGIC_YES);
+	pkg->flag &= ~FLAG_NO_HEADER_FREE;
+	return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 static void
 read_config_files() {
   static int already = 0;
@@ -599,7 +681,7 @@ Pkg_DESTROY(pkg)
   free(pkg->obsoletes);
   free(pkg->conflicts);
   free(pkg->provides);
-  free(pkg->rates);
+  free(pkg->rflags);
   if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
   free(pkg);
 
@@ -1002,6 +1084,45 @@ Pkg_filename(pkg)
   }
 
 void
+Pkg_header_filename(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->info) {
+    char *s, *eon, *eos;
+
+    if ((eon = strchr(pkg->info, '@')) != NULL) {
+      if ((s = strchr(eon+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
+	eos = strstr(s+1, ".rpm");
+	if (eos != NULL) *eos = 0;
+	if (eon != NULL) *eon = 0;
+	XPUSHs(sv_2mortal(newSVpvf("%s:%s", pkg->info, s+1)));
+	if (eon != NULL) *eon = '@';
+	if (eos != NULL) *eos = '.';
+      } else {
+	XPUSHs(sv_2mortal(newSVpv(pkg->info, eon-pkg->info)));
+      }
+    }
+  } else if (pkg->h) {
+    char buff[1024];
+    char *p = buff;
+    char *name = get_name(pkg->h, RPMTAG_NAME);
+    char *version = get_name(pkg->h, RPMTAG_VERSION);
+    char *release = get_name(pkg->h, RPMTAG_RELEASE);
+    char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(pkg->h, RPMTAG_ARCH);
+    char *filename = get_name(pkg->h, FILENAME_TAG);
+
+    p += snprintf(buff, sizeof(buff), "%s-%s-%s.%s:", name, version, release, arch);
+    if (filename) snprintf(p, sizeof(buff) - (p-buff), "%s-%s-%s.%s.rpm", name, version, release, arch);
+    if (!filename || !strcmp(p, filename)) {
+      *--p = 0;
+    } else {
+      p += snprintf(p, sizeof(buff) - (p-buff), "%s", filename);
+      *(p -= 4) = 0; /* avoid .rpm */
+    }
+    XPUSHs(sv_2mortal(newSVpv(buff, p-buff)));
+  }
+
+void
 Pkg_id(pkg)
   URPM::Package pkg
   PPCODE:
@@ -1139,6 +1260,15 @@ Pkg_pack_header(pkg)
   URPM::Package pkg
   CODE:
   pack_header(pkg);
+
+int
+Pkg_update_header(pkg, filename)
+  URPM::Package pkg
+  char *filename
+  CODE:
+  RETVAL = update_header(filename, pkg, NULL, 0);
+  OUTPUT:
+  RETVAL
 
 void
 Pkg_build_info(pkg, fileno, provides_files=NULL)
@@ -1323,6 +1453,88 @@ Pkg_set_flag_obsolete(pkg, value=1)
   OUTPUT:
   RETVAL
 
+int
+Pkg_flag_selected(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_REQUESTED | FLAG_REQUIRED) : 0;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_rate(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = (pkg->flag & FLAG_RATE) >> FLAG_RATE_POS;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_rate(pkg, rate)
+  URPM::Package pkg
+  int rate
+  CODE:
+  RETVAL = (pkg->flag & FLAG_RATE) >> FLAG_RATE_POS;
+  pkg->flag &= ~FLAG_RATE;
+  pkg->flag |= (rate >= 0 && rate <= FLAG_RATE_MAX ? rate : FLAG_RATE_INVALID) << FLAG_RATE_POS;
+  OUTPUT:
+  RETVAL
+
+void
+Pkg_rflags(pkg)
+  URPM::Package pkg
+  PREINIT:
+  I32 gimme = GIMME_V;
+  PPCODE:
+  if (gimme == G_ARRAY && pkg->rflags != NULL) {
+    char *s = pkg->rflags;
+    char *eos;
+    while ((eos = strchr(s, '\t')) != NULL) {
+      XPUSHs(sv_2mortal(newSVpv(s, eos-s)));
+      s = eos + 1;
+    }
+    XPUSHs(sv_2mortal(newSVpv(s, 0)));
+  }
+
+void
+Pkg_set_rflags(pkg, ...)
+  URPM::Package pkg
+  PREINIT:
+  I32 gimme = GIMME_V;
+  char *new_rflags;
+  STRLEN total_len;
+  int i;
+  PPCODE:
+  total_len = 0;
+  for (i = 1; i < items; ++i) {
+    STRLEN len;
+    char *s = SvPV(ST(i), len);
+    total_len += len + 1;
+  }
+
+  new_rflags = malloc(total_len);
+  total_len = 0;
+  for (i = 1; i < items; ++i) {
+    STRLEN len;
+    char *s = SvPV(ST(i), len);
+    memcpy(new_rflags + total_len, s, len);
+    new_rflags[total_len + len] = 0;
+    total_len += len + 1;
+  }
+
+  if (gimme == G_ARRAY && pkg->rflags != NULL) {
+    char *s = pkg->rflags;
+    char *eos;
+    while ((eos = strchr(s, '\t')) != NULL) {
+      XPUSHs(sv_2mortal(newSVpv(s, eos-s)));
+      s = eos + 1;
+    }
+    XPUSHs(sv_2mortal(newSVpv(s, 0)));
+  }
+
+  free(pkg->rflags);
+  pkg->rflags = new_rflags;
+
 
 MODULE = URPM            PACKAGE = URPM::DB            PREFIX = Db_
 
@@ -1353,6 +1565,22 @@ Db_open_rw(prefix="/")
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbOpen(prefix, &db, O_RDWR | O_CREAT, 0644) == 0 ? db : NULL;
+  rpmErrorSetCallback(old_cb);
+  rpmSetVerbosity(RPMMESS_NORMAL);
+  OUTPUT:
+  RETVAL
+
+int
+Db_rebuild(prefix="/")
+  char *prefix
+  PREINIT:
+  rpmdb db;
+  rpmErrorCallBackType old_cb;
+  CODE:
+  read_config_files();
+  old_cb = rpmErrorSetCallback(callback_empty);
+  rpmSetVerbosity(RPMMESS_FATALERROR);
+  RETVAL = rpmdbRebuild(prefix) == 0;
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
   OUTPUT:
@@ -1654,67 +1882,18 @@ Urpm_parse_rpm(urpm, filename, packing=0)
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
 
     if (depslist != NULL) {
-      FD_t fd = fdOpen(filename, O_RDONLY, 0666);
-      Header header;
-      int isSource;
+      struct s_Package pkg;
 
-      if (fdFileno(fd) >= 0) {
-	if (rpmReadPackageHeader(fd, &header, &isSource, NULL, NULL) == 0) {
-	  struct s_Package pkg;
-	  struct stat sb;
-	  char *basename;
-	  int_32 size;
+      memset(&pkg, 0, sizeof(struct s_Package));
+      pkg.flag = 1 + av_len(depslist);
+      if (update_header(filename, &pkg, provides, packing)) {
+	av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
+				       memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
 
-	  basename = strrchr(filename, '/');
-	  fstat(fdFileno(fd), &sb);
-	  size = sb.st_size;
-	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
-	  headerAddEntry(header, FILESIZE_TAG, RPM_INT32_TYPE, &size, 1);
-
-	  memset(&pkg, 0, sizeof(struct s_Package));
-	  pkg.flag = 1 + av_len(depslist);
-	  pkg.h = header;
-	  if (provides) {
-	    update_provides(&pkg, provides);
-	    update_provides_files(&pkg, provides);
-	  }
-	  if (packing) pack_header(&pkg);
-	  else {
-	    headerRemoveEntry(pkg.h, RPMTAG_POSTIN);
-	    headerRemoveEntry(pkg.h, RPMTAG_POSTUN);
-	    headerRemoveEntry(pkg.h, RPMTAG_PREIN);
-	    headerRemoveEntry(pkg.h, RPMTAG_PREUN);
-	    headerRemoveEntry(pkg.h, RPMTAG_FILEUSERNAME);
-	    headerRemoveEntry(pkg.h, RPMTAG_FILEGROUPNAME);
-	    headerRemoveEntry(pkg.h, RPMTAG_FILEVERIFYFLAGS);
-	    headerRemoveEntry(pkg.h, RPMTAG_FILERDEVS);
-	    headerRemoveEntry(pkg.h, RPMTAG_FILEMTIMES);
-	    headerRemoveEntry(pkg.h, RPMTAG_FILEDEVICES);
-	    headerRemoveEntry(pkg.h, RPMTAG_FILEINODES);
-	    headerRemoveEntry(pkg.h, RPMTAG_TRIGGERSCRIPTS);
-	    headerRemoveEntry(pkg.h, RPMTAG_TRIGGERVERSION);
-	    headerRemoveEntry(pkg.h, RPMTAG_TRIGGERFLAGS);
-	    headerRemoveEntry(pkg.h, RPMTAG_TRIGGERNAME);
-	    headerRemoveEntry(pkg.h, RPMTAG_CHANGELOGTIME);
-	    headerRemoveEntry(pkg.h, RPMTAG_CHANGELOGNAME);
-	    headerRemoveEntry(pkg.h, RPMTAG_CHANGELOGTEXT);
-	    headerRemoveEntry(pkg.h, RPMTAG_ICON);
-	    headerRemoveEntry(pkg.h, RPMTAG_GIF);
-	    headerRemoveEntry(pkg.h, RPMTAG_VENDOR);
-	    headerRemoveEntry(pkg.h, RPMTAG_EXCLUDE);
-	    headerRemoveEntry(pkg.h, RPMTAG_EXCLUSIVE);
-	    headerRemoveEntry(pkg.h, RPMTAG_DISTRIBUTION);
-	    headerRemoveEntry(pkg.h, RPMTAG_VERIFYSCRIPT);
-	  }
-	  av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
-					 memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
-
-	  /* only one element read */
-	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
-	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
-	}
+	/* only one element read */
+	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
+	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
       }
-      fdClose(fd);
     } else croak("first argument should contains a depslist ARRAY reference");
   } else croak("first argument should be a reference to HASH");
 
