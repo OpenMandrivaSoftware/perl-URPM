@@ -53,7 +53,7 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
 
 
 {
-    open(my $hdfh, "zcat hdlist.cz |") or die $!;
+    open(my $hdfh, "zcat hdlist.cz 2>/dev/null |") or die $!;
     my $pkg = URPM::stream2header($hdfh);
     ok(defined $pkg, "Reading a header works");
     ok($pkg->get_tag(1000) eq 'test-rpm');
