@@ -75,19 +75,13 @@ sub parse_rpms_build_headers {
     @headers;
 }
 
-#- check if rereading of hdlist is neccessary.
+#- allow rereading of hdlist and clean.
 sub unresolved_provides_clean {
     my ($urpm) = @_;
-    my @unresolved = grep { ! defined $urpm->{provides}{$_} } keys %{$urpm->{provides} || {}};
+    my @potentially_unresolved = keys %{$urpm->{provides} || {}};
 
-    #- names can be safely removed in any cases.
-    delete $urpm->{names};
-
-    #- remove
     @{$urpm}{qw(depslist provides)} = ([], {});
     @{$urpm->{provides}}{@unresolved} = ();
-
-    @unresolved;
 }
 
 #- read a list of headers (typically when building an hdlist when provides have

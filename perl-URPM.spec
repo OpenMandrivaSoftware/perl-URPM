@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.50
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 24 2002 François Pons <fpons@mandrakesoft.com> 0.50-4mdk
+- fixed another best package choice to avoid choosing package too
+  early.
+- fixed pre-required files not correctly fetched in provides when
+  parsing synthesis file.
+- fixed bad behaviour of unresolved_provides_clean.
+
 * Wed Jul 24 2002 François Pons <fpons@mandrakesoft.com> 0.50-3mdk
 - fixed typo causing difference of provides to be not examined.
 - fixed best package as choice to avoid choosing package too early.

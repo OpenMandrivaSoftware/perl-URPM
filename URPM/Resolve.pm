@@ -285,6 +285,7 @@ sub resolve_requested {
 					  my $best = join '|', map { $_->id }
 					    grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
 					      @{$packages->{$p->name}};
+
 					  if ($best) {
 					      push @properties, $best;
 					  } else {
@@ -325,18 +326,12 @@ sub resolve_requested {
 					  #- the existing package will conflicts with selection, check if a newer
 					  #- version will be ok, else ask to remove the old.
 					  my $packages = $urpm->find_candidate_packages($p->name);
-					  my $best;
-					  foreach (@{$packages->{$p->name}}) {
-					      unless (grep { ranges_overlap($_, $property) } $_->provides) {
-						  if ($best && $best != $_) {
-						      $_->compare_pkg($best) > 0 and $best = $_;
-						  } else {
-						      $best = $_;
-						  }
-					      }
-					  }
+					  my $best = join '|', map { $_->id }
+					    grep { ! grep { ranges_overlap($_, $property) } $_->provides }
+					      @{$packages->{$p->name}};
+
 					  if ($best) {
-					      push @properties, $best->id;
+					      push @properties, $best;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
 					      $options{keep_state} or

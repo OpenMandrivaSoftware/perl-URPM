@@ -406,14 +406,11 @@ update_provides(URPM__Package pkg, HV *provides) {
     if (list) {
       for (i = 0; i < count; ++i) {
 	len = strlen(list[i]);
-	if (!strncmp(list[i], "rpmlib(", 7)) continue;
 	if (list[i][0] == '/') hv_fetch(provides, list[i], len, 1);
       }
     }
 
     /* update all provides */
-    /* headerGetEntry(pkg->h, RPMTAG_PROVIDEVERSION, &type, (void **) &list_evr, &count);
-       headerGetEntry(pkg->h, RPMTAG_PROVIDEFLAGS, &type, (void **) &flags, &count); */
     headerGetEntry(pkg->h, RPMTAG_PROVIDENAME, &type, (void **) &list, &count);
     if (list) {
       for (i = 0; i < count; ++i) {
@@ -423,15 +420,21 @@ update_provides(URPM__Package pkg, HV *provides) {
       }
     }
   } else {
-    char *ps, *s;
+    char *ps, *s, *es;
 
     if ((s = pkg->requires) != NULL && *s != 0) {
       ps = strchr(s, '@');
       while(ps != NULL) {
-	if (s[0] == '/') hv_fetch(provides, s, ps-s, 1);
+	if (s[0] == '/') {
+	  *ps = 0; es = strchr(s, '['); if (!es) es = strchr(s, ' '); *ps = '@';
+	  hv_fetch(provides, s, es != NULL ? es-s : ps-s, 1);
+	}
 	s = ps + 1; ps = strchr(s, '@');
       }
-      if (s[0] == '/') hv_fetch(provides, s, strlen(s), 1);
+      if (s[0] == '/') {
+	es = strchr(s, '['); if (!es) es = strchr(s, ' ');
+	hv_fetch(provides, s, es != NULL ? es-s : strlen(s), 1);
+      }
     }
 
     if ((s = pkg->provides) != NULL && *s != 0) {
