@@ -127,6 +127,16 @@ sub resolve_closure_ask_remove {
 #- the following options are recognized :
 #-   check : check requires of installed packages.
 sub resolve_requested {
+    #- internal method to simplify code.
+    sub update_state_provides {
+	my ($state, $pkg) = @_;
+	foreach ($pkg->provides) {
+	    if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+		$state->{provided}{$n}{$s}{$pkg->id} = undef;
+	    }
+	}
+    };
+
     my ($urpm, $db, $state, $requested, %options) = @_;
     my (@properties, @obsoleted, %requested, $dep);
 
@@ -142,7 +152,7 @@ sub resolve_requested {
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     while (defined ($dep = shift @properties)) {
-	my (@chosen, %diff_provides, $pkg);
+	my (@chosen, %diff_provides, $pkg, $allow);
 	#- take the best package for each choices of same name.
 	my $packages = $urpm->find_candidate_packages($dep);
 	foreach (values %$packages) {
@@ -229,10 +239,10 @@ sub resolve_requested {
 		#- but this package may be required explicitely, in such
 		#- case we can ask to remove all the previous one and
 		#- choose this one to install.
-		my $allow = 0;
 		$db->traverse_tag('name', [ $pkg->name ], sub {
 				      my ($p) = @_;
 				      if ($pkg->compare_pkg($p) < 0) {
+					  $allow or update_state_provides($state, $pkg);
 					  $allow = 1;
 					  $options{keep_state} or
 					    $urpm->resolve_closure_ask_remove($db, $state, $p,
@@ -256,11 +266,7 @@ sub resolve_requested {
 	if ($pkg->arch ne 'src') {
 	    #- keep in mind the provides of this package, so that future requires can be satisfied
 	    #- with this package potentially.
-	    foreach ($pkg->provides) {
-		if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-		    $state->{provided}{$n}{$s}{$pkg->id} = undef;
-		}
-	    }
+	    $allow or update_state_provides($state, $pkg);
 
 	    foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
 		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
@@ -523,6 +529,7 @@ sub resolve_unrequested {
 #- compute installed flags for all package in depslist.
 sub compute_installed_flags {
     my ($urpm, $db) = @_;
+    my %sizes;
 
     #- first pass to initialize flags installed and upgrade for all package.
     foreach (@{$urpm->{depslist}}) {
@@ -532,6 +539,9 @@ sub compute_installed_flags {
     #- second pass to set installed flag and clean upgrade flag according to installed packages.
     $db->traverse(sub {
 		      my ($p) = @_;
+		      #- keep mind of sizes of each packages.
+		      $sizes{join '-', ($p->fullname)[0..2]} = $p->size;
+		      #- compute flags.
 		      foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
 			  my $pkg = $urpm->{depslist}[$_];
 			  $pkg->name eq $p->name or next;
@@ -540,6 +550,8 @@ sub compute_installed_flags {
 			  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 		      }
 		  });
+
+    \%sizes;
 }
 
 #- select packages to upgrade, according to package already registered.
