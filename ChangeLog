@@ -1,3 +1,25 @@
+2004-10-18 10:34  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: A few perl_checker fixes
+
+2004-10-18 10:31  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Patch by Gwenole Beauchesne to prefer packages
+	  which have the closest architecture compatibility over others
+	  when version/release are the same (using rpm's scoring system).
+
+2004-10-14 05:22  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: Fix method description
+
+2004-10-13 04:35  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: Small comment fixes
+
+2004-09-03 07:06  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: If $TMPDIR is not writable, don't use it
+
 2004-08-29 14:29  Olivier Thauvin <thauvin@aerov.jussieu.fr>
 
 	* URPM.pm, perl-URPM.spec: - 1.03

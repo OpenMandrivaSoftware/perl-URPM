@@ -7,7 +7,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 1.03
-%define release 1mdk
+%define release 2mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -63,6 +63,10 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Tue Oct 19 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.03-2mdk
+- Multiarch fix (Gwenole Beauchesne)
+- Don't use $TMPDIR if not writage
+
 * Sun Aug 29 2004 Olivier Thauvin <thauvin@aerov.jussieu.fr> 1.03-1mdk
 - add rpmvercmp binding (from perl-Hdlist)
 
