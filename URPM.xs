@@ -2891,7 +2891,7 @@ Urpm_unsatisfied_requires2(urpm, db, state, pkg, ...)
 	char *s = SvPV(ST(i), len);
 
 	if (len == 4 && !memcmp(s, "name", 4)) {
-	  option_name = SvPV(ST(i+1));
+	  option_name = SvPV_nolen(ST(i+1));
 	} else if (len == 14 && !memcmp(s, "nopromoteepoch", 14)) {
 	  option_nopromoteepoch = SvIV(ST(i+1));
 	}
