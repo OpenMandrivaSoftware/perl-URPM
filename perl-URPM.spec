@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.70
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug 26 2002 François Pons <fpons@mandrakesoft.com> 0.70-2mdk
+- added more flags to URPM::Transaction::run (oldpackage, test).
+- fixed choices to prefer right locales dependent packages.
+- added avoided hash to avoid mixing choices when a lot of
+  possible packages are available and split have been done
+  (openjade bug reported on cooker).
+
 * Fri Aug 23 2002 François Pons <fpons@mandrakesoft.com> 0.70-1mdk
 - fixed search method to work correctly.
 

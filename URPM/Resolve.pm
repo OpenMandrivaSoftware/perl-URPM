@@ -138,7 +138,7 @@ sub resolve_requested {
     };
 
     my ($urpm, $db, $state, $requested, %options) = @_;
-    my (@properties, @obsoleted, %requested, $dep);
+    my (@properties, @obsoleted, %requested, %avoided, $dep);
 
     #- keep in mind the requested id (if given) in order to prefer these packages
     #- on choices instead of anything other one.
@@ -159,6 +159,7 @@ sub resolve_requested {
 	    my ($best_requested, $best);
 	    foreach (@$_) {
 		exists $state->{selected}{$_->id} and $best_requested = $_, last;
+		exists $avoided{$_->name} and next;
 		if ($best_requested || exists $requested{$_->id}) {
 		    if ($best_requested && $best_requested != $_) {
 			$_->compare_pkg($best_requested) > 0 and $best_requested = $_;
@@ -214,7 +215,26 @@ sub resolve_requested {
 	} else {
 	    @chosen = values %$packages;
 	}
-	@chosen = sort { $a->id <=> $b->id } @chosen; #- sort package in order to have best ones first.
+	#- packages that requires locales-xxx and the corresponding locales is already installed
+	#- should be prefered over packages that requires locales not installed.
+	my (@chosen_good_locales, @chosen_bad_locales, @chosen_other);
+	foreach (@chosen) {
+	    my $good_locales;
+	    if (my ($specific_locales) = grep { /locales-/ && ! /locales-en/ } $_->requires_nosense) {
+		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
+		    $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
+		    push @chosen_good_locales, $_;
+		} else {
+		    push @chosen_bad_locales, $_;
+		}
+	    } else {
+		push @chosen_other, $_;
+	    }
+	}
+	#- sort package in order to have best ones first (this means good locales, no locales, bad locales).
+	@chosen = ((sort { $a->id <=> $b->id } @chosen_good_locales),
+		   (sort { $a->id <=> $b->id } @chosen_other),
+		   (sort { $a->id <=> $b->id } @chosen_bad_locales));
 	if (!$pkg && $options{callback_choices} && @chosen > 1) {
 	    $pkg = $options{callback_choices}->($urpm, $db, $state, \@chosen);
 	    $pkg or next; #- callback may decide to not continue (or state is already updated).
@@ -258,6 +278,9 @@ sub resolve_requested {
 	#- this means required dependencies have undef value in selected hash.
 	#- requested flag is set only for requested package where value is not false.
 	$state->{selected}{$pkg->id} = delete $requested->{$dep};
+	#- mark package of this name to be avoided if possible.
+	$avoided{$pkg->name} = undef;
+
 	$options{no_flag_update} or
 	  $state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required;
 
