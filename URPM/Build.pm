@@ -12,8 +12,8 @@ sub _get_tmp_dir () {
 #- it can be used to start computing depslist.
 #- parameters are :
 #-   rpms     : array of all rpm file name to parse (mandatory)
-#-   dir      : directory wich will contain headers (default to /tmp/.build_hdlist)
-#-   callback : perl code to be called for each package read (default pack_header)
+#-   dir      : directory which will contain headers (defaults to /tmp/.build_hdlist)
+#-   callback : perl code to be called for each package read (defaults pack_header)
 #-   clean    : bool to clean cache before (default no).
 sub parse_rpms_build_headers {
     my ($urpm, %options) = @_;
@@ -114,11 +114,11 @@ sub unresolved_provides_clean {
 }
 
 #- read a list of headers (typically when building an hdlist when provides have
-#- been cleaned.
+#- been cleaned).
 #- parameters are :
-#-   headers  : array of all headers file name to parse (mandatory)
-#-   dir      : directory wich contains headers (default to /tmp/.build_hdlist)
-#-   callback : perl code to be called for each package read (default pack_header)
+#-   headers  : array containing all headers filenames to parse (mandatory)
+#-   dir      : directory which contains headers (defaults to /tmp/.build_hdlist)
+#-   callback : perl code to be called for each package read (defaults to pack_header)
 sub parse_headers {
     my ($urpm, %options) = @_;
     my ($dir, $start, $id);
@@ -136,7 +136,7 @@ sub parse_headers {
     defined $id ? ($start, $id) : @{[]};
 }
 
-# parse_rpms, to same bevaviour than parse_{hdlist, synthesis}
+# parse_rpms, same behaviour than parse_{hdlist, synthesis}
 # ie: ($start, $end) = parse_*(filestoparse, %options);
 
 sub parse_rpms {
@@ -393,10 +393,10 @@ sub compute_deps {
 #- build an hdlist from existing depslist, from start to end inclusive.
 #- parameters are :
 #-   hdlist   : hdlist file to use.
-#-   dir      : directory wich contains headers (default to /tmp/.build_hdlist)
-#-   start    : index of first package (default to first index of depslist).
-#-   end      : index of last package (default to last index of depslist).
-#-   idlist   : ids list to rpm to compute (default is start .. end)
+#-   dir      : directory which contains headers (defaults to /tmp/.build_hdlist)
+#-   start    : index of first package (defaults to first index of depslist).
+#-   end      : index of last package (defaults to last index of depslist).
+#-   idlist   : id list of rpm to compute (defaults is start .. end)
 #-   ratio    : compression ratio (default 4).
 #-   split    : split ratio (default 400000).
 sub build_hdlist {
@@ -436,10 +436,10 @@ sub build_hdlist {
 #- parameters are :
 #-   synthesis : synthesis file to create (mandatory if fd not given).
 #-   fd        : file descriptor (mandatory if synthesis not given).
-#-   dir       : directory wich contains headers (default to /tmp/.build_hdlist)
-#-   start     : index of first package (default to first index of depslist).
-#-   end       : index of last package (default to last index of depslist).
-#-   idlist    : ids list to rpm to compute (default is start .. end)
+#-   dir       : directory which contains headers (defaults to /tmp/.build_hdlist)
+#-   start     : index of first package (defaults to first index of depslist).
+#-   end       : index of last package (defaults to last index of depslist).
+#-   idlist    : id list of rpm to compute (defaults is start .. end)
 #-   ratio     : compression ratio (default 9).
 sub build_synthesis {
     my ($urpm, %options) = @_;
