@@ -38,8 +38,8 @@ sub find_chosen_packages {
     foreach (split '\|', $dep) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
-	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
+	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this packages is better than a possibly previously chosen package.
 	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
 	    if (my $p = $packages{$pkg->name}) {
@@ -51,8 +51,8 @@ sub find_chosen_packages {
 	} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
-		$pkg->flag_skip || exists $state->{rejected}{$pkg->fullname} and next;
 		$pkg->is_arch_compat or next;
+		$pkg->flag_skip || exists $state->{rejected}{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property (if sense are needed).
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this packages is better than a possibly previously chosen package.
@@ -654,9 +654,11 @@ sub resolve_requested {
 				      #- already installed.
 				      my $packages = $urpm->find_candidate_packages($p->name, avoided => $state->{rejected});
 				      my $best = join '|', map { $_->id }
-					grep { $_->fullname ne $p->fullname &&
-						 $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
-					  @{$packages->{$p->name}};
+					grep { ($_->name eq $p->name ||
+						$_->obsoletes_overlap($p->name." == ".$p->epoch.":".$p->version."-".$p->release))
+						 && $_->fullname ne $p->fullname &&
+						   $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
+					  map { @{$_ || []} } values %$packages;
 
 				      if (length $best) {
 					  push @properties, { required => $best, promote => $n, psel => $pkg };
