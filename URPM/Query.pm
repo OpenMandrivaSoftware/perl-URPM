@@ -12,13 +12,13 @@ use strict;
 # Return an array of ID tag
 
 sub tag2id {
-	my @l = @_;
-	my %taglist = URPM::list_rpm_tag();
-	map { $taglist{uc($_)} || undef } @l;
+    my @l = @_;
+    my %taglist = URPM::list_rpm_tag();
+    map { $taglist{uc($_)} || undef } @l;
 }
 
 sub query_pkg {
-   my ($urpm, $pkg, $query) = @_;
+   my (undef, $pkg, $query) = @_;
    my @tags = map {
 	   [ $pkg->get_tag(tag2id($_)) ]
    } $query =~ m/\%\{([^{}]*)\}*/g;
@@ -29,12 +29,11 @@ sub query_pkg {
    my ($max, @res) = 0;
 
    foreach (@tags) { $max < $#{$_} and $max = $#{$_} };
-   
-   foreach my $i (0 .. $max) {
-	   push(@res, sprintf($query, map { ${$_}[ $#{$_} < $i ? $#{$_} : $i ] } @tags));
-   }
-   @res	   
-}
 
+   foreach my $i (0 .. $max) {
+       push(@res, sprintf($query, map { ${$_}[ $#{$_} < $i ? $#{$_} : $i ] } @tags));
+   }
+   @res
+}
 
 1;

@@ -27,16 +27,17 @@ sub parse_rpms_build_headers {
 	    while (defined (my $file = readdir $dirh)) {
 		my ($fullname, $filename) = $file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
 		my @stat = stat "$dir/$file";
-		$cache{$filename || $fullname} = { file => $file,
-						   size => $stat[7],
-						   time => $stat[9],
-						 };
+		$cache{$filename || $fullname} = {
+		    file => $file,
+		    size => $stat[7],
+		    'time' => $stat[9],
+		};
 	    }
 	    closedir $dirh;
 	}
 
 	foreach (@{$options{rpms}}) {
-	    my ($key) = m{([^/]*)\.rpm$} or next; #- get rpm filename.
+	    my ($key) = /([^\/]*)\.rpm$/ or next; #- get rpm filename.
 	    my ($id, $filename);
 
 	    if ($cache{$key} && $cache{$key}{time} > 0 && $cache{$key}{time} >= (stat $_)[9]) {
@@ -139,9 +140,9 @@ sub parse_rpms {
         rpms => $rpms, 
         %options, 
         callback => sub {
-            my ($urpm, $id) = @_;
-	    $start = $id if($start > $id || ! defined($start));
-	    $end = $id   if($end < $id   || ! defined($end));	
+            my (undef, $id) = @_;
+	    $start = $id if $start > $id || ! defined($start);
+	    $end = $id   if $end < $id   || ! defined($end);
         }
     ) ? ($start, $end) : ();
 }
@@ -177,10 +178,11 @@ sub fuzzy_parse {
 #-   callback : callback to relocate reference to package id.
 sub compute_deps {
     my ($urpm, %options) = @_;
-    my %propagated_weight = ( basesystem => 10000,
-			      msec       => 20000,
-			      filesystem => 50000,
-			    );
+    my %propagated_weight = (
+	basesystem => 10000,
+	msec       => 20000,
+	filesystem => 50000,
+    );
     my ($locales_weight, $step_weight, $fixed_weight) = (-5000, 10000, $propagated_weight{basesystem});
 
     #- avoid recomputing already present infos, take care not to modify
@@ -213,9 +215,11 @@ sub compute_deps {
 
 	while (my $req = shift @requires) {
 	    $req =~ /^basesystem/ and next; #- never need to requires basesystem directly as always required! what a speed up!
-	    my $treq = ($req =~ /^\d+$/ && [ $req ] ||
-			$urpm->{provides}{$req} && [ keys %{$urpm->{provides}{$req}} ] ||
-			[ ($req !~ /NOTFOUND_/ && "NOTFOUND_") . $req ]);
+	    my $treq = (
+		$req =~ /^\d+$/ ? [ $req ]
+		: $urpm->{provides}{$req} ? [ keys %{$urpm->{provides}{$req}} ]
+		: [ ($req !~ /NOTFOUND_/ ? "NOTFOUND_" : "") . $req ]
+	    );
 	    if (@$treq > 1) {
 		#- this is a choice, no closure need to be done here.
 		push @required_packages, $treq;
@@ -302,7 +306,7 @@ sub compute_deps {
 	exists $prereqs{$b}{$a} && ! exists $prereqs{$a}{$b} ? 1 :
 	  $ordered{$b} <=> $ordered{$a} or do {
 	      my ($na, $nb) = map { $urpm->{depslist}[$_]->name } ($a, $b);
-	      my ($sa, $sb) = map { /^lib(.*)/ and $1 } ($na, $nb);
+	      my ($sa, $sb) = map { /^lib(.*)/ ? $1 : '' } ($na, $nb);
 	      $sa && $sb ? $sa cmp $sb : $sa ? -1 : $sb ? 1 : $na cmp $nb;
 	  } } ($start .. $end)} = ($start .. $end);
 
@@ -397,7 +401,7 @@ sub build_hdlist {
      -d $dir or die "no directory $dir\n";
 
     @idlist = @{$options{idlist} || []} > 0 ? @{$options{idlist}} :
-      ($options{start} || 0 .. $options{end} || $#{$urpm->{depslist}});
+      (($options{start} || 0) .. ($options{end} || $#{$urpm->{depslist}}));
     @idlist or return;
 
     #- compression ratio are not very high, sample for cooker
@@ -414,7 +418,8 @@ sub build_hdlist {
     open my $fh, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 	my $filename = $pkg->fullname;
-	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ m{([^/]*)\.rpm$} and $filename .= ":$1";
+	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ /([^\/]*)\.rpm$/
+	    and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
 	print $fh "$filename\n";
     }

@@ -444,7 +444,7 @@ sub resolve_requested {
 			exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 			exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
 		    }
-		} grep { ref } $options{callback_choices}->($urpm, $db, $state, \@chosen);
+		} grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
 		next; #- always redo according to choices.
 	    }
 
@@ -908,8 +908,8 @@ sub compute_flags {
     my @regex;
 
     #- unless a regular expression is given, search in provides
-    for my $name (@$val) {
-	if ($name =~ m{^/(.*)/$}) {
+    foreach my $name (@$val) {
+	if ($name =~ m,^/(.*)/$,) {
 	    push @regex, $1;
 	} else {
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
@@ -1169,7 +1169,7 @@ sub build_transaction_set {
 
 #- compatiblity method which are going to be removed.
 sub resolve_closure_ask_remove {
-    my ($urpm, $db, $state, $pkg, $from, $why, $avoided) = @_;
+    my ($urpm, $db, $state, $pkg, $from, $why) = @_;
 
     print STDERR "calling obsoleted method URPM::resolve_closure_ask_remove\n";
 
