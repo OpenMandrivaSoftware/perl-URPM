@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 11mdk
+%define release 12mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -59,6 +59,9 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Wed Apr 21 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.94-12mdk
+- cleanup and documentation
+
 * Wed Feb 25 2004 Olivier Thauvin <thauvin@aerov.jussieu.fr> 0.94-11mdk
 - parse_rpm_build_headers
 - rebuild for perl
