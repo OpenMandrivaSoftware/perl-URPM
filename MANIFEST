@@ -8,3 +8,4 @@ URPM/Build.pm
 URPM/Resolve.pm
 t/rpmdb.t
 t/synthesis.t
+META.yml                                Module meta-data (added by MakeMaker)

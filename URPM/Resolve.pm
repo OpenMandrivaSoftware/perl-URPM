@@ -546,19 +546,14 @@ sub resolve_requested {
 			#- they must first be unselected.
 			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} ||= undef;
 		    }
-		    #- examine rpm db too.
-		    $db->traverse_tag('whatprovides', [ $n ], sub {
+		    #- examine rpm db too (but only according to packages name as a fix in rpm itself)
+		    $db->traverse_tag('name', [ $n ], sub {
 					  my ($p) = @_;
-					  my %provides;
 
-					  #- a provide obsoleted in not concerned by this theory.
-					  @provides{$p->provides_nosense} = ();
-					  delete @provides{$p->obsoletes_nosense};
-					  exists $provides{$n} or return;
-
+					  #- without an operator, anything (with the same name) is matched.
+					  #- with an operator, check with package EVR with the obsoletes EVR.
 					  my $satisfied = !$o || eval($p->compare($v) . $o . 0);
-					  $n eq $p->name && $p->name eq $pkg->name && $p->fullname ne $pkg->fullname ||
-					    $satisfied or return;
+					  $p->name eq $pkg->name && $p->fullname eq $pkg->fullname || $satisfied or return;
 
 					  #- do not propagate now the broken dependencies as they are
 					  #- computed later.
@@ -1115,7 +1110,28 @@ sub build_transaction_set {
 		%set and push @{$state->{transaction}}, \%set;
 	    }
 	}
-    } elsif (%{$state->{selected} || {}}) {
+
+	#- check transaction set has been correctly created,
+	#- possible error are other package removed which should not be the case.
+	if (keys(%{$state->{selected}}) == keys(%{$state->{transaction_state}{selected}}) &&
+	    (grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} } keys %{$state->{rejected}}) ==
+	    (grep { $state->{transaction_state}{rejected}{$_}{removed} && !$state->{transaction_state}{rejected}{$_}{obsoleted} }
+	     keys %{$state->{transaction_state}{rejected}})
+	   ) {
+	    foreach (keys(%{$state->{selected}})) {
+		exists $state->{transaction_state}{selected}{$_} and next;
+		$state->{transaction} = []; last;
+	    }
+	    foreach (grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} } keys %{$state->{rejected}}) {
+		$state->{transaction_state}{rejected}{$_}{removed} &&
+		  !$state->{transaction_state}{rejected}{$_}{obsoleted} and next;
+		$state->{transaction} = []; last;
+	    }
+	}
+    }
+
+    #- fallback if something can be selected but nothing has been allowed in transaction list.
+    if (%{$state->{selected} || {}} && !@{$state->{transaction}}) {
 	push @{$state->{transaction}}, {
 					upgrade => [ keys %{$state->{selected}} ],
 					remove  => [ grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} }

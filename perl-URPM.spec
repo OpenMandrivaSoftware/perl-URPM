@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.92
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug  4 2003 François Pons <fpons@mandrakesoft.com> 0.92-4mdk
+- sanity check on transaction set (should be the same as
+  normal selection, else something wrong has occured).
+- updated with newer rpm with obsoletes fixed among others.
+
 * Fri Aug  1 2003 Pixel <pixel@mandrakesoft.com> 0.92-3mdk
 - rebuild for new perl (it helps DrakX build script)
 - use DESTDIR
