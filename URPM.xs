@@ -3027,9 +3027,10 @@ Urpm_parse_rpm(urpm, filename, ...)
       PUTBACK;
       memset(&pkg, 0, sizeof(struct s_Package));
       pkg.flag = 1 + av_len(depslist);
-      sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
-			    _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package)));
+      _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package));
+
       if (update_header(filename, _pkg, keep_all_tags)) {
+	sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package", _pkg);
 	if (call_package_callback(urpm, sv_pkg, callback)) {
 	  if (provides) {
 	    update_provides(_pkg, provides);
@@ -3042,7 +3043,7 @@ Urpm_parse_rpm(urpm, filename, ...)
 	/* only one element read */
 	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
-      }
+      } else free(_pkg);
     } else croak("first argument should contains a depslist ARRAY reference");
   } else croak("first argument should be a reference to HASH");
 
