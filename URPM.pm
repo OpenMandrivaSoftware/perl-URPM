@@ -474,7 +474,7 @@ Return an array of human readable view of tag values. $tagid is the numerical va
 
 =item $package->obsoletes_nosense()
 
-=item $package->obsoletes_overlap($s, [$b_nopromote,] [$direction])
+=item $package->obsoletes_overlap($s, [$nopromoteepoch,] [$direction])
 
 =item $package->os()
 
@@ -486,7 +486,7 @@ Return an array of human readable view of tag values. $tagid is the numerical va
 
 =item $package->provides_nosense()
 
-=item $package->provides_overlap($s, [$b_nopromote,] [$direction])
+=item $package->provides_overlap($s, [$nopromoteepoch,] [$direction])
 
 =item $package->rate()
 

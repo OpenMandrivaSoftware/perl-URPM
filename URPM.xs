@@ -1752,7 +1752,7 @@ Pkg_compare_pkg(lpkg, rpkg)
 	lepoch = 0;
       }
       get_fullname_parts(lpkg, NULL, &lversion, &lrelease, &larch, &leos);
-      /* temporaly mark end of each substring */
+      /* temporarily mark end of each substring */
       lrelease[-1] = 0;
       larch[-1] = 0;
     } else if (lpkg->h) {
@@ -1772,7 +1772,7 @@ Pkg_compare_pkg(lpkg, rpkg)
 	repoch = 0;
       }
       get_fullname_parts(rpkg, NULL, &rversion, &rrelease, &rarch, &reos);
-      /* temporaly mark end of each substring */
+      /* temporarily mark end of each substring */
       rrelease[-1] = 0;
       rarch[-1] = 0;
     } else if (rpkg->h) {
@@ -1853,7 +1853,7 @@ Pkg_compare(pkg, evr)
       _epoch = 0;
     }
     get_fullname_parts(pkg, NULL, &_version, &_release, &_eos, NULL);
-    /* temporaly mark end of each substring */
+    /* temporarily mark end of each substring */
     _release[-1] = 0;
     _eos[-1] = 0;
   } else if (pkg->h) {
