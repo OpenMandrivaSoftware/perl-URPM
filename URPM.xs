@@ -692,14 +692,18 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
 }
 
 void 
-return_list_tag(Header header, int_32 tag_name) {
+return_list_tag(URPM__Package pkg, int_32 tag_name) {
   dSP;
-  if (header) {
+  if (pkg->h) {
     void *list = NULL;
     int_32 count, type;
-    headerGetEntry(header, tag_name, &type, (void **) &list, &count);
-    if (list) {
+    headerGetEntry(pkg->h, tag_name, &type, (void **) &list, &count);
     
+    if (list) {
+    // avoid arch here (rpm don't return src), it's not beautifull
+    if (tag_name == RPMTAG_ARCH ) {
+        XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : (char *) list, 0)));
+    } else
     switch (type) {
 	  case RPM_NULL_TYPE:
 	    break;
@@ -729,7 +733,7 @@ return_list_tag(Header header, int_32 tag_name) {
         {
         int i;
         char **s;
-        
+
         s = (char **)list;
         for (i = 0; i < count; i++) {
     	    XPUSHs(sv_2mortal(newSVpv(s[i], 0)));
@@ -738,8 +742,58 @@ return_list_tag(Header header, int_32 tag_name) {
 	    break;
 	  case RPM_I18NSTRING_TYPE:
 	    break;
-	  }
+	}
     }
+  } else {
+      switch (tag_name) {
+          case RPMTAG_NAME:
+              {
+              char *name;
+              char *version;
+              char *release;
+              char *arch;
+              char *eos;
+              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+              XPUSHs(sv_2mortal(newSVpv(name, version-name)));
+              }
+              break;
+          case RPMTAG_VERSION:
+              {
+              char *name;
+              char *version;
+              char *release;
+              char *arch;
+              char *eos;
+              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+              XPUSHs(sv_2mortal(newSVpv(version, release-version)));
+              }
+              break;
+          case RPMTAG_RELEASE:
+              {
+              char *name;
+              char *version;
+              char *release;
+              char *arch;
+              char *eos;
+              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+              XPUSHs(sv_2mortal(newSVpv(release, arch-release)));
+              }
+              break;
+          case RPMTAG_ARCH:
+              {
+              char *name;
+              char *version;
+              char *release;
+              char *arch;
+              char *eos;
+              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+              XPUSHs(sv_2mortal(newSVpv(arch, eos-arch)));
+              }
+              break;
+          case RPMTAG_SUMMARY:
+              XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
+              break;
+      }
   }
   PUTBACK;
 }
@@ -2268,7 +2322,7 @@ Pkg_get_tag(pkg, tagname)
   int tagname;
   PPCODE:
   PUTBACK;
-  return_list_tag(pkg->h, tagname);
+  return_list_tag(pkg, tagname);
   SPAGAIN;
 
 void
