@@ -12,6 +12,7 @@ use strict;
 sub parse_rpms_build_headers {
     my ($urpm, %options) = @_;
     my ($dir, %cache, @headers, %names);
+    local (*DIR, *F);
 
     #- check for mandatory options.
     if (@{$options{rpms} || []} > 0) {
@@ -23,7 +24,6 @@ sub parse_rpms_build_headers {
 	#- examine cache if it contains any headers which will be much faster to read
 	#- than parsing rpm file directly.
 	unless ($options{clean}) {
-	    local *DIR;
 	    opendir DIR, $dir;
 	    while (my $file = readdir DIR) {
 		$file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
@@ -53,8 +53,7 @@ sub parse_rpms_build_headers {
 
 		print STDERR "$dir/$filename\n";
 		unless (-s "$dir/$filename") {
-		    local *F;
-		    open F, ">$dir/$filename";
+		    open F, ">$dir/$filename" or die "unable to open $dir/$filename for writing\n";
 		    $pkg->build_header(fileno *F);
 		    close F;
 		}

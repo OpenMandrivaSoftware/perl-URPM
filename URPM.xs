@@ -613,13 +613,15 @@ update_header(char *filename, URPM__Package pkg, HV *provides, int packing) {
 	Header header;
 	int isSource;
 
-	if (rpmReadPackageHeader(fd, &header, &isSource, NULL, NULL) == 0) {
+	close(d);
+	if (fd != NULL && rpmReadPackageHeader(fd, &header, &isSource, NULL, NULL) == 0) {
 	  struct stat sb;
 	  char *basename;
 	  int_32 size;
 
 	  basename = strrchr(filename, '/');
 	  fstat(fdFileno(fd), &sb);
+	  fdClose(fd);
 	  size = sb.st_size;
 	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
 	  headerAddEntry(header, FILESIZE_TAG, RPM_INT32_TYPE, &size, 1);
@@ -665,10 +667,14 @@ update_header(char *filename, URPM__Package pkg, HV *provides, int packing) {
       } else if (sig[0] == 0x8e && sig[1] == 0xad && sig[2] == 0xe8 && sig[3] == 0x01) {
 	FD_t fd = fdDup(d);
 
-	if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
-	pkg->h = headerRead(fd, HEADER_MAGIC_YES);
-	pkg->flag &= ~FLAG_NO_HEADER_FREE;
-	return 1;
+	close(d);
+	if (fd != NULL) {
+	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+	  pkg->h = headerRead(fd, HEADER_MAGIC_YES);
+	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
+	  fdClose(fd);
+	  return 1;
+	}
       }
     }
   }
@@ -1385,6 +1391,13 @@ Pkg_update_header(pkg, filename)
   RETVAL
 
 void
+Pkg_free_header(pkg)
+  URPM::Package pkg
+  CODE:
+  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+  pkg->h = NULL;
+
+void
 Pkg_build_info(pkg, fileno, provides_files=NULL)
   URPM::Package pkg
   int fileno
@@ -1429,9 +1442,10 @@ Pkg_build_header(pkg, fileno)
   if (pkg->h) {
     FD_t fd;
 
-    fd = fdDup(fileno);
-    headerWrite(fd, pkg->h, HEADER_MAGIC_YES);
-    fdClose(fd);
+    if ((fd = fdDup(fileno)) != NULL) {
+      headerWrite(fd, pkg->h, HEADER_MAGIC_YES);
+      fdClose(fd);
+    } else croak("unable to get rpmio handle on fileno %d", fileno);
   } else croak("no header available for package");
 
 int

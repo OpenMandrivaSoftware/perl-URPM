@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.08
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jul  9 2002 François Pons <fpons@mandrakesoft.com> 0.08-4mdk
+- fixed too many opened files when building hdlist.
+
 * Tue Jul  9 2002 Pixel <pixel@mandrakesoft.com> 0.08-3mdk
 - rebuild for perl 5.8.0
 
