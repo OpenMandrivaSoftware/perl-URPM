@@ -561,7 +561,11 @@ return_files(Header header, int filter_mode) {
 }
 
 void
+#ifdef RPM_42
 return_problems(rpmps ps, int translate_message) {
+#else
+return_problems(rpmProblemSet ps, int translate_message) {
+#endif
   dSP;
   if (ps && ps->probs && ps->numProblems > 0) {
     int i;
@@ -3132,6 +3136,7 @@ Urpm_verify_rpm(filename, ...)
   if (fdFileno(fd) < 0) {
     RETVAL = "Couldn't open file";
   } else {
+#ifdef RPM_42
     if (db) {
       ts = db->ts;
     } else {
@@ -3141,6 +3146,7 @@ Urpm_verify_rpm(filename, ...)
       rpmtsSetRootDir(ts, "/");
       rpmtsOpenDB(ts, O_RDONLY);
     }
+#endif
 
     memset(&lead, 0, sizeof(lead));
     if (readLead(fd, &lead)) {
@@ -3331,7 +3337,11 @@ Urpm_verify_rpm(filename, ...)
 #endif
 		  b = stpcpy(b, "(MD5) (PGP) ");
 		  if (tempKey) {
+#ifdef RPM_42
 		    if (res3 == RPMRC_NOKEY)
+#else
+		    if (res3 == RPMSIG_NOKEY)
+#endif
 		      b = stpcpy(b, "(MISSING KEY) ");
 		    else
 		      b = stpcpy(b, "(UNTRUSTED KEY) ");
@@ -3434,8 +3444,10 @@ Urpm_verify_rpm(filename, ...)
       unlink(tmpfile);
 #endif
       sigh = rpmFreeSignature(sigh);
+#ifdef RPM_42
       rpmtsCleanDig(ts);
       if (!db) rpmtsFree(ts);
+#endif
     }
     fdClose(fd);
   }
