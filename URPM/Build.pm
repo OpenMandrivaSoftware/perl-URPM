@@ -117,8 +117,10 @@ sub parse_headers {
 #- compute dependencies, result in stored in info values of urpm.
 #- operations are incremental, it is possible to read just one hdlist, compute
 #- dependencies and read another hdlist, and again.
+#- parameters are :
+#-   callback : callback to relocate reference to package id.
 sub compute_deps {
-    my ($urpm) = @_;
+    my ($urpm, %options) = @_;
 
     #- avoid recomputing already present infos, take care not to modify
     #- existing entries, as the array here is used instead of values of infos.
@@ -142,7 +144,7 @@ sub compute_deps {
 
 	while (my $req = shift @requires) {
 	    $req =~ /^basesystem/ and next; #- never need to requires basesystem directly as always required! what a speed up!
-	    $req = ($req =~ /^[0-9]+$/ && [ $req ] ||
+	    $req = ($req =~ /^\d+$/ && [ $req ] ||
 		    $urpm->{provides}{$req} && [ keys %{$urpm->{provides}{$req}} ] ||
 		    [ ($req !~ /NOTFOUND_/ && "NOTFOUND_") . $req ]);
 	    if (@$req > 1) {
@@ -152,7 +154,7 @@ sub compute_deps {
 		#- this could be nothing if the provides is a file not found.
 		#- and this has been fixed above.
 		foreach (@$req) {
-		    my $pkg_ = /^[0-9]+$/ && $urpm->{depslist}[$_];
+		    my $pkg_ = /^\d+$/ && $urpm->{depslist}[$_];
 		    exists $required_packages{$_} and next;
 		    $required_packages{$_} = undef; $pkg_ or next;
 		    foreach ($pkg_->requires_nosense) {
@@ -181,12 +183,12 @@ sub compute_deps {
 	my @requires = ($_);
 	my ($dep, %requires);
 	while (defined ($dep = shift @requires)) {
-	    exists $requires{$dep} || /^[^0-9\|]*$/ and next;
+	    exists $requires{$dep} || /^[^\d\|]*$/ and next;
 	    foreach ($dep, split ' ', (defined $urpm->{deps}[$dep] ? $urpm->{deps}[$dep] : $urpm->{requires}[$dep])) {
 		if (/\|/) {
 		    push @requires, split /\|/, $_;
 		} else {
-		    /^[0-9]+$/ and $requires{$_} = undef;
+		    /^\d+$/ and $requires{$_} = undef;
 		}
 	    }
 	}
@@ -202,7 +204,7 @@ sub compute_deps {
     my $fixed_weight = 10000;
     foreach (qw(basesystem msec * locales filesystem setup glibc sash bash libtermcap2 termcap readline ldconfig)) {
 	foreach (keys %{$urpm->{provides}{$_} || {}}) {
-	    /^[0-9]+$/ and $ordered{$_} = $fixed_weight;
+	    /^\d+$/ and $ordered{$_} = $fixed_weight;
 	}
 	$fixed_weight += 10000;
     }
@@ -218,7 +220,7 @@ sub compute_deps {
     foreach (qw(basesystem glibc kernel)) {
 	foreach (keys %{$urpm->{provides}{$_} || {}}) {
 	    foreach ($_, split ' ', (defined $urpm->{deps}[$_] ? $urpm->{deps}[$_] : $urpm->{requires}[$_])) {
-		/^[0-9]+$/ and $urpm->{depslist}[$_] and $urpm->{depslist}[$_]->set_flag_base(1);
+		/^\d+$/ and $urpm->{depslist}[$_] and $urpm->{depslist}[$_]->set_flag_base(1);
 	    }
 	}
     }
@@ -270,7 +272,7 @@ sub compute_deps {
 		    $requires_id{$choices_key} = undef;
 		    next;
 		}
-	    } elsif (/^[0-9]+$/) {
+	    } elsif (/^\d+$/) {
 		($id, $base) =  (exists $remap_ids{$_} ? $remap_ids{$_} : $_, $urpm->{depslist}[$_]->flag_base);
 	    } else {
 		$not_founds{$_} = undef;
@@ -283,11 +285,13 @@ sub compute_deps {
 	}
 	#- be smart with memory usage.
 	delete $urpm->{requires}[$_];
-	$urpm->{deps}[$remap_ids{$_}] = join(' ', (sort { ($a =~ /^([0-9]+)/)[0] <=> ($b =~ /^([0-9]+)/)[0] } keys %requires_id), keys %not_founds);
+	$urpm->{deps}[$remap_ids{$_}] = join ' ', ((sort { ($a =~ /^(\d+)/)[0] <=> ($b =~ /^(\d+)/)[0] } keys %requires_id),
+						   keys %not_founds);
 	$depslist[$remap_ids{$_}-$start] = $pkg;
     }
 
     #- remap all provides ids for new package position and update depslist.
+    delete $urpm->{requires};
     @{$urpm->{depslist}}[$start .. $end] = @depslist;
     foreach my $h (values %{$urpm->{provides}}) {
 	my %provided;
@@ -296,7 +300,7 @@ sub compute_deps {
 	}
 	$h = \%provided;
     }
-    delete $urpm->{requires};
+    $options{callback} and $options{callback}->($urpm, \%remap_ids, %options);
 
     ($start, $end);
 }

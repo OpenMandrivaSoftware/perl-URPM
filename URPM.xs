@@ -1187,6 +1187,7 @@ Db_open(prefix="/")
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbOpen(prefix, &db, O_RDONLY, 0644) == 0 ? db : NULL;
+  fprintf(stderr, "opening read only rpm db %p\n", db);
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
   OUTPUT:
@@ -1203,6 +1204,7 @@ Db_open_rw(prefix="/")
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbOpen(prefix, &db, O_RDWR | O_CREAT, 0644) == 0 ? db : NULL;
+  fprintf(stderr, "opening read-write rpm db %p\n", db);
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
   OUTPUT:
@@ -1212,6 +1214,7 @@ void
 Db_DESTROY(db)
   URPM::DB db
   CODE:
+  fprintf(stderr, "closing rpm db %p\n", db);
   rpmdbClose(db);
 
 int
