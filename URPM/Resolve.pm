@@ -31,14 +31,14 @@ sub find_candidate_packages {
 
 #- return unresolved requires of a package (a new one or a existing one).
 sub unsatisfied_requires {
-    my ($urpm, $db, $state, $pkg, $name) = @_;
+    my ($urpm, $db, $state, $pkg, %options) = @_;
     my %properties;
 
     #- all requires should be satisfied according to selected package, or installed packages.
     foreach ($pkg->requires) {
 	if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 	    #- allow filtering on a given name (to speed up some search).
-	    ! defined $name || $n eq $name or next;
+	    ! defined $options{name} || $n eq $options{name} or next;
 
 	    #- avoid recomputing the same all the time.
 	    exists $properties{$_} || $state->{installed}{$_} and next;
@@ -55,14 +55,16 @@ sub unsatisfied_requires {
 		    $db->traverse_tag('path', [ $n ], sub {
 					  my ($p) = @_;
 					  exists $state->{obsoleted}{$p->fullname} and return;
+					  $state->{ask_remove}{join '-', ($p->fullname)[0..2]} and return;
 					  ++$satisfied;
 				      });
 		} else {
 		    $db->traverse_tag('whatprovides', [ $n ], sub {
 					  my ($p) = @_;
 					  exists $state->{obsoleted}{$p->fullname} and return;
+					  $state->{ask_remove}{join '-', ($p->fullname)[0..2]} and return;
 					  foreach ($p->provides) {
-					      $state->{installed}{$_}{$p->fullname} = undef;
+					      $options{keep_state} or $state->{installed}{$_}{$p->fullname} = undef;
 					      if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 						  $pn eq $n or next;
 						  ranges_overlap($ps, $s) and ++$satisfied;
@@ -86,19 +88,23 @@ sub resolve_closure_ask_remove {
     #- check if the package has already been asked to removed,
     #- this means only add the new reason and return.
     unless ($state->{ask_remove}{$name}) {
-	my @removes = ($pkg);
+	push @{$state->{ask_remove}{$name}}, $why;
 
+	my @removes = ($pkg);
 	while ($pkg = shift @removes) {
+	    #- clean state according to provided properties.
 	    foreach ($pkg->provides) {
-		#- clean state according to provided properties.
 		delete $state->{installed}{$_}{$pkg->fullname};
 		%{$state->{installed}{$_} || {}} or delete $state->{installed}{$_};
+	    }
 
-		#- close what requires this property.
+	    #- close what requires this property.
+	    foreach ($pkg->provides) {
 		if (my ($n) = /^([^\s\[]*)/) {
 		    $db->traverse_tag('whatrequires', [ $n ], sub {
 					  my ($p) = @_;
-					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, $n)) {
+					  $state->{ask_remove}{join '-', ($p->fullname)[0..2]} and return;
+					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n, keep_state => 1)) {
 					      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
 						{ unsatisfied => \@l, closure => $name };
 
@@ -110,7 +116,6 @@ sub resolve_closure_ask_remove {
 	    }
 	}
     }
-    push @{$state->{ask_remove}{$name}}, $why;
 }
 
 #- resolve requested, keep resolution state to speed process.
@@ -266,7 +271,7 @@ sub resolve_requested {
 					  #- else it will be necessary to ask hte user for removing it.
 					  my $packages = $urpm->find_candidate_packages($p->name);
 					  my $best;
-					  foreach (grep { $urpm->unsatisfied_requires($db, $state, $_, $n) == 0 }
+					  foreach (grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
 						   @{$packages->{$p->name}}) {
 					      if ($best && $best != $_) {
 						  $_->compare_pkg($best) > 0 and $best = $_;
@@ -447,7 +452,7 @@ sub resolve_unrequested {
 	    if (my ($n) = /^([^\s\[]*)/) {
 		$db->traverse_tag('whatrequires', [ $n ], sub {
 				      my ($p) = @_;
-				      if ($urpm->unsatisfied_requires($db, $state, $p, $n)) {
+				      if ($urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
 					  #- the package has broken dependencies, but it is already installed.
 					  #- we can remove it (well this is problably not normal).
 					  #TODO
@@ -459,7 +464,7 @@ sub resolve_unrequested {
 		foreach (keys %{$state->{whatrequires}{$n} || {}}) {
 		    my $p = $urpm->{depslist}[$_];
 		    $p->flag_selected || exists $state->{unselected}{$p->id} or next;
-		    if ($urpm->unsatisfied_requires($db, $state, $p, $n)) {
+		    if ($urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
 			#- this package has broken dependencies, but it is installed.
 			#- just add it to unrequested.
 			exists $unrequested{$p->id} or push @unrequested, $p->id;
