@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 10mdk
+%define release 11mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Mar  3 2003 François Pons <fpons@mandrakesoft.com> 0.81-11mdk
+- fixed duplicated filehandle not with close-on-exec flag
+  which caused removable device to be locked on some case
+  using urpmi.
+
 * Thu Feb 27 2003 François Pons <fpons@mandrakesoft.com> 0.81-10mdk
 - allow choices to return mulitple selection.
 

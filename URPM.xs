@@ -738,9 +738,9 @@ static void *rpmRunTransactions_callback(const void *h,
 					 const void * pkgKey,
 					 void * data) {
   static int last_amount;
-  static FD_t fd = NULL;
   static struct timeval tprev;
   static struct timeval tcurr;
+  static FD_t fd = NULL;
   long delta;
   int i;
   struct s_TransactionData *td = data;
@@ -812,11 +812,12 @@ static void *rpmRunTransactions_callback(const void *h,
       PUTBACK;
       i = call_sv(callback, callback == td->callback_open ? G_SCALAR : G_DISCARD);
       SPAGAIN;
-      if (i != 1 && callback == td->callback_open) croak("callback_open should return a file handle");
-      if (i == 1) {
+      if (callback == td->callback_open) {
+	if (i != 1) croak("callback_open should return a file handle");
 	i = POPi;
 	fd = fdDup(i);
 	fd = fdLink(fd, "persist perl-URPM");
+	Fcntl(fd, F_SETFD, 1); /* necessary to avoid forked/execed process to lock removable */
 	PUTBACK;
       } else if (callback == td->callback_close) {
 	fd = fdFree(fd, "persist perl-URPM");
@@ -829,7 +830,7 @@ static void *rpmRunTransactions_callback(const void *h,
       LEAVE;
     }
   }
-  return fd;
+  return callback == td->callback_open ? fd : NULL;
 }
 
 MODULE = URPM            PACKAGE = URPM::Package       PREFIX = Pkg_
