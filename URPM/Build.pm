@@ -344,7 +344,7 @@ sub build_hdlist {
     $dir = $options{dir} || ($ENV{TMPDIR} || "/tmp") . "/.build_hdlist";
      -d $dir or die "no directory $dir\n";
 
-    @idlist = @{$options{idlist}} > 0 ? @{$options{idlist}} :
+    @idlist = @{$options{idlist} || []} > 0 ? @{$options{idlist}} :
       ($options{start} || 0 .. $options{end} || $#{$urpm->{depslist}});
     @idlist or return;
 
@@ -383,7 +383,7 @@ sub build_synthesis {
     my ($urpm, %options) = @_;
     my ($ratio, @idlist);
 
-    @idlist = @{$options{idlist}} > 0 ? @{$options{idlist}} :
+    @idlist = @{$options{idlist} || []} > 0 ? @{$options{idlist}} :
       ($options{start} || 0 .. $options{end} || $#{$urpm->{depslist}});
     @idlist or return;
 
