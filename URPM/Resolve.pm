@@ -273,6 +273,29 @@ sub resolve_requested {
     delete @{$state->{ask_remove}}{keys %{$state->{obsoleted}}};
 }
 
+#- compute installed flags for all package in depslist.
+sub compute_installed_flags {
+    my ($urpm, $db) = @_;
+
+    #- first pass check according existing package.
+    $db->traverse(sub {
+		      my ($p) = @_;
+		      foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
+			  my $pkg = $urpm->{depslist}[$_];
+			  $pkg->name eq $p->name or next;
+			  #- compute only installed and upgrade flags.
+			  $pkg->set_flag_installed($pkg->compare_pkg($p) <= 0);
+			  $pkg->set_flag_upgrade(!$pkg->flag_installed);
+		      }
+		  });
+
+    #- second pass allow not installed package to be seen as upgrade.
+    foreach (@{$urpm->{depslist}}) {
+	$_->flag_upgrade || $_->flag_installed and next;
+	$_->set_flag_upgrade(1);
+    }
+}
+
 #- select packages to upgrade, according to package already registered.
 #- by default, only takes best package and its obsoleted and compute
 #- all installed or upgrade flag.
