@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 10mdk
+%define release 11mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -22,7 +22,6 @@ Group:		%{group}
 Distribution:	%{distribution}
 Source:		%{real_name}-%{version}.tar.bz2
 URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
-Prefix:		%{_prefix}
 BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.0.3 bzip2-devel
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 Provides:	perl(URPM::Build) = %{version}-%{release}
@@ -60,6 +59,10 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Wed Feb 25 2004 Olivier Thauvin <thauvin@aerov.jussieu.fr> 0.94-11mdk
+- parse_rpm_build_headers
+- rebuild for perl
+ 
 * Tue Dec  9 2003 François Pons <fpons@mandrakesoft.com> 0.94-10mdk
 - added compability with RH 7.3.
 
