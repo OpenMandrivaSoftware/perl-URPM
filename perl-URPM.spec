@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 5mdk
+%define release 6mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Sep 10 2003 François Pons <fpons@mandrakesoft.com> 0.94-6mdk
+- fixed diff provides on obsoleted provides still needed.
+
 * Wed Sep 10 2003 François Pons <fpons@mandrakesoft.com> 0.94-5mdk
 - fixed bad reference to ARRAY on promote.
 
