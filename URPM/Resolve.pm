@@ -4,13 +4,13 @@ use strict;
 
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 
-#- find candidates packages from a require string (or id),
-#- take care of direct choices using | sepatator.
+#- Find candidates packages from a require string (or id).
+#- Takes care of direct choices using the '|' separator.
 sub find_candidate_packages {
     my ($urpm, $dep, %options) = @_;
     my %packages;
 
-    foreach (split '\|', $dep) {
+    foreach (split /\|/, $dep) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
 	    $pkg->flag_skip and next;
@@ -55,7 +55,7 @@ sub find_chosen_packages {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->is_arch_compat or next;
 		$pkg->flag_skip || exists $state->{rejected}{$pkg->fullname} and next;
-		#- check if at least one provide of the package overlap the property (if sense are needed).
+		#- check if at least one provide of the package overlaps the property
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
@@ -78,6 +78,7 @@ sub find_chosen_packages {
 	#- required).
 	#- If there is no preference, choose the first one by default (higher
 	#- probability of being chosen) and ask the user.
+	#- Takes better architectures into account.
 	foreach my $p (values(%packages)) {
 	    unless ($p->flag_upgrade || $p->flag_installed) {
 		#- assume for this small algorithm package to be upgradable.
@@ -138,7 +139,7 @@ sub find_chosen_packages {
     return values(%packages);
 }
 
-#- return unresolved requires of a package (a new one or a existing one).
+#- return unresolved requires of a package (a new one or an existing one).
 sub unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, %options) = @_;
     my %properties;
@@ -363,7 +364,7 @@ sub resolve_rejected {
 					      exists $rv->{size} and return;
 					      $rv->{size} = $p->size;
 
-					      $p->pack_header; #- need to pack else package is no more visible...
+					      $p->pack_header; #- need to pack else package is no longer visible...
 					      push @closure, $p;
 					  }
 				      });
@@ -505,7 +506,6 @@ sub resolve_requested {
 		my (%diff_provides);
 
 		foreach ($pkg->name . " < " . $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release, $pkg->obsoletes) {
-		    #$pkg->name eq $_ and print STDERR "avoiding same name for package ".$pkg->fullname."\n", next; #- this package obsoletes itself ?? Ignore.
 		    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 			#- populate avoided entries according to what is selected.
 			foreach (keys %{$urpm->{provides}{$n} || {}}) {
@@ -629,8 +629,8 @@ sub resolve_requested {
 					  @keep and return;
 					  my ($p) = @_;
 					  if ($p->provides_overlap($property)) {
-					      #- the existing package will conflicts with selection, check if a newer
-					      #- version will be ok, else ask to remove the old.
+					      #- the existing package will conflict with the selection; check
+					      #- whether a newer version will be ok, else ask to remove the old.
 					      my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
 						$p->version . "-" . $p->release;
 					      my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
@@ -644,7 +644,7 @@ sub resolve_requested {
 						  if ($options{keep}) {
 						      push @keep, scalar $p->fullname;
 						  } else {
-						      #- no package have been found, we need to remove the package examined.
+						      #- no package has been found, we need to remove the package examined.
 						      $urpm->resolve_rejected($db, $state, $p,
 									      removed => 1, unsatisfied => \@properties,
 									      from => scalar $pkg->fullname,
@@ -656,7 +656,7 @@ sub resolve_requested {
 		}
 	    }
 
-	    #- examine if an existing package does not conflicts with this one.
+	    #- examine if an existing package does not conflict with this one.
 	    $db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
 				  @keep and return;
 				  my ($p) = @_;
@@ -736,13 +736,13 @@ sub resolve_requested {
 	}
     } while (@diff_provides || @properties);
 
-    #- return what has been selected by this call (not all selected hash which may be not emptry
-    #- previously. avoid returning rejected package which have not be selectable.
+    #- return what has been selected by this call (not all selected hash which may be not empty
+    #- previously. avoid returning rejected packages which weren't selectable.
     grep { exists $state->{selected}{$_->id} } @selected;
 }
 
 #- do the opposite of the above, unselect a package and extend
-#- to any package not requested that is no more needed by
+#- to any package not requested that is no longer needed by
 #- any other package.
 #- return the packages that have been deselected.
 sub disable_selected {
@@ -775,7 +775,7 @@ sub disable_selected {
 	$pkg->set_flag_required(0);
 	delete $state->{selected}{$pkg->id};
 
-	#- determine package that requires properties no more available, so that they need to be
+	#- determine package that requires properties no longer available, so that they need to be
 	#- unselected too.
 	foreach my $n ($pkg->provides_nosense) {
 	    foreach (keys %{$state->{whatrequires}{$n} || {}}) {
@@ -805,7 +805,7 @@ sub disable_selected_unrequested_dependencies {
     my @unselected_closure;
 
     #- disable selected packages, then extend unselection to all required packages
-    #- no more needed and not requested.
+    #- no longer needed and not requested.
     while (my @unselected = $urpm->disable_selected($db, $state, @closure)) {
 	my %required;
 
@@ -1189,7 +1189,7 @@ sub resolve_closure_ask_remove {
 	$state->{rejected}{$_}{obsoleted} and next;
 	$state->{rejected}{$_}{removed} or next;
 
-	$state->{ask_remove}{$_}{closure} = $state->{rejected}{$_}{closure}; # fullname are not converted back to id as expected.
+	$state->{ask_remove}{$_}{closure} = $state->{rejected}{$_}{closure}; #- fullnames are not converted back to id as expected.
 	$state->{ask_remove}{$_}{size} = $state->{rejected}{$_}{size};
     }
 
