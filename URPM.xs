@@ -757,18 +757,21 @@ return_list_tag(URPM__Package pkg, int_32 tag_name) {
           case RPMTAG_NAME:
               {
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+	      if (version - name < 1) croak("invalid fullname");
               XPUSHs(sv_2mortal(newSVpv(name, version-name - 1)));
               }
               break;
           case RPMTAG_VERSION:
               {
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+	      if (release - version < 1) croak("invalid fullname");
               XPUSHs(sv_2mortal(newSVpv(version, release-version - 1)));
               }
               break;
           case RPMTAG_RELEASE:
               {
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+	      if (arch - release < 1) croak("invalid fullname");
               XPUSHs(sv_2mortal(newSVpv(release, arch-release - 1)));
               }
               break;
@@ -1494,6 +1497,7 @@ Pkg_name(pkg)
     char *version;
 
     get_fullname_parts(pkg, &name, &version, NULL, NULL, NULL);
+    if (version - name < 1) croak("invalid fullname");
     XPUSHs(sv_2mortal(newSVpv(name, version-name-1)));
   } else if (pkg->h) {
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_NAME), 0)));
@@ -1508,6 +1512,7 @@ Pkg_version(pkg)
     char *release;
 
     get_fullname_parts(pkg, NULL, &version, &release, NULL, NULL);
+    if (release - version < 1) croak("invalid fullname");
     XPUSHs(sv_2mortal(newSVpv(version, release-version-1)));
   } else if (pkg->h) {
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_VERSION), 0)));
@@ -1522,6 +1527,7 @@ Pkg_release(pkg)
     char *arch;
 
     get_fullname_parts(pkg, NULL, NULL, &release, &arch, NULL);
+    if (arch - release < 1) croak("invalid fullname");
     XPUSHs(sv_2mortal(newSVpv(release, arch-release-1)));
   } else if (pkg->h) {
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_RELEASE), 0)));
@@ -1671,6 +1677,8 @@ Pkg_fullname(pkg)
     } else if (gimme == G_ARRAY) {
       char *name, *version, *release, *arch, *eos;
       get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+      if (version - name < 1 || release - version < 1 || arch - release < 1)
+	  croak("invalid fullname");
       EXTEND(SP, 4);
       PUSHs(sv_2mortal(newSVpv(name, version-name-1)));
       PUSHs(sv_2mortal(newSVpv(version, release-version-1)));
