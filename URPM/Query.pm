@@ -188,4 +188,24 @@ sub id2tag {
 	@ret
 }
 
+sub query_pkg {
+   my ($urpm, $pkg, $query) = @_;
+   my @tags = map {
+	   [ $pkg->get_tag(tag2id($_)) ]
+   } $query =~ m/\%\{([^{}]*)\}*/g;
+
+   $query =~ s/\%\{[^{}]*\}/%s/g;
+   $query =~ s/\\n/\n/g;
+   $query =~ s/\\t/\t/g;
+   my ($max, @res) = 0;
+
+   foreach (@tags) { $max < $#{$_} and $max = $#{$_} };
+   
+   foreach my $i (0 .. $max) {
+	   push(@res, sprintf($query, map { ${$_}[ $#{$_} < $i ? $#{$_} : $i ] } @tags));
+   }
+   @res	   
+}
+
+
 1;

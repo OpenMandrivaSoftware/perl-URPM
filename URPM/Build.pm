@@ -55,7 +55,7 @@ sub parse_rpms_build_headers {
 
 		$filename = $cache{$key}{file};
 	    } else {
-		($id, undef) = $urpm->parse_rpm($_);
+		($id, undef) = $urpm->parse_rpm($_, %options);
 		unless (defined $id) {
 		    if ($options{dontdie}) {
 			print STDERR "bad rpm $_\n";
