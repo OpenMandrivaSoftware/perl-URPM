@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 5mdk
+%define release 6mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jun 19 2003 François Pons <fpons@mandrakesoft.com> 0.91-6mdk
+- make sure callback options are taken into account only if a
+  reference is given.
+- make sure URPM::build_transaction_set do not create empty
+  transaction.
+- added source of promotion selection.
+
 * Thu Jun 19 2003 François Pons <fpons@mandrakesoft.com> 0.91-5mdk
 - added promote to backtrack data for more info.
 - fixed visual glitches when a package has its selection backtracked

@@ -219,7 +219,8 @@ sub backtrack_selected {
 						       dep => $dep, alternatives => $packages, %options) <= 0) {
 			#- keep in mind a backtrack has happening here...
 			$state->{rejected}{$_->fullname}{backtrack} ||=
-			  { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]} };
+			  { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
+			    exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]} };
 			#- backtrack callback should return a strictly positive value if the selection of the new
 			#- package is prefered over the currently selected package.
 			next;
@@ -518,7 +519,7 @@ sub resolve_requested {
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
-					      push @properties, { required => $best, promote => $n };
+					      push @properties, { required => $best, promote => $n, psel => $pkg };
 					  } else {
 					      #- no package have been found, we may need to remove the package examined unless
 					      #- there exists a package that provided the unsatisfied requires.
@@ -535,7 +536,7 @@ sub resolve_requested {
 					      }
 
 					      if (@best == @l) {
-						  push @properties, map { +{ required => $_, promote => $n } } @best;
+						  push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 					      } else {
 						  $urpm->resolve_rejected($db, $state, $p,
 									  removed => 1, unsatisfied => \@properties,
@@ -968,6 +969,9 @@ sub has_dependence {
 sub build_transaction_set {
     my ($urpm, $db, $state, %options) = @_;
 
+    #- clean transaction set.
+    $state->{transaction} = [];
+
     if ($options{split_length}) {
 	#- first step consists of sorting packages according to dependencies.
 	my @sorted = sort { ($a <=> $b, -1, +1, 0)[($urpm->has_dependence($state, $a, $b) && 1) +
@@ -1005,13 +1009,12 @@ sub build_transaction_set {
 		%set and push @{$state->{transaction}}, \%set;
 	    }
 	}
-    } else {
-	#- no split is necessary, simply extract from current selection.
-	$state->{transaction} = [ {
-				   upgrade => [ keys %{$state->{selected}} ],
-				   remove  => [ grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} }
-						keys %{$state->{rejected}} ],
-				  } ];
+    } elsif (%{$state->{selected} || {}} || %{$state->{rejected} || {}}) {
+	push @{$state->{transaction}}, {
+					upgrade => [ keys %{$state->{selected}} ],
+					remove  => [ grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} }
+						     keys %{$state->{rejected}} ],
+				       };
     }
 
     $state->{transaction};
