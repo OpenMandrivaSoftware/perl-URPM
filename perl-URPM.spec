@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.60
-%define release 8mdk
+%define version 0.70
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Aug 23 2002 François Pons <fpons@mandrakesoft.com> 0.70-1mdk
+- fixed search method to work correctly.
+
 * Tue Aug 13 2002 François Pons <fpons@mandrakesoft.com> 0.60-8mdk
 - fixed request_packages_to_upgrade no more working correctly.
 

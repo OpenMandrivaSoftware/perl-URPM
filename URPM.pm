@@ -22,16 +22,45 @@ sub search {
     my ($urpm, $name, %options) = @_;
     my $best = undef;
 
-    foreach (keys %{$urpm->{provides}{$name} || {}}) {
+    #- tries other alternative if no strict searching.
+    unless ($options{strict}) {
+	if ($name =~ /^(.*)-([^\-]*)-([^\-]*)\.([^\.\-]*)$/) {
+	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
+		my $pkg = $urpm->{depslist}[$_];
+		$pkg->fullname eq $name and return $pkg;
+	    }
+	}
+	if ($name =~ /^(.*)-([^\-]*)-([^\-]*)$/) {
+	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
+		my $pkg = $urpm->{depslist}[$_];
+		my ($n, $v, $r, $a) = $pkg->fullname;
+		$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
+		$n eq $1 or next;
+		!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+	    }
+	    $best and return $best;
+	}
+	if ($name =~ /^(.*)-([^\-]*)$/) {
+	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
+		my $pkg = $urpm->{depslist}[$_];
+		my ($n, $v, $r, $a) = $pkg->fullname;
+		$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
+		$n eq $1 or next;
+		!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+	    }
+	    $best and return $best;
+	}
+    }
+
+    foreach (keys %{$urpm->{provides}{$_} || {}}) {
 	my $pkg = $urpm->{depslist}[$_];
 	my ($n, $v, $r, $a) = $pkg->fullname;
-
 	$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
-	$n eq $name || !$options{strict} && ("$n-$v" eq $name || "$n-$v-$r" eq $name || "$n-$v-$r.$a" eq $name) or next;
+	$n eq $name or next;
 	!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
     }
 
-    $best;
+    return $best;
 }
 
 sub traverse {
