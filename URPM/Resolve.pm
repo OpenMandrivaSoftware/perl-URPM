@@ -1,5 +1,7 @@
 package URPM;
 
+# $Id$
+
 use strict;
 
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
@@ -980,10 +982,10 @@ sub request_packages_to_upgrade {
     my ($urpm, $db, $_state, $requested, %options) = @_;
     my (%provides, %names, %skip, %requested, %obsoletes, @obsoleters);
 
+    my @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
+    
     #- build direct access to best package according to name.
-    foreach my $pkg (@{$urpm->{depslist}}) {
-	defined $options{start} && $pkg->id < $options{start} and next;
-	defined $options{end}   && $pkg->id > $options{end}   and next;
+    foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 
 	if ($pkg->is_arch_compat) {
 	    foreach ($pkg->provides) {
@@ -1142,12 +1144,16 @@ sub build_transaction_set {
     #- clean transaction set.
     $state->{transaction} = [];
 
+    my %selected_id;
+    @selected_id{$urpm->build_listid($options{start}, $options{end}, $options{idlist})} = ();
+    
     if ($options{split_length}) {
 	#- first step consists of sorting packages according to dependencies.
 	my @sorted = sort { ($a <=> $b, -1, 1, 0)[($urpm->has_dependence($state, $a, $b) && 1) +
 						  ($urpm->has_dependence($state, $b, $a) && 2)] }
-	  grep { (! defined $options{start} || $_ >= $options{start}) &&
-		   (! defined $options{end} || $_ <= $options{end}) } keys %{$state->{selected}};
+	  (keys(%selected_id) > 0 ? 
+	      (grep { exists($selected_id{$_}) } keys %{$state->{selected}}) : 
+	      keys %{$state->{selected}});
 
 	#- second step consists of re-applying resolve_requested in the same
 	#- order computed in first step and to update a list of package to

@@ -1,5 +1,7 @@
 package URPM;
 
+# $Id$
+
 use strict;
 
 sub _get_tmp_dir () {
@@ -444,9 +446,7 @@ sub build_synthesis {
     my ($urpm, %options) = @_;
     my ($ratio, @idlist);
 
-    @idlist = @{$options{idlist} || []} > 0 ? @{$options{idlist}} :
-      ($options{start} || 0 .. $options{end} || $#{$urpm->{depslist}});
-    @idlist or return;
+    @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
 
     $ratio = $options{ratio} || 9;
     $options{synthesis} || defined $options{fd} or die "invalid parameters given";
@@ -485,6 +485,8 @@ sub build_synthesis {
 sub build_base_files {
     my ($urpm, %options) = @_;
 
+    my @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
+    
     if ($options{depslist}) {
 	open my $fh, ">$options{depslist}";
 	foreach (0 .. $#{$urpm->{depslist}}) {

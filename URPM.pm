@@ -75,6 +75,16 @@ sub search {
     return $best;
 }
 
+# Olivier Thauvin:
+# Return @$listid, $start .. $end or the whole deplist id
+# according given args
+sub build_listid {
+    my ($urpm, $start, $end, $listid) = @_;
+
+    @{$listid || []} > 0 ? @{$listid} :
+        ((defined($start) ? $start : 0) .. (defined($end) ? $end : $#{$urpm->{depslist}}));
+}
+
 sub traverse {
     my ($urpm, $callback) = @_;
 
