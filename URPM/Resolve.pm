@@ -499,6 +499,7 @@ sub resolve_requested {
 		my (%diff_provides);
 
 		foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
+		    $pkg->name eq $_ and next; #- this package obsoletes itself ?? Ignore.
 		    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 			#- populate avoided entries according to what is selected.
 			foreach (keys %{$urpm->{provides}{$n} || {}}) {
