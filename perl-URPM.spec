@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.93
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug 11 2003 François Pons <fpons@mandrakesoft.com> 0.93-3mdk
+- fixed limit case for string extraction from headers (files_md5sum).
+- removed unsatisfied_requires2 from xs not used and not finished.
+
 * Mon Aug 11 2003 François Pons <fpons@mandrakesoft.com> 0.93-2mdk
 - fixed pubkey management, fixed importation of pubkey in rpmdb.
 
