@@ -2,6 +2,8 @@ package URPM;
 
 use strict;
 
+sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
+
 #- find candidates packages from a require string (or id),
 #- take care of direct choices using | sepatator.
 sub find_candidate_packages {
@@ -69,7 +71,7 @@ sub find_chosen_packages {
     }
 
     if (keys(%packages) > 1) {
-	my ($mode, @chosen, @chosen_good_locales, @chosen_bad_locales, @chosen_other);
+	my ($mode, @chosen, @chosen_good_locales, @chosen_bad_locales, @chosen_other, $install);
 
 	#- packages should be preferred if one of their provides is referenced
 	#- in the "requested" hash, or if the package itself is requested (or
@@ -86,25 +88,29 @@ sub find_chosen_packages {
 				      $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
 				  });
 	    }
+	    my $arch_score = ($p->is_arch_compat < min map { $_->is_arch_compat } @chosen) ? 10 : 0;
 	    if ($p->flag_requested && $p->flag_installed) {
-		$mode < 3 and @chosen = ();
-		$mode = 3;
+		$mode < 3 + $arch_score and @chosen = ();
+		$mode = 3 + $arch_score;
+		$install = 1;
 	    } elsif ($p->flag_requested) {
-		$mode < 2 and @chosen = ();
-		$mode > 2 and next;
-		$mode = 2;
+		$mode < 2 + $arch_score and @chosen = ();
+		$mode > 2 + $arch_score and next;
+		$mode = 2 + $arch_score;
 	    } elsif ($p->flag_installed) {
-		$mode < 1 and @chosen = ();
-		$mode > 1 and next;
-		$mode = 1;
+		$mode < 1 + $arch_score and @chosen = ();
+		$mode > 1 + $arch_score and next;
+		$mode = 1 + $arch_score;
 	    } else {
-		$mode and next;
+		$mode < $arch_score and @chosen = ();
+		$mode > $arch_score and next;
+		$mode = $arch_score;
 	    }
 	    push @chosen, $p;
 	}
 
 	#- if several packages are installed, trim the choices.
-	if (!$urpm->{options}{morechoices} && $mode == 3 && @chosen > 1) { @chosen = ($chosen[0]) }
+	if (!$urpm->{options}{morechoices} && $install && @chosen > 1) { @chosen = ($chosen[0]) }
 
 	#- packages that require locales-xxx when the corresponding locales are
 	#- already installed should be preferred over packages that require locales
