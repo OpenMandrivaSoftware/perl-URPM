@@ -2306,10 +2306,11 @@ Pkg_changelog_text(pkg)
 
 void
 Pkg_queryformat(pkg, fmt)
-  URPM::Package pkg;
+  URPM::Package pkg
   char *fmt
-  PPCODE:
+  PREINIT:
   char *s;
+  PPCODE:
   if (pkg->h) {
       s = headerSprintf(pkg->h, fmt,
     	rpmTagTable, rpmHeaderFormats, NULL);
@@ -4066,14 +4067,12 @@ Urpm_import_pubkey(...)
   RETVAL
 
 void
-Urpm_stream2header(pio)
-    PerlIO *pio;
+Urpm_stream2header(fp)
+    FILE *fp
   PREINIT:
-    FILE *fp;
     FD_t fd;
     URPM__Package pkg;
   PPCODE:
-    if (!(fp = PerlIO_findFILE(pio))) croak("Can't get perlio");
     if ((fd = fdDup(fileno(fp)))) {
 	pkg = (URPM__Package)malloc(sizeof(struct s_Package));
 	memset(pkg, 0, sizeof(struct s_Package));
