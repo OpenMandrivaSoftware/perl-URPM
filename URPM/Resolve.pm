@@ -364,7 +364,7 @@ sub resolve_packages_to_upgrade {
 			  unless (grep { ranges_overlap($property, $_) } $p->obsoletes) {
 			      if (my ($n) = $property =~ /^([^\s\[]*)/) {
 				  foreach my $pkg (@{$obsoletes{$n} || []}) {
-				      next if $pkg->name eq $p->name;
+				      next if $pkg->name eq $p->name || $p->name ne $n;
 				      foreach ($pkg->obsoletes) {
 					  if (ranges_overlap($property, $_)) {
 					      #- the package being examined can be obsoleted.
