@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.70
-%define release 9mdk
+%define release 10mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Sep 17 2002 François Pons <fpons@mandrakesoft.com> 0.70-10mdk
+- fixed some packages which may not be upgraded on call to
+  request_packages_to_upgrade according to packages in depslist.
+
 * Mon Sep  9 2002 François Pons <fpons@mandrakesoft.com> 0.70-9mdk
 - select package already installed to be taken instead of proposing
   choice to the user.

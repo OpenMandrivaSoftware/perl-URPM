@@ -723,6 +723,7 @@ sub request_packages_to_upgrade {
     my @names = map { $_->name." == ".$_->epoch.":".$_->version."-".$_->release } values %names;
     my @pkgs = values %names;
     foreach my $pkg (@pkgs) {
+	exists $requested{$pkg->name} or next;
 	foreach my $conflict ($pkg->conflicts) {
 	    delete @names{map { /(\S*)/ && $1 } grep { ranges_overlap($conflict, $_) } @names};
 	}
