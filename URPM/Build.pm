@@ -400,10 +400,10 @@ sub compute_deps {
 #-   end      : index of last package (defaults to last index of depslist).
 #-   idlist   : id list of rpm to compute (defaults is start .. end)
 #-   ratio    : compression ratio (default 4).
-#-   split    : split ratio (default 400000).
+#-   split    : split ratio (default 400kb, see Packdrakeng).
 sub build_hdlist {
     my ($urpm, %options) = @_;
-    my ($dir, $ratio, $split, @idlist);
+    my ($dir, $ratio, @idlist);
 
     $dir = $options{dir} || _get_tmp_dir;
      -d $dir or die "no directory $dir\n";
@@ -419,14 +419,13 @@ sub build_hdlist {
     #-   4        8.6 sec     8.30Mb   -> good for urpmi
     #-   3        7.6 sec     8.60Mb
     $ratio = $options{ratio} || 4;
-    $split = $options{split} || 400000;
 
     require Packdrakeng;
     my $pack = Packdrakeng->new(
 	archive => $options{hdlist},
 	compress => "gzip",
 	uncompress => "gzip -d",
-	block_size => $split,
+	block_size => $options{split},
 	comp_level => $ratio,
     ) or die "Can't create archive";
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
