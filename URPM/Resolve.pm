@@ -244,21 +244,28 @@ sub backtrack_selected {
 	}
     }
 
-    #- at this point, dep cannot be resolved, this means we need to disable
-    #- all selection tree, re-enabling removed and obsoleted packages as well.
-    if (!$options{nodeps} && defined $dep->{from}) {
-	unless (exists $state->{rejected}{$dep->{from}->fullname}) {
-	    #- package is not currently rejected, compute the closure now.
-	    my @l = $options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, $dep->{from}) :
-	      $urpm->disable_selected_unrequested_dependencies($db, $state, $dep->{from});
-	    foreach (@l) {
-		#- disable all these packages in order to avoid selecting them again.
-		$_->fullname eq $dep->{from}->fullname or
-		  $state->{rejected}{$_->fullname}{backtrack}{closure}{$dep->{from}->fullname} = undef;
+    if (defined $dep->{from}) {
+	if ($options{nodeps}) {
+	    #- try to keep unsatisfied dependencies in requested.
+	    if (exists $state->{selected}{$dep->{from}->id}) {
+		push @{$state->{selected}{$dep->{from}->id}{unsatisfied}}, $dep->{required};
 	    }
+	} else {
+	    #- at this point, dep cannot be resolved, this means we need to disable
+	    #- all selection tree, re-enabling removed and obsoleted packages as well.
+	    unless (exists $state->{rejected}{$dep->{from}->fullname}) {
+		#- package is not currently rejected, compute the closure now.
+		my @l = $options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, $dep->{from}) :
+		  $urpm->disable_selected_unrequested_dependencies($db, $state, $dep->{from});
+		foreach (@l) {
+		    #- disable all these packages in order to avoid selecting them again.
+		    $_->fullname eq $dep->{from}->fullname or
+		      $state->{rejected}{$_->fullname}{backtrack}{closure}{$dep->{from}->fullname} = undef;
+		}
+	    }
+	    #- the package is already rejected, we assume we can add another reason here!
+	    push @{$state->{rejected}{$dep->{from}->fullname}{backtrack}{unsatisfied}}, $dep->{required};
 	}
-	#- the package is already rejected, we assume we can add another reason here!
-	push @{$state->{rejected}{$dep->{from}->fullname}{backtrack}{unsatisfied}}, $dep->{required};
     }
 
     #- some packages may have been removed because of selection of this one.
@@ -707,7 +714,7 @@ sub disable_selected_unrequested_dependencies {
 	foreach (keys %required) {
 	    my $pkg = $urpm->{depslist}[$_] or next;
 	    foreach ($pkg->provides_nosense) {
-		foreach (keys %{$state->{whatrequires}{$_}}) {
+		foreach (keys %{$state->{whatrequires}{$_} || {}}) {
 		    my $p = $urpm->{depslist}[$_] or next;
 		    exists $required{$p->id} and next;
 		    exists $state->{selected}{$p->id} and $required{$pkg->id} = 1;
@@ -720,6 +727,24 @@ sub disable_selected_unrequested_dependencies {
     }
 
     @unselected_closure;
+}
+
+#- compute selected size by removing any removed or obsoleted package.
+sub selected_size {
+    my ($urpm, $state) = @_;
+    my $size;
+
+    foreach (keys %{$state->{selected} || {}}) {
+	my $pkg = $urpm->{depslist}[$_];
+	$size += $pkg->size;
+    }
+
+    foreach (values %{$state->{rejected} || {}}) {
+	$_->{removed} || $_->{obsoleted} or next;
+	$size -= $_->{size};
+    }
+
+    $size;
 }
 
 #- compute installed flags for all package in depslist.
@@ -1009,7 +1034,7 @@ sub build_transaction_set {
 		%set and push @{$state->{transaction}}, \%set;
 	    }
 	}
-    } elsif (%{$state->{selected} || {}} || %{$state->{rejected} || {}}) {
+    } elsif (%{$state->{selected} || {}}) {
 	push @{$state->{transaction}}, {
 					upgrade => [ keys %{$state->{selected}} ],
 					remove  => [ grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} }
