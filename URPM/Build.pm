@@ -2,6 +2,12 @@ package URPM;
 
 use strict;
 
+sub _get_tmp_dir () {
+    my $t = $ENV{TMPDIR};
+    $t && -w $t or $t = '/tmp';
+    "$t/.build_hdlist";
+}
+
 #- prepare build of an hdlist from a list of files.
 #- it can be used to start computing depslist.
 #- parameters are :
@@ -16,7 +22,7 @@ sub parse_rpms_build_headers {
     #- check for mandatory options.
     if (@{$options{rpms} || []} > 0) {
 	#- build a working directory which will hold rpm headers.
-	$dir = $options{dir} || ($ENV{TMPDIR} || "/tmp") . "/.build_hdlist";
+	$dir = $options{dir} || _get_tmp_dir;
 	$options{clean} and system($ENV{LD_LOADER} ? $ENV{LD_LOADER} : @{[]}, "rm", "-rf", $dir);
 	-d $dir or mkdir $dir, 0755 or die "cannot create directory $dir\n";
 
@@ -117,7 +123,7 @@ sub parse_headers {
     my ($urpm, %options) = @_;
     my ($dir, $start, $id);
 
-    $dir = $options{dir} || ($ENV{TMPDIR} || "/tmp") . "/.build_hdlist";
+    $dir = $options{dir} || _get_tmp_dir;
     -d $dir or die "no directory $dir\n";
 
     $start = @{$urpm->{depslist} || []};
@@ -397,7 +403,7 @@ sub build_hdlist {
     my ($urpm, %options) = @_;
     my ($dir, $ratio, $split, @idlist);
 
-    $dir = $options{dir} || ($ENV{TMPDIR} || "/tmp") . "/.build_hdlist";
+    $dir = $options{dir} || _get_tmp_dir;
      -d $dir or die "no directory $dir\n";
 
     @idlist = @{$options{idlist} || []} > 0 ? @{$options{idlist}} :
