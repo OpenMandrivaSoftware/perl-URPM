@@ -48,14 +48,14 @@ sub parse_rpms_build_headers {
 		$filename = $cache{$key}{file};
 	    } else {
 		($id, undef) = $urpm->parse_rpm($_);
-		defined $id or do {
-            if ($options{dontdie}) {
-                print STDERR "bad rpm $_\n";
-                next;
-            } else {
-                die "bad rpm $_\n";
-            }
-        };
+		unless (defined $id) {
+		    if ($options{dontdie}) {
+			print STDERR "bad rpm $_\n";
+			next;
+		    } else {
+			die "bad rpm $_\n";
+		    }
+		}
 
 		my $pkg = $urpm->{depslist}[$id];
 
@@ -339,18 +339,14 @@ sub compute_deps {
 #-   split    : split ratio (default 400000).
 sub build_hdlist {
     my ($urpm, %options) = @_;
-    my ($dir, $start, $end, $ratio, $split, @idlist);
+    my ($dir, $ratio, $split, @idlist);
 
     $dir = $options{dir} || ($ENV{TMPDIR} || "/tmp") . "/.build_hdlist";
      -d $dir or die "no directory $dir\n";
 
-    if (@{$options{idlist}}) {
-        @idlist = @{$options{idlist}};
-    } else {
-        $start = $options{start} || 0;
-        $end = $options{end} || $#{$urpm->{depslist}};
-        @idlist = ($start .. $end);
-    }
+    @idlist = @{$options{idlist}} > 0 ? @{$options{idlist}} :
+      ($options{start} || 0 .. $options{end} || $#{$urpm->{depslist}});
+    @idlist or return;
 
     #- compression ratio are not very high, sample for cooker
     #- gives the following (main only and cache fed up):
@@ -385,16 +381,12 @@ sub build_hdlist {
 #-   ratio     : compression ratio (default 9).
 sub build_synthesis {
     my ($urpm, %options) = @_;
-    my ($start, $end, $ratio, @idlist);
+    my ($ratio, @idlist);
 
-    if (@{$options{idlist}} > 0) {
-        @idlist = @{$options{idlist}};
-    } else {
-        $start = $options{start} || 0;
-        $end = $options{end} || $#{$urpm->{depslist}};
-        $start > $end and return;
-        @idlist = ($start .. $end);
-    }
+    @idlist = @{$options{idlist}} > 0 ? @{$options{idlist}} :
+      ($options{start} || 0 .. $options{end} || $#{$urpm->{depslist}});
+    @idlist or return;
+
     $ratio = $options{ratio} || 9;
     $options{synthesis} || defined $options{fd} or die "invalid parameters given";
 
