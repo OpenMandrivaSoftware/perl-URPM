@@ -14,7 +14,7 @@ use strict;
 sub tag2id {
 	my @l = @_;
 	my %taglist = URPM::list_rpm_tag;
-	map { $taglist{uc("RPMTAG_$_")} || undef } @l;
+	map { $taglist{uc($_)} || undef } @l;
 }
 
 sub query_pkg {

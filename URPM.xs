@@ -2305,6 +2305,18 @@ Pkg_changelog_text(pkg)
   SPAGAIN;
 
 void
+Pkg_queryformat(pkg, fmt)
+  URPM::Package pkg;
+  char *fmt
+  PPCODE:
+  char *s;
+  if (pkg->h) {
+      s = headerSprintf(pkg->h, fmt,
+    	rpmTagTable, rpmHeaderFormats, NULL);
+      XPUSHs(sv_2mortal(newSVpv(s,0)));
+  }
+  
+void
 Pkg_get_tag(pkg, tagname)
   URPM::Package pkg
   int tagname;
@@ -3185,11 +3197,31 @@ Urpm_list_rpm_tag(urpm=Nullsv)
    SV *urpm
    PREINIT:
        int i = 0;
+       const struct headerSprintfExtension_s * ext = rpmHeaderFormats;
    PPCODE:
        read_config_files(0);
+      
+	
+       
        for (i = 0; i < rpmTagTableSize; i++) {
-	XPUSHs(sv_2mortal(newSVpv(rpmTagTable[i].name, 0)));
+	XPUSHs(sv_2mortal(newSVpv(rpmTagTable[i].name + 7, 0)));
 	XPUSHs(sv_2mortal(newSViv(rpmTagTable[i].val)));
+       }
+
+       while (ext->name != NULL) {
+          if (ext->type == HEADER_EXT_MORE) {
+		  ext = ext->u.more;
+		  continue;
+	  }
+	  for (i = 0; i < rpmTagTableSize; i++) {
+		  if (!strcmp(rpmTagTable[i].name, ext->name))
+			  break;
+	  }
+	  if (i >= rpmTagTableSize && ext->type == HEADER_EXT_TAG) {
+	  	XPUSHs(sv_2mortal(newSVpv(ext->name + 7, 0)));
+	  	XPUSHs(sv_newmortal());
+	  }
+  	  ext++;
        }
 
 int

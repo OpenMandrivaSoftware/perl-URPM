@@ -441,6 +441,13 @@ Returns a string NAME-VERSION-RELEASE.ARCH in scalar context.
 Returns an array containing values of $tagid. $tagid is the numerical value of
 rpm tags. See rpmlib.h. 
 
+=item $package->queryformat($format)
+
+Querying the package like rpm --queryformat do. 
+
+The function call directlly the rpmlib, then use headers informations, so it 
+silently failed if you use synthesis instead hdlist/rpms/headers files or rpmdb.
+
 =item $package->get_tag_modifiers($tagid)
 
 Return an array of human readable view of tag values. $tagid is the numerical value of rpm tags.
