@@ -408,9 +408,7 @@ sub build_hdlist {
     $dir = $options{dir} || _get_tmp_dir;
      -d $dir or die "no directory $dir\n";
 
-    @idlist = @{$options{idlist} || []} > 0 ? @{$options{idlist}} :
-      (($options{start} || 0) .. ($options{end} || $#{$urpm->{depslist}}));
-    @idlist or return;
+    @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
 
     #- compression ratio are not very high, sample for cooker
     #- gives the following (main only and cache fed up):
@@ -485,8 +483,6 @@ sub build_synthesis {
 sub build_base_files {
     my ($urpm, %options) = @_;
 
-    my @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
-    
     if ($options{depslist}) {
 	open my $fh, ">$options{depslist}";
 	foreach (0 .. $#{$urpm->{depslist}}) {
