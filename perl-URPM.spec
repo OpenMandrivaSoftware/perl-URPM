@@ -4,6 +4,7 @@
 
 %{expand:%%define version %(perl -ne '/VERSION\s+=[^0-9\.]*([0-9\.]+)/ and print "$1\n"' URPM.pm)}
 
+Packager:       François Pons <fpons@mandrakesoft.com>
 Summary:	URPM module for perl
 Name:		%{name}
 Version:	%{version}
