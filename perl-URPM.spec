@@ -6,8 +6,8 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.07
-%define release 4mdk
+%define version 1.08
+%define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -66,6 +66,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Fri Feb 11 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.08-1mdk
+- Add macro handling code (O. Thauvin)
+
 * Wed Feb 02 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.07-4mdk
 - Require perl-base >= 2:5.8.6 actually
 

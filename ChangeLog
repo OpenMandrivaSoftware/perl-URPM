@@ -1,6 +1,10 @@
-2005-02-02 10:00  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+2005-02-11 14:59  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
-	* perl-URPM.spec: Ooops, missing epoch
+	* URPM.pm, URPM.xs: Add macro handling code from Olivier Thauvin
+
+2005-02-02 10:12  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: 1.07-4mdk
 
 2005-01-21 10:53  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
