@@ -3,6 +3,12 @@ package URPM;
 use strict;
 use DynaLoader;
 
+# different files, but same package
+# require them here to avoid dependencies
+use URPM::Build;
+use URPM::Resolve;
+use URPM::Signature;
+
 our @ISA = qw(DynaLoader);
 our $VERSION = '0.94';
 
@@ -172,7 +178,7 @@ URPM - Perl module to manipulate RPM files
     # loading and parsing a synthesis file
     my $urpm = new URPM;
     $urpm->parse_synthesis("synthesis.sample.cz");
-    $a->traverse(sub {
+    $urpm->traverse(sub {
 	# retrieve all packages from the dependency list
 	# ...
     });
@@ -237,6 +243,28 @@ and adds them to the URPM object. Allowed options are
     packing => 0 / 1
     keep_all_tags => 0 / 1
     callback => sub { ... }
+
+=item $urpm->search($name, %options)
+
+Search an RPM by name or by part of name in the list of RPMs represented by
+this $urpm. The behaviour of the search is influenced by several options:
+
+    strict_name => 0 / 1
+    strict_fullname => 0 / 1
+    src => 0 / 1
+
+=item $urpm->traverse($callback)
+
+Executes the callback for each package in the depslist, passing a
+C<URPM::Package> object as argument the callback.
+
+=item $urpm->traverse_tag($tag, $names, $callback)
+
+$tag may be one of C<name>, C<whatprovides>, C<whatrequires>, C<whatconflicts>,
+C<group>, C<triggeredby>, or C<path>.
+$names is a reference to an array, holding the acceptable values of the said
+tag for the searched variables.
+Then, $callback is called for each matching package in the depslist.
 
 =item $urpm->verify_rpm($file, %options)
 
@@ -327,7 +355,7 @@ of an RPM package.
 
 =item $package->compare($evr)
 
-=item $package->compare_pkg($lpkg, $rpkg)
+=item $package->compare_pkg($other_pkg)
 
 =item $package->conf_files()
 
@@ -390,6 +418,8 @@ of an RPM package.
 =item $package->free_header()
 
 =item $package->fullname()
+
+Returns a 4 element list: name, version, release and architecture.
 
 =item $package->get_tag($tagname)
 

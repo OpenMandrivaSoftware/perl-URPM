@@ -1,41 +1,45 @@
+#!/usr/bin/perl
 
 use strict ;
 use warnings ;
-
-sub ok {
-    my ($no, $ok) = @_ ;
-
-    print "ok $no\n" if $ok ;
-    print "not ok $no\n" unless $ok ;
-    printf "# Failed test at line %d\n", (caller)[2] unless $ok ;
-}
-
+use Test::More tests => 7;
 use URPM;
 
-print "1..5\n";
-
-my ($count, @all_pkgs_extern, @all_pkgs);
+my ($count, @all_pkgs_extern, %all_pkgs, @all_pkgs);
+my ($pkg_perl, $count_perl, $pkg_perl_extern);
 {
     my $db;
-    ok(1, $db = URPM::DB::open);
+    ok($db = URPM::DB::open, 'DB opened');
 
     @all_pkgs_extern = sort { $a cmp $b } split '\n', `rpm -qa`;
-    ok(2, @all_pkgs_extern > 0);
+    ok(@all_pkgs_extern > 0, 'There are RPMs');
 
     $count = $db->traverse(sub {
-			       my ($pkg) = @_;
-			       my ($name, $version, $release, $arch) = $pkg->fullname;
-			       #- arch is void for -pubkey- package.
-			       push @all_pkgs, "$name-$version-$release";
-			   });
+	    my ($pkg) = @_;
+	    my ($name, $version, $release, $arch) = $pkg->fullname;
+	    #- arch is void for -pubkey- package.
+	    my $fullname = "$name-$version-$release";
+	    $all_pkgs{$fullname}++;
+	    if ($name eq 'perl') { $pkg_perl_extern = $fullname }
+	});
+    @all_pkgs = keys %all_pkgs;
+
+    $count_perl = $db->traverse_tag('name', ['perl'], sub {
+	    my ($pkg) = @_;
+	    my ($name, $version, $release) = $pkg->fullname;
+	    $pkg_perl = "$name-$version-$release";
+	});
 }
-ok(3, $count == @all_pkgs_extern);
-ok(4, $count == @all_pkgs);
+is($count, @all_pkgs_extern,
+    'traversed same num of packages than given by rpm -qa');
+is($count, @all_pkgs,
+    'traversed each package once');
+is($count_perl, 1, q(there's exactly 1 "perl" package));
+is($pkg_perl, $pkg_perl_extern, '... with the correct fullname');
 
 my @all_pkgs_sorted = sort { $a cmp $b } @all_pkgs;
 my $bad_pkgs = 0;
 foreach (0..$#all_pkgs_sorted) {
     $all_pkgs_sorted[$_] eq $all_pkgs_extern[$_] or ++$bad_pkgs;
 }
-ok(5, $bad_pkgs == 0);
-
+is($bad_pkgs, 0, 'no mismatch between package lists');
