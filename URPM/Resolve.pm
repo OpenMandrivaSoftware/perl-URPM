@@ -599,6 +599,7 @@ sub compute_installed_flags {
 
     #- first pass to initialize flags installed and upgrade for all package.
     foreach (@{$urpm->{depslist}}) {
+	$_->is_arch_compat or next;
 	$_->flag_upgrade || $_->flag_installed or $_->set_flag_upgrade;
     }
 
@@ -610,7 +611,7 @@ sub compute_installed_flags {
 		      #- compute flags.
 		      foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
 			  my $pkg = $urpm->{depslist}[$_];
-			  $pkg->name eq $p->name or next;
+			  $pkg->is_arch_compat && $pkg->name eq $p->name or next;
 			  #- compute only installed and upgrade flags.
 			  $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
 			  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
