@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.03
-%define release 2mdk
+%define version 0.04
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jun 11 2002 François Pons <fpons@mandrakesoft.com> 0.04-1mdk
+- added Resolve.pm file.
+
 * Thu Jun  6 2002 François Pons <fpons@mandrakesoft.com> 0.03-2mdk
 - fixed incomplete compare_pkg not taking into account score
   of arch.

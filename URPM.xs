@@ -1446,6 +1446,59 @@ Db_traverse_tag(db,tag,names,callback)
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
+int
+Urpm_ranges_overlap(a, b)
+  char *a
+  char *b
+  PREINIT:
+  char *sa = a, *sb = b;
+  int aflags = 0, bflags = 0;
+  char *eona, *eonb;
+  char *eosa, *eosb;
+  char save_a, save_b;
+  CODE:
+  while (*sa && *sa != ' ' && *sa != '[') ++sa; save_a = *sa; *(eona = sa++) = 0;
+  while (*sb && *sb != ' ' && *sb != '[') ++sb; save_b = *sb; *(eonb = sb++) = 0;
+  if (save_a)
+    while (*sa) {
+      switch (*sa++) {
+      case '<': aflags |= RPMSENSE_LESS; break;
+      case '>': aflags |= RPMSENSE_GREATER; break;
+      case '=': aflags |= RPMSENSE_EQUAL; break;
+      case ' ':
+      case '[':
+      case '*':
+      case ']':
+	break;
+      default: goto exit_a;
+      }
+    }
+exit_a:
+  if (save_b)
+    while (*sb) {
+      switch (*sb++) {
+      case '<': bflags |= RPMSENSE_LESS; break;
+      case '>': bflags |= RPMSENSE_GREATER; break;
+      case '=': bflags |= RPMSENSE_EQUAL; break;
+      case ' ':
+      case '[':
+      case '*':
+      case ']':
+	break;
+      default: goto exit_b;
+      }
+    }
+exit_b:
+  if ((eosa = strchr(--sa, ']')) != NULL) *eosa = 0;
+  if ((eosb = strchr(--sb, ']')) != NULL) *eosb = 0;
+  RETVAL = rpmRangesOverlap(a, sa, aflags, b, sb, bflags);
+  if (eosb) *eosb = ']';
+  if (eosa) *eosa = ']';
+  *eonb = save_b;
+  *eona = save_a;
+  OUTPUT:
+  RETVAL
+
 void
 Urpm_parse_synthesis(urpm, filename)
   SV *urpm

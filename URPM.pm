@@ -6,7 +6,7 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 bootstrap URPM $VERSION;
 
@@ -66,7 +66,7 @@ sub traverse_tag {
 	    }
 	} elsif ($tag eq 'triggeredby' || $tag eq 'path') {
 	    foreach (@{$urpm->{depslist} || []}) {
-		if (grep { exists $names{$_} } $_->files) {
+		if (grep { exists $names{$_} } $_->files, grep { /^\// } $_->provides_nosense) {
 		    $callback and $callback->($_);
 		    ++$count;
 		}
@@ -126,25 +126,5 @@ sub relocate_depslist {
     }
 
     $relocated_entries;
-}
-
-#- resolve requires using requested tag, keep resolution state to speed process.
-#- a requested package is marked to be installed, once done, a upgrade flag or
-#- installed flag is set according to needs of package.
-#- other required package will have required flag set along with upgrade flag or
-#- installed flag.
-#- base flag should always been installed or upgraded.
-#- the following options are recognized :
-#-   check : check requires of installed packages.
-sub resolve_requires {
-    my ($urpm, $db, $state, %options);
-    my (@packages);
-
-    #- get package that need to be evaluated.
-    foreach (0 .. $#{$urpm->{depslist}}) {
-	my $pkg = $urpm->{depslist}[$_];
-	$pkg->flag_requested && !($pkg->flag_installed || $pkg->flag_upgrade) and push @packages, $_;
-    }
-    #TODO
 }
 
