@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.08
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -16,7 +16,7 @@ Distribution:	Mandrake Linux
 Source:		%{real_name}-%{version}.tar.bz2
 Prefix:		%{_prefix}
 BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
-Requires:	perl >= 5.601 rpm >= %{rpm_version} bzip2 >= 1.0
+Requires:	perl, rpm >= %{rpm_version}, bzip2 >= 1.0
 BuildRoot:	%{_tmppath}/%{name}-buildroot
 
 %description
@@ -27,7 +27,7 @@ hdlist files and manage them in memory.
 %setup -q -n %{real_name}-%{version}
 
 %build
-%{__perl} Makefile.PL PREFIX=%{prefix}
+%{__perl} Makefile.PL INSTALLDIRS=vendor PREFIX=%{prefix}
 make OPTIMIZE="$RPM_OPT_FLAGS" PREFIX=%{prefix}
 make test
 
@@ -41,13 +41,16 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %doc README
-#%{_libdir}/perl5/man/man3
-%{perl_sitearch}/URPM.pm
-%{perl_sitearch}/URPM
-%{perl_sitearch}/auto/URPM
+#%{_mandir}/man3pm/*
+%{perl_vendorarch}/URPM.pm
+%{perl_vendorarch}/URPM
+%{perl_vendorarch}/auto/URPM
 
 
 %changelog
+* Tue Jul  9 2002 Pixel <pixel@mandrakesoft.com> 0.08-3mdk
+- rebuild for perl 5.8.0
+
 * Mon Jul  8 2002 François Pons <fpons@mandrakesoft.com> 0.08-2mdk
 - fixed rflags setting (now keep more than one element).
 - fixed setting of ask_unselect correctly.
