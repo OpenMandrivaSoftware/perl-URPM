@@ -333,10 +333,21 @@ sub resolve_requested {
 					  if ($best) {
 					      push @properties, $best;
 					  } else {
-					      #- no package have been found, we need to remove the package examined.
-					      $options{keep_state} or
-						$urpm->resolve_closure_ask_remove($db, $state, $p,
-										  { unsatisfied => \@l, id => $pkg->id });
+					      #- no package have been found, we may need to remove the package examined unless
+					      #- there exists a package that provided the unsatisfied requires.
+					      my @best;
+					      foreach (@l) {
+						  $packages = $urpm->find_candidate_packages($_);
+						  push @best, join('|', map { $_->id } map { @{$_ || []} } values %$packages);
+					      }
+
+					      if (@best == @l) {
+						  push @properties, @best;
+					      } else {
+						  $options{keep_state} or
+						    $urpm->resolve_closure_ask_remove($db, $state, $p,
+										      { unsatisfied => \@l, id => $pkg->id });
+					      }
 					  }
 				      }
 				  });

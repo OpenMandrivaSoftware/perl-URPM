@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.70
-%define release 4mdk
+%define release 5mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Aug 29 2002 François Pons <fpons@mandrakesoft.com> 0.70-5mdk
+- fixed split of package that could lead to excesive number of
+  package proposed to be removed.
+
 * Thu Aug 29 2002 François Pons <fpons@mandrakesoft.com> 0.70-4mdk
 - fixed requires examination for right locales.
 
