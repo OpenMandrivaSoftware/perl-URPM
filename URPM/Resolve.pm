@@ -261,8 +261,8 @@ sub resolve_requested {
 		   (sort { $a->id <=> $b->id } @chosen_other),
 		   (sort { $a->id <=> $b->id } @chosen_bad_locales));
 	if (!$pkg && $options{callback_choices} && @chosen > 1) {
-	    $pkg = $options{callback_choices}->($urpm, $db, $state, \@chosen);
-	    $pkg or next; #- callback may decide to not continue (or state is already updated).
+	    unshift @properties, map { $_->id } grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
+	    next; #- always redo according to choices.
 	}
 	$pkg ||= $chosen[0];
 	!$pkg || $pkg->flag_selected || exists $state->{selected}{$pkg->id} and next;
