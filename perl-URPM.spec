@@ -1,22 +1,29 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 9mdk
+%define release 10mdk
 
-%{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
+%define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
+%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
+
+%{expand:%%define compat_makeinstall_std %(perl -e 'printf "%%s\n", "%{?makeinstall_std:1}" ? "%%makeinstall_std" : "%%{__make} install PREFIX=%%{buildroot}%%{_prefix}"')}
+%{expand:%%define compat_perl_vendorarch %(perl -MConfig -e 'printf "%%s\n", "%{?perl_vendorarch:1}" ? "%%{perl_vendorarch}" : "$Config{installvendorarch}"')}
+%{expand:%%define buildreq_perl_devel %%(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "perl-devel" : "perl"')}
+%{expand:%%define distribution %%(perl -e 'printf "%%s\\n", ("%_vendor" =~ /mandrake/i ? "Mandrake Linux" : "Red Hat Linux")')}
+%{expand:%%define real_release %%(perl -e 'printf "%%s\\n", ("%_vendor" !~ /mandrake/i && ("%release" =~ /(.*?)mdk/)[0] || "%release")')}
 
 Packager:       François Pons <fpons@mandrakesoft.com>
 Summary:	URPM module for perl
 Name:		%{name}
 Version:	%{version}
-Release:	%{release}
+Release:	%{real_release}
 License:	GPL or Artistic
-Group:		Development/Perl
-Distribution:	Mandrake Linux
+Group:		%{group}
+Distribution:	%{distribution}
 Source:		%{real_name}-%{version}.tar.bz2
 URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 Prefix:		%{_prefix}
-BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
+BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.0.3 bzip2-devel
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 Provides:	perl(URPM::Build) = %{version}-%{release}
 Provides:	perl(URPM::Resolve) = %{version}-%{release}
@@ -32,26 +39,30 @@ hdlist files and manage them in memory.
 
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor
-make OPTIMIZE="$RPM_OPT_FLAGS"
-#make test
+%{__make} OPTIMIZE="$RPM_OPT_FLAGS"
+%{__make} test
 
 %install
-rm -rf $RPM_BUILD_ROOT
-%makeinstall_std
+%{__rm} -rf %{buildroot}
+%{compat_makeinstall_std}
 
 %clean 
-rm -rf $RPM_BUILD_ROOT
+%{__rm} -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
 %doc README
 #%{_mandir}/man3pm/*
-%{perl_vendorarch}/URPM.pm
-%{perl_vendorarch}/URPM
-%{perl_vendorarch}/auto/URPM
+%{compat_perl_vendorarch}/URPM.pm
+%{compat_perl_vendorarch}/URPM
+%dir %{compat_perl_vendorarch}/auto/URPM
+%{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 
 %changelog
+* Tue Dec  9 2003 François Pons <fpons@mandrakesoft.com> 0.94-10mdk
+- added compability with RH 7.3.
+
 * Mon Nov 17 2003 François Pons <fpons@mandrakesoft.com> 0.94-9mdk
 - fixed bug preventing adding local media.
 

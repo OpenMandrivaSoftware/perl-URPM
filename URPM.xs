@@ -656,12 +656,12 @@ return_list_uint_16(Header header, int_32 tag_name) {
 void
 return_list_tag_modifier(Header header, int_32 tag_name) {
   dSP;
+  int i;
   int_32 *list;
   int_16 *list16;
   int_32 count, type;
   headerGetEntry(header, tag_name, &type, (void **) &list, &count);
   
-  int i;
   for (i=0; i<count; i++) {
     char *buff[15];
     char *s= buff;
@@ -671,14 +671,16 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
       if (list[i] & RPMFILE_DOC)       *s++ = 'd';
       if (list[i] & RPMFILE_GHOST)     *s++ = 'g';
       if (list[i] & RPMFILE_LICENSE)   *s++ = 'l';
-      if (list[i] & RPMFILE_ICON)      *s++ = 'i';
       if (list[i] & RPMFILE_MISSINGOK) *s++ = 'm';
       if (list[i] & RPMFILE_NOREPLACE) *s++ = 'n';
       if (list[i] & RPMFILE_SPECFILE)  *s++ = 'S';
       if (list[i] & RPMFILE_README)    *s++ = 'R';
       if (list[i] & RPMFILE_EXCLUDE)   *s++ = 'e';
+#ifdef RPM_42
+      if (list[i] & RPMFILE_ICON)      *s++ = 'i';
       if (list[i] & RPMFILE_UNPATCHED) *s++ = 'u';
       if (list[i] & RPMFILE_PUBKEY)    *s++ = 'p';
+#endif
     break;
     default:
       return;  
