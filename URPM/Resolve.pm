@@ -512,16 +512,16 @@ sub resolve_requested {
 	    foreach my $n (keys %diff_provides) {
 		$db->traverse_tag('whatrequires', [ $n ], sub {
 				      my ($p) = @_;
-				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1)) {
+				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 0)) {
 					  #- try if upgrading the package will be satisfying all the requires
 					  #- else it will be necessary to ask the user for removing it.
 					  my $packages = $urpm->find_candidate_packages($p->name,
-											nopromoteepoch => 1,
+											nopromoteepoch => 0,
 											avoided => $state->{rejected});
 					  my $best = join '|', map { $_->id }
 					    grep { $_->fullname ne $p->fullname &&
 						     $urpm->unsatisfied_requires($db, $state, $_,
-										 nopromoteepoch => 1,
+										 nopromoteepoch => 0,
 										 name => $n) == 0 }
 					      @{$packages->{$p->name}};
 
@@ -533,7 +533,7 @@ sub resolve_requested {
 					      my @best;
 					      foreach (@l) {
 						  $packages = $urpm->find_candidate_packages($_,
-											     nopromoteepoch => 1,
+											     nopromoteepoch => 0,
 											     avoided => $state->{rejected});
 						  $best = join('|',
 							       map { $_->id }

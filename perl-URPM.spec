@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 7mdk
+%define release 8mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jul  4 2003 François Pons <fpons@mandrakesoft.com> 0.91-8mdk
+- removed handling of promoteepoch as it is specifically obscure
+  in rpm and make urpmi crazy.
+
 * Thu Jun 26 2003 François Pons <fpons@mandrakesoft.com> 0.91-7mdk
 - fixed possible transaction set build even for empty selection.
 - fixed whatrequires hash abnormally populated (no problem raised).
