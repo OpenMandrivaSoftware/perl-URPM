@@ -855,8 +855,8 @@ sub compute_installed_flags {
     \%sizes;
 }
 
-#- compute flags according to hash describing package to remove
-#- $skip is a hash reference described as follow :
+#- compute flags according to hash describing packages to remove
+#- $val is a hash reference described as follow :
 #-   key is package name or regular expression on fullname if /.../
 #-   value is reference to hash indicating sense information ({ '' => undef } if none).
 #- options hash :

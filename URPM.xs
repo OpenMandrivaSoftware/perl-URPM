@@ -3324,9 +3324,14 @@ Urpm_parse_synthesis(urpm, filename, ...)
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	}
-      } else croak("unable to uncompress synthesis file %s", filename);
-    } else croak("first argument should contains a depslist ARRAY reference");
-  } else croak("first argument should be a reference to HASH");
+      } else {
+	  SV **nofatal = hv_fetch((HV*)SvRV(urpm), "nofatal", 7, 0);
+	  errno = ENOENT;
+	  if (!nofatal || !SvIV(*nofatal))
+	      croak("unable to uncompress synthesis file %s", filename);
+      }
+    } else croak("first argument should contain a depslist ARRAY reference");
+  } else croak("first argument should be a reference to a HASH");
 
 void
 Urpm_parse_hdlist(urpm, filename, ...)
@@ -3418,9 +3423,13 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	}
-      } else croak("cannot open hdlist file %s", filename);
-    } else croak("first argument should contains a depslist ARRAY reference");
-  } else croak("first argument should be a reference to HASH");
+      } else {
+	  SV **nofatal = hv_fetch((HV*)SvRV(urpm), "nofatal", 7, 0);
+	  if (!nofatal || !SvIV(*nofatal))
+	      croak("cannot open hdlist file %s", filename);
+      }
+    } else croak("first argument should contain a depslist ARRAY reference");
+  } else croak("first argument should be a reference to a HASH");
 
 void
 Urpm_parse_rpm(urpm, filename, ...)
@@ -3478,8 +3487,8 @@ Urpm_parse_rpm(urpm, filename, ...)
 	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
       } else free(_pkg);
-    } else croak("first argument should contains a depslist ARRAY reference");
-  } else croak("first argument should be a reference to HASH");
+    } else croak("first argument should contain a depslist ARRAY reference");
+  } else croak("first argument should be a reference to a HASH");
 
 char *
 Urpm_verify_rpm(filename, ...)

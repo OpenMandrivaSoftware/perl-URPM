@@ -15,14 +15,16 @@ our $VERSION = '0.94';
 URPM->bootstrap($VERSION);
 
 sub new {
-    my ($class) = @_;
-    bless {
-	   depslist => [],
-	   provides => {},
-	   media    => [],
-	   options  => {},
-	  }, $class;
+    my ($class, %options) = @_;
+    my $self = bless {
+	depslist => [],
+	provides => {},
+    }, $class;
+    $self->{nofatal} = 1 if $options{nofatal};
+    $self;
 }
+
+sub set_nofatal { $_[0]->{nofatal} = $_[1] }
 
 sub search {
     my ($urpm, $name, %options) = @_;
@@ -204,6 +206,10 @@ C<URPM::Package> objects).
 
 B<provides> is an hashref containing as keys the list of items provided by the
 URPM object.
+
+If the constructor is called with the arguments C<< nofatal => 1 >>, various
+fatal error messages are suppressed (file not found in parse_hdlist() and
+parse_synthesis()).
 
 =item read_config_files()
 
