@@ -2057,7 +2057,7 @@ Pkg_obsoletes_nosense(pkg)
   SPAGAIN;
 
 int
-Pkg_obsoletes_overlap(pkg, s, b_nopromote=0, direction=-1)
+Pkg_obsoletes_overlap(pkg, s, b_nopromote=1, direction=-1)
   URPM::Package pkg
   char *s
   int b_nopromote
@@ -2130,7 +2130,7 @@ Pkg_provides_nosense(pkg)
   SPAGAIN;
 
 int
-Pkg_provides_overlap(pkg, s, b_nopromote=0, direction=1)
+Pkg_provides_overlap(pkg, s, b_nopromote=1, direction=1)
   URPM::Package pkg
   char *s
   int b_nopromote
@@ -3234,7 +3234,7 @@ Urpm_list_rpm_tag(urpm=Nullsv)
        }
 
 int
-Urpm_ranges_overlap(a, b, b_nopromote=0)
+Urpm_ranges_overlap(a, b, b_nopromote=1)
   char *a
   char *b
   int b_nopromote
