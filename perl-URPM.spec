@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.91
-%define release 14mdk
+%define version 0.92
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul 28 2003 François Pons <fpons@mandrakesoft.com> 0.92-1mdk
+- added keep option to URPM::resolve_requested to avoid removing
+  packages.
+
 * Thu Jul 24 2003 François Pons <fpons@mandrakesoft.com> 0.91-14mdk
 - fixed handling of kde packages being splitted with different
   names which obfuscated the resolution algorithm, difference

@@ -208,7 +208,7 @@ sub backtrack_selected {
 			$state->{rejected}{$_->fullname}{backtrack} ||=
 			  { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
 			    exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
-			    required => $dep->{required} };
+			  };
 			#- backtrack callback should return a strictly positive value if the selection of the new
 			#- package is prefered over the currently selected package.
 			next;
@@ -235,7 +235,7 @@ sub backtrack_selected {
     if (defined $dep->{from}) {
 	if ($options{nodeps}) {
 	    #- try to keep unsatisfied dependencies in requested.
-	    if (exists $state->{selected}{$dep->{from}->id}) {
+	    if ($dep->{required} && exists $state->{selected}{$dep->{from}->id}) {
 		push @{$state->{selected}{$dep->{from}->id}{unsatisfied}}, $dep->{required};
 	    }
 	} else {
@@ -256,19 +256,39 @@ sub backtrack_selected {
 	}
     }
 
-    if (defined $dep->{promote} && defined $dep->{psel}) {
-	#- the backtrack need to examine diff_provides promotion on $n.
-	$db->traverse_tag('whatrequires', [ $dep->{promote} ], sub {
-			      my ($p) = @_;
-			      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $dep->{promote})) {
-				  #- typically a redo of the diff_provides code should be applied...
-				  $urpm->resolve_rejected($db, $state, $p,
-							  removed => 1,
-							  unsatisfied => \@properties,
-							  from => scalar $dep->{psel}->fullname,
-							  why => { unsatisfied => \@l });
-			      }
-			  });
+    if (defined $dep->{psel}) {
+	if ($options{keep}) {
+	    #- we shouldn't try to remove packages, so psel which leads to this need to be unselected.
+	    unless (exists $state->{rejected}{$dep->{psel}->fullname}) {
+		#- package is not currently rejected, compute the closure now.
+		my @l = $options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, $dep->{psel}) :
+		  $urpm->disable_selected_unrequested_dependencies($db, $state, $dep->{psel});
+		foreach (@l) {
+		    #- disable all these packages in order to avoid selecting them again.
+		    $_->fullname eq $dep->{psel}->fullname or
+		      $state->{rejected}{$_->fullname}{backtrack}{closure}{$dep->{psel}->fullname} = undef;
+		}
+	    }
+	    #- the package is already rejected, we assume we can add another reason here!
+	    defined $dep->{promote} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{promote}}, $dep->{promote};
+	    #- to simplify, a reference to list or standalone elements may be set in keep.
+	    defined $dep->{keep} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{keep}},
+	      ref $dep->{keep} ? @{$dep->{keep}} : $dep->{keep};
+	} else {
+	    #- the backtrack need to examine diff_provides promotion on $n.
+	    $db->traverse_tag('whatrequires', [ $dep->{promote} ], sub {
+				  my ($p) = @_;
+				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p,
+									  nopromoteepoch => 1, name => $dep->{promote})) {
+				      #- typically a redo of the diff_provides code should be applied...
+				      $urpm->resolve_rejected($db, $state, $p,
+							      removed => 1,
+							      unsatisfied => \@properties,
+							      from => scalar $dep->{psel}->fullname,
+							      why => { unsatisfied => \@l });
+				  }
+			      });
+	}
     }
 
     #- some packages may have been removed because of selection of this one.
@@ -411,11 +431,19 @@ sub resolve_requested {
 					  if (@best == @l) {
 					      push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 					  } else {
-					      $urpm->resolve_rejected($db, $state, $p,
-								      removed => 1,
-								      unsatisfied => \@properties,
-								      from => scalar $pkg->fullname,
-								      why => { unsatisfied => \@l });
+					      if ($options{keep}) {
+						  unshift @properties, $urpm->backtrack_selected($db, $state,
+												 { keep => scalar $p->fullname,
+												   psel => $pkg,
+												 },
+												 %options);
+					      } else {
+						  $urpm->resolve_rejected($db, $state, $p,
+									  removed => 1,
+									  unsatisfied => \@properties,
+									  from => scalar $pkg->fullname,
+									  why => { unsatisfied => \@l });
+					      }
 					  }
 				      }
 				  }
@@ -453,6 +481,9 @@ sub resolve_requested {
 
 	#- now do the real work, select the package.
 	my ($pkg) = @chosen;
+	#- cancel flag if this package should be cancelled but too late (typically keep options).
+	my @keep;
+
 	!$pkg || exists $state->{selected}{$pkg->id} and next;
 
 	if ($pkg->arch eq 'src') {
@@ -577,6 +608,7 @@ sub resolve_requested {
 	#- examine conflicts, an existing package conflicting with this selection should
 	#- be upgraded to a new version which will be safe, else it should be removed.
 	foreach ($pkg->conflicts) {
+	    @keep and last;
 	    #- propagate conflicts to avoided.
 	    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 		foreach (keys %{$urpm->{provides}{$n} || {}}) {
@@ -587,14 +619,21 @@ sub resolve_requested {
 	    }
 	    if (my ($file) = /^(\/[^\s\[]*)/) {
 		$db->traverse_tag('path', [ $file ], sub {
+				      @keep and return;
 				      my ($p) = @_;
-				      #- all these packages should be removed.
-				      $urpm->resolve_rejected($db, $state, $p,
-							      removed => 1, unsatisfied => \@properties,
-							      from => scalar $pkg->fullname, why => { conflicts => $file });
+				      if ($options{keep}) {
+					  push @keep, scalar $p->fullname;
+				      } else {
+					  #- all these packages should be removed.
+					  $urpm->resolve_rejected($db, $state, $p,
+								  removed => 1, unsatisfied => \@properties,
+								  from => scalar $pkg->fullname,
+								  why => { conflicts => $file });
+				      }
 				  });
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
+				      @keep and return;
 				      my ($p) = @_;
 				      if ($p->provides_overlap($property)) {
 					  #- the existing package will conflicts with selection, check if a newer
@@ -607,12 +646,17 @@ sub resolve_requested {
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
-					      push @properties, { required => $best, promote_conflicts => $name };
+					      push @properties, { required => $best, promote_conflicts => $name,  };
 					  } else {
-					      #- no package have been found, we need to remove the package examined.
-					      $urpm->resolve_rejected($db, $state, $p,
-								      removed => 1, unsatisfied => \@properties,
-								      from => scalar $pkg->fullname, why => { conflicts => scalar $pkg->fullname });
+					      if ($options{keep}) {
+						  push @keep, scalar $p->fullname;
+					      } else {
+						  #- no package have been found, we need to remove the package examined.
+						  $urpm->resolve_rejected($db, $state, $p,
+									  removed => 1, unsatisfied => \@properties,
+									  from => scalar $pkg->fullname,
+									  why => { conflicts => scalar $pkg->fullname });
+					      }
 					  }
 				      }
 				  });
@@ -621,16 +665,27 @@ sub resolve_requested {
 
 	#- examine if an existing package does not conflicts with this one.
 	$db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
+			      @keep and return;
 			      my ($p) = @_;
 			      foreach my $property ($p->conflicts) {
 				  if ($pkg->provides_overlap($property)) {
-				      #- all these packages should be removed.
-				      $urpm->resolve_rejected($db, $state, $p,
-							      removed => 1, unsatisfied => \@properties,
-							      from => scalar $pkg->fullname, why => { conflicts => $property });
+				      if ($options{keep}) {
+					  push @keep, scalar $p->fullname;
+				      } else {
+					  #- all these packages should be removed.
+					  $urpm->resolve_rejected($db, $state, $p,
+								  removed => 1, unsatisfied => \@properties,
+								  from => scalar $pkg->fullname,
+								  why => { conflicts => $property });
+				      }
 				  }
 			      }
 			  });
+
+	#- keep existing package and therefore cancel current one.
+	if (@keep) {
+	    unshift @properties, $urpm->backtrack_selected($db, $state, +{ keep => \@keep, psel => $pkg }, %options);
+	}
     }
 
     #- return what has been selected by this call (not all selected hash which may be not emptry
