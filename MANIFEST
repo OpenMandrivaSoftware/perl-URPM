@@ -6,6 +6,7 @@ URPM.xs
 URPM.pm
 URPM/Build.pm
 URPM/Resolve.pm
+URPM/Signature.pm
 t/rpmdb.t
 t/synthesis.t
 META.yml                                Module meta-data (added by MakeMaker)
