@@ -4,7 +4,7 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 19;
+use Test::More tests => 24;
 use URPM;
 use URPM::Build;
 use URPM::Query;
