@@ -611,6 +611,8 @@ They roughly correspond to command-line options to rpm(1).
 
 =head2 Macro handling functions
 
+=over
+
 =item loadmacrosfile($filename)
 
 Load the specified macro file. Sets $! if the file can't be read.
@@ -633,6 +635,8 @@ Delete a macro.
 =item resetmacros()
 
 Destroys macros.
+
+=back
 
 =head1 COPYRIGHT
 
