@@ -420,6 +420,8 @@ sub resolve_requested {
 					  @{$packages->{$p->name}};
 
 				      if (length $best) {
+					  print STDERR "using1 $best for promoting $n\n";
+					  print STDERR $urpm->{depslist}[$best]->fullname."\n";
 					  push @properties, { required => $best, promote => $n, psel => $pkg };
 				      } else {
 					  #- no package have been found, we may need to remove the package examined unless
@@ -437,8 +439,10 @@ sub resolve_requested {
 					  }
 
 					  if (@best == @l) {
+					      print STDERR "using2 @best for promoting $n\n";
 					      push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 					  } else {
+					      print STDERR "rejecting after trying to promote $n\n";
 					      if ($options{keep}) {
 						  unshift @properties, $urpm->backtrack_selected($db, $state,
 												 { keep => scalar $p->fullname,
@@ -560,7 +564,7 @@ sub resolve_requested {
 					  #- without an operator, anything (with the same name) is matched.
 					  #- with an operator, check with package EVR with the obsoletes EVR.
 					  my $satisfied = !$o || eval($p->compare($v) . $o . 0);
-					  $p->name eq $pkg->name && $p->fullname eq $pkg->fullname || $satisfied or return;
+					  $p->name eq $pkg->name || $satisfied or return;
 
 					  #- do not propagate now the broken dependencies as they are
 					  #- computed later.
