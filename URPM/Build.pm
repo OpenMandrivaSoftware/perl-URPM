@@ -244,6 +244,7 @@ sub compute_deps {
 
 	#- set new id.
 	$pkg->set_id($remap_ids{$_});
+	print STDERR "setting id of ".$pkg->name.":$remap_ids{$_}\n";
 
 	my ($id, $base, %requires_id, %not_founds);
 	foreach (split ' ', $urpm->{requires}[$_]) {

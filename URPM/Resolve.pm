@@ -22,13 +22,8 @@ sub find_candidate_packages {
 		$pkg->is_arch_compat or next;
 		$options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
-		my $satisfied = !$urpm->{provides}{$name}{$_};
-		unless ($satisfied) {
-		    foreach ($pkg->provides) {
-			ranges_overlap($_, $property, $options{nopromoteepoch}) and ++$satisfied, last;
-		    }
-		}
-		$satisfied and push @{$packages{$pkg->name}}, $pkg;
+		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, $options{nopromoteepoch}) and
+		  push @{$packages{$pkg->name}}, $pkg;
 	    }
 	}
     }
@@ -59,13 +54,7 @@ sub find_chosen_packages {
 		$pkg->flag_skip || exists $state->{rejected}{$pkg->fullname} and next;
 		$pkg->is_arch_compat or next;
 		#- check if at least one provide of the package overlap the property (if sense are needed).
-		my $satisfied = !$urpm->{provides}{$name}{$_};
-		unless ($satisfied) {
-		    foreach ($pkg->provides) {
-			ranges_overlap($_, $property) and ++$satisfied, last;
-		    }
-		}
-		if ($satisfied) {
+		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this packages is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
 		    if (my $p = $packages{$pkg->name}) {
@@ -161,20 +150,11 @@ sub unsatisfied_requires {
 	    foreach (keys %{$urpm->{provides}{$n} || {}}) {
 		my $p = $urpm->{depslist}[$_];
 		exists $state->{selected}{$_} or next;
-		if ($urpm->{provides}{$n}{$_}) {
-		    #- sense information are used, this means we have to examine carrefully the provides.
-		    foreach ($p->provides) {
-			ranges_overlap($_, $dep, $options{nopromoteepoch}) and next REQUIRES;
-		    }
-		} else {
-		    next REQUIRES;
-		}
+		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($dep, $options{nopromoteepoch}) and next REQUIRES;
 	    }
 
 	    #- check if the package itself provides what is necessary.
-	    foreach ($pkg->provides) {
-		ranges_overlap($_, $dep) and next REQUIRES;
-	    }
+	    $pkg->provides_overlap($dep) and next REQUIRES;
 
 	    #- check on installed system a package which is not obsoleted is satisfying the require.
 	    my $satisfied = 0;
@@ -611,14 +591,14 @@ sub resolve_requested {
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
 				      my ($p) = @_;
-				      if (grep { ranges_overlap($_, $property) } $p->provides) {
+				      if ($p->provides_overlap($property)) {
 					  #- the existing package will conflicts with selection, check if a newer
 					  #- version will be ok, else ask to remove the old.
 					  my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
 					                                     $p->version . "-" . $p->release;
 					  my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
 					  my $best = join '|', map { $_->id }
-					    grep { ! grep { ranges_overlap($_, $property) } $_->provides }
+					    grep { ! $_->provides_overlap($property) }
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
@@ -638,7 +618,7 @@ sub resolve_requested {
 	$db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
 			      my ($p) = @_;
 			      foreach my $property ($p->conflicts) {
-				  if (grep { ranges_overlap($_, $property) } $pkg->provides) {
+				  if ($pkg->provides_overlap($property)) {
 				      #- all these packages should be removed.
 				      $urpm->resolve_rejected($db, $state, $p,
 							      removed => 1, unsatisfied => \@properties,
@@ -824,9 +804,7 @@ sub compute_flags {
 		my $satisfied = exists($sense->{''}) || !$urpm->{provides}{$name}{$_};
 		unless ($satisfied) {
 		    foreach my $s (keys %$sense) {
-			foreach ($pkg->provides) {
-			    ranges_overlap($_, $name.$s) and ++$satisfied, last;
-			}
+			$pkg->provides_overlap($name.$s) and ++$satisfied, last;
 		    }
 		}
 		if ($satisfied) {
@@ -945,17 +923,15 @@ sub request_packages_to_upgrade {
 		      foreach my $property ($p->provides) {
 			  #- only real provides should be taken into account, this means internal obsoletes
 			  #- should be avoided.
-			  unless (grep { ranges_overlap($property, $_) } $p->obsoletes) {
+			  unless ($p->obsoletes_overlap($property)) {
 			      if (my ($n) = $property =~ /^([^\s\[]*)/) {
 				  foreach my $pkg (@{$obsoletes{$n} || []}) {
 				      next if $pkg->name eq $p->name || $p->name ne $n || !$names{$pkg->name};
-				      foreach ($pkg->obsoletes) {
-					  if (ranges_overlap($property, $_)) {
-					      #- the package being examined can be obsoleted.
-					      #- do not set installed and provides flags.
-					      push @obsoleters, $pkg;
-					      return;
-					  }
+				      if ($pkg->obsoletes_overlap($property)) {
+					  #- the package being examined can be obsoleted.
+					  #- do not set installed and provides flags.
+					  push @obsoleters, $pkg;
+					  return;
 				      }
 				  }
 			      }

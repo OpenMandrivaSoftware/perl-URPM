@@ -416,61 +416,199 @@ print_list_entry(char *buff, int sz, char *name, int_32 flags, char *evr) {
 }
 
 static int
-return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, char *buf, int buflen) {
-  int count = 0;
+ranges_overlap(int_32 aflags, char *sa, int_32 bflags, char *sb, int b_nopromote) {
+  if (!aflags || !bflags)
+    return 1; /* really faster to test it there instead of later */
+  else {
+    int sense = 0;
+    char *eosa = strchr(sa, ']');
+    char *eosb = strchr(sb, ']');
+    char *ea, *va, *ra, *eb, *vb, *rb;
+
+    if (eosa) *eosa = 0;
+    if (eosb) *eosb = 0;
+    /* parse sa as an [epoch:]version[-release] */
+    for (ea = sa; *sa >= '0' && *sa <= '9'; ++sa);
+    if (*sa == ':') {
+      *sa++ = 0; /* ea could be an empty string (should be interpreted as 0) */
+      va = sa;
+    } else {
+      va = ea; /* no epoch */
+      ea = NULL;
+    }
+    if ((ra = strrchr(sa, '-'))) *ra++ = 0;
+    /* parse sb as an [epoch:]version[-release] */
+    for (eb = sb; *sb >= '0' && *sb <= '9'; ++sb);
+    if (*sb == ':') {
+      *sb++ = 0; /* ea could be an empty string (should be interpreted as 0) */
+      vb = sb;
+    } else {
+      vb = eb; /* no epoch */
+      eb = NULL;
+    }
+    if ((rb = strrchr(sb, '-'))) *rb++ = 0;
+    /* now compare epoch */
+    if (ea && eb)
+      sense = rpmvercmp(*ea ? ea : "0", *eb ? eb : "0");
+#ifdef RPM_42
+    else if (ea && *ea && atol(ea) > 0)
+      sense = b_nopromote ? 1 : 0;
+#endif
+    else if (eb && *eb && atol(eb) > 0)
+      sense = -1;
+    /* now compare version and release if epoch has not been enough */
+    if (sense == 0) {
+      sense = rpmvercmp(va, vb);
+      if (sense == 0 && ra && *ra && rb && *rb)
+	sense = rpmvercmp(ra, rb);
+    }
+    /* restore all character that have been modified inline */
+    if (rb) rb[-1] = '-';
+    if (ra) ra[-1] = '-';
+    if (eb) vb[-1] = ':';
+    if (ea) va[-1] = ':';
+    if (eosb) *eosb = ']';
+    if (eosa) *eosa = ']';
+    /* finish the overlap computation */
+    if (sense < 0 && ((aflags & RPMSENSE_GREATER) || (bflags & RPMSENSE_LESS)))
+      return 1;
+    else if (sense > 0 && ((aflags & RPMSENSE_LESS) || (bflags & RPMSENSE_GREATER)))
+      return 1;
+    else if (sense == 0 && (((aflags & RPMSENSE_EQUAL) && (bflags & RPMSENSE_EQUAL)) ||
+			    ((aflags & RPMSENSE_LESS) && (bflags & RPMSENSE_LESS)) ||
+			    ((aflags & RPMSENSE_GREATER) && (bflags & RPMSENSE_GREATER))))
+      return 1;
+    else
+      return 0;
+  }
+}
+
+typedef int (*callback_list_str)(char *s, int slen, char *name, int_32 flags, char *evr, void *param);
+
+static int
+callback_list_str_xpush(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
   dSP;
+  if (s) {
+    XPUSHs(sv_2mortal(newSVpv(s, slen)));
+  } else {
+    char buff[4096];
+    int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
+    if (len > 0)
+      XPUSHs(sv_2mortal(newSVpv(buff, len)));
+  }
+  PUTBACK;
+  /* returning zero indicate to continue processing */
+  return 0;
+}
+
+struct cb_overlap_s {
+  char *name;
+  int_32 flags;
+  char *evr;
+  int direction; /* indicate to compare the above at left or right to the iteration element */
+  int b_nopromote;
+};
+
+static int
+callback_list_str_overlap(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+  struct cb_overlap_s *os = (struct cb_overlap_s *)param;
+  int result = 0;
+  char *eos = NULL;
+  char *eon = NULL;
+  char eosc;
+  char eonc;
+
+  /* we need to extract name, flags and evr from a full sense information, store result in local copy */
+  if (s) {
+    if (slen) { eos = s + slen; eosc = *eos; *eos = 0; }
+    name = s;
+    while (*s && *s != ' ' && *s != '[' && *s != '<' && *s != '>' && *s != '=') ++s;
+    if (*s) {
+      eon = s;
+      while (*s) {
+	if (*s == ' ' || *s == '[' || *s == '*' || *s == ']');
+	else if (*s == '<') flags |= RPMSENSE_LESS;
+	else if (*s == '>') flags |= RPMSENSE_GREATER;
+	else if (*s == '=') flags |= RPMSENSE_EQUAL;
+	else break;
+	++s;
+      }
+      evr = s;
+    } else
+      evr = "";
+  }
+
+  /* mark end of name */
+  if (eon) { eonc = *eon; *eon = 0; }
+  /* name should be equal, else it will not overlap */
+  if (!strcmp(name, os->name)) {
+    /* perform overlap according to direction needed, negative for left */
+    if (os->direction < 0)
+      result = ranges_overlap(os->flags, os->evr, flags, evr, os->b_nopromote);
+    else
+      result = ranges_overlap(flags, evr, os->flags, os->evr, os->b_nopromote);
+  }
+
+  /* fprintf(stderr, "cb_list_str_overlap result=%d, os->direction=%d, os->name=%s, os->evr=%s, name=%s, evr=%s\n",
+     result, os->direction, os->name, os->evr, name, evr); */
+
+  /* restore s if needed */
+  if (eon) *eon = eonc;
+  if (eos) *eos = eosc;
+
+  return result;
+}
+
+static int
+return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, callback_list_str f, void *param) {
+  int count = 0;
 
   if (s != NULL) {
     char *ps = strchr(s, '@');
     if (tag_flags && tag_version) {
       while(ps != NULL) {
-	if (buf != NULL) {
-	  buflen -= ps-s+1; if (buflen > 0) { memcpy(buf, s, ps-s); buf += ps-s; *buf++ = 0; ++count; }
-	} else XPUSHs(sv_2mortal(newSVpv(s, ps-s)));
+	++count;
+	if (f(s, ps-s, NULL, 0, NULL, param)) return -count;
 	s = ps + 1; ps = strchr(s, '@');
       }
-      if (buf != NULL) strcpy(buf, s);
-      else XPUSHs(sv_2mortal(newSVpv(s, 0)));
+      ++count;
+      if (f(s, 0, NULL, 0, NULL, param)) return -count;
     } else {
       char *eos;
       while(ps != NULL) {
 	*ps = 0; eos = strchr(s, '['); if (!eos) eos = strchr(s, ' ');
-	if (buf != NULL) {
-	  int l = eos ? eos-s : ps-s; buflen -= l; if (buflen > 0) { memcpy(buf, s, l); buf += l; *buf++ = 0; ++count; }
-	} else XPUSHs(sv_2mortal(newSVpv(s, eos ? eos-s : ps-s)));
+	++count;
+	if (f(s, eos ? eos-s : ps-s, NULL, 0, NULL, param)) { *ps = '@'; return -count; }
 	*ps = '@'; /* restore in memory modified char */
 	s = ps + 1; ps = strchr(s, '@');
       }
       eos = strchr(s, '['); if (!eos) eos = strchr(s, ' ');
-      if (buf != NULL) {
-	int l = eos ? eos-s : strlen(s); buflen -= l; if (buflen > 0) {	memcpy(buf, s, l); buf += l; *buf++ = 0; ++count; }
-      } else XPUSHs(sv_2mortal(newSVpv(s, eos ? eos-s : 0)));
+      ++count;
+      if (f(s, eos ? eos-s : 0, NULL, 0, NULL, param)) return -count;
     }
   } else if (header) {
-    char buff[4096];
-    int_32 type, count;
+    int_32 type, c;
     char **list = NULL;
     int_32 *flags = NULL;
     char **list_evr = NULL;
     int i;
 
-    headerGetEntry(header, tag_name, &type, (void **) &list, &count);
+    headerGetEntry(header, tag_name, &type, (void **) &list, &c);
     if (list) {
-      if (tag_flags) headerGetEntry(header, tag_flags, &type, (void **) &flags, &count);
-      if (tag_version) headerGetEntry(header, tag_version, &type, (void **) &list_evr, &count);
-      for(i = 0; i < count; i++) {
-	int len = print_list_entry(buff, sizeof(buff)-1, list[i], flags ? flags[i] : 0, list_evr ? list_evr[i] : NULL);
-	if (len < 0) continue;
-	if (buf != NULL) {
-	  buflen -= len; if (buflen > 0) { memcpy(buf, buff, len); buf += len; *buf++ = 0; ++count; }
-	} else XPUSHs(sv_2mortal(newSVpv(buff, len)));
+      if (tag_flags) headerGetEntry(header, tag_flags, &type, (void **) &flags, &c);
+      if (tag_version) headerGetEntry(header, tag_version, &type, (void **) &list_evr, &c);
+      for(i = 0; i < c; i++) {
+	++count;
+	if (f(NULL, 0, list[i], flags ? flags[i] : 0, list_evr ? list_evr[i] : NULL, param)) {
+	  free(list);
+	  free(list_evr);
+	  return -count;
+	}
       }
-
       free(list);
       free(list_evr);
     }
   }
-  if (buf == NULL) PUTBACK;
   return count;
 }
 
@@ -1716,7 +1854,8 @@ Pkg_requires(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, NULL, 0);
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION,
+		  callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1724,7 +1863,7 @@ Pkg_requires_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, 0, 0, NULL, 0);
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1732,7 +1871,8 @@ Pkg_obsoletes(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION, NULL, 0);
+  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION,
+		  callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1740,15 +1880,55 @@ Pkg_obsoletes_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, 0, 0, NULL, 0);
+  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
+
+int
+Pkg_obsoletes_overlap(pkg, s, b_nopromote=0, direction=-1)
+  URPM::Package pkg
+  char *s
+  int b_nopromote
+  int direction
+  PREINIT:
+  struct cb_overlap_s os;
+  char *eon = NULL;
+  char eonc;
+  CODE:
+  os.name = s;
+  os.flags = 0;
+  while (*s && *s != ' ' && *s != '[' && *s != '<' && *s != '>' && *s != '=') ++s;
+  if (*s) {
+    eon = s;
+    while (*s) {
+      if (*s == ' ' || *s == '[' || *s == '*' || *s == ']');
+      else if (*s == '<') os.flags |= RPMSENSE_LESS;
+      else if (*s == '>') os.flags |= RPMSENSE_GREATER;
+      else if (*s == '=') os.flags |= RPMSENSE_EQUAL;
+      else break;
+      ++s;
+    }
+    os.evr = s;
+  } else
+    os.evr = "";
+  os.direction = direction;
+  os.b_nopromote = b_nopromote;
+  /* mark end of name */
+  if (eon) { eonc = *eon; *eon = 0; }
+  /* return_list_str returns a negative value is the callback has returned non-zero */
+  RETVAL = return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION,
+			   callback_list_str_overlap, &os) < 0;
+  /* restore end of name */
+  if (eon) *eon = eonc;
+  OUTPUT:
+  RETVAL
 
 void
 Pkg_conflicts(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION, NULL, 0);
+  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION,
+		  callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1756,7 +1936,7 @@ Pkg_conflicts_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, 0, 0, NULL, 0);
+  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1764,7 +1944,8 @@ Pkg_provides(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL, 0);
+  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION,
+		  callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1772,15 +1953,54 @@ Pkg_provides_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0, NULL, 0);
+  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
+
+int
+Pkg_provides_overlap(pkg, s, b_nopromote=0, direction=1)
+  URPM::Package pkg
+  char *s
+  int b_nopromote
+  int direction
+  PREINIT:
+  struct cb_overlap_s os;
+  char *eon = NULL;
+  char eonc;
+  CODE:
+  os.name = s;
+  os.flags = 0;
+  while (*s && *s != ' ' && *s != '[' && *s != '<' && *s != '>' && *s != '=') ++s;
+  if (*s) {
+    eon = s;
+    while (*s) {
+      if (*s == ' ' || *s == '[' || *s == '*' || *s == ']');
+      else if (*s == '<') os.flags |= RPMSENSE_LESS;
+      else if (*s == '>') os.flags |= RPMSENSE_GREATER;
+      else if (*s == '=') os.flags |= RPMSENSE_EQUAL;
+      else break;
+      ++s;
+    }
+    os.evr = s;
+  } else
+    os.evr = "";
+  os.direction = direction;
+  os.b_nopromote = b_nopromote;
+  /* mark end of name */
+  if (eon) { eonc = *eon; *eon = 0; }
+  /* return_list_str returns a negative value is the callback has returned non-zero */
+  RETVAL = return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION,
+			   callback_list_str_overlap, &os) < 0;
+  /* restore end of name */
+  if (eon) *eon = eonc;
+  OUTPUT:
+  RETVAL
 
 void
 Pkg_buildarchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
   
 void
@@ -1788,7 +2008,7 @@ Pkg_excludearchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
   
 void
@@ -1796,7 +2016,7 @@ Pkg_exclusivearchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
   
 void
@@ -1812,7 +2032,7 @@ Pkg_files_md5sum(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEMD5S, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_FILEMD5S, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1820,7 +2040,7 @@ Pkg_files_owner(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEUSERNAME, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_FILEUSERNAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1828,7 +2048,7 @@ Pkg_files_group(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEGROUPNAME, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_FILEGROUPNAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1900,7 +2120,7 @@ Pkg_changelog_name(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -1908,7 +2128,7 @@ Pkg_changelog_text(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0, NULL, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -2802,69 +3022,7 @@ Urpm_ranges_overlap(a, b, b_nopromote=0)
       else break;
       ++sb;
     }
-    if (!aflags || !bflags)
-      RETVAL = 1; /* really faster to test it there instead of later */
-    else {
-      int sense = 0;
-      char *eosa = strchr(sa, ']');
-      char *eosb = strchr(sb, ']');
-      char *ea, *va, *ra, *eb, *vb, *rb;
-
-      if (eosa) *eosa = 0;
-      if (eosb) *eosb = 0;
-      /* parse sa as an [epoch:]version[-release] */
-      for (ea = sa; *sa >= '0' && *sa <= '9'; ++sa);
-      if (*sa == ':') {
-	*sa++ = 0; /* ea could be an empty string (should be interpreted as 0) */
-	va = sa;
-      } else {
-	va = ea; /* no epoch */
-	ea = NULL;
-      }
-      if ((ra = strrchr(sa, '-'))) *ra++ = 0;
-      /* parse sb as an [epoch:]version[-release] */
-      for (eb = sb; *sb >= '0' && *sb <= '9'; ++sb);
-      if (*sb == ':') {
-	*sb++ = 0; /* ea could be an empty string (should be interpreted as 0) */
-	vb = sb;
-      } else {
-	vb = eb; /* no epoch */
-	eb = NULL;
-      }
-      if ((rb = strrchr(sb, '-'))) *rb++ = 0;
-      /* now compare epoch */
-      if (ea && eb)
-	sense = rpmvercmp(*ea ? ea : "0", *eb ? eb : "0");
-#ifdef RPM_42
-      else if (ea && *ea && atol(ea) > 0)
-	sense = b_nopromote ? 1 : 0;
-#endif
-      else if (eb && *eb && atol(eb) > 0)
-	sense = -1;
-      /* now compare version and release if epoch has not been enough */
-      if (sense == 0) {
-	sense = rpmvercmp(va, vb);
-	if (sense == 0 && ra && *ra && rb && *rb)
-	  sense = rpmvercmp(ra, rb);
-      }
-      /* restore all character that have been modified inline */
-      if (rb) rb[-1] = '-';
-      if (ra) ra[-1] = '-';
-      if (eb) vb[-1] = ':';
-      if (ea) va[-1] = '-';
-      if (eosb) *eosb = ']';
-      if (eosa) *eosa = ']';
-      /* finish the overlap computation */
-      RETVAL = 0;
-      if (sense < 0 && ((aflags & RPMSENSE_GREATER) || (bflags & RPMSENSE_LESS)))
-	RETVAL = 1;
-      else if (sense > 0 && ((aflags & RPMSENSE_LESS) || (bflags & RPMSENSE_GREATER)))
-	RETVAL = 1;
-      else if (sense == 0 && (((aflags & RPMSENSE_EQUAL) && (bflags & RPMSENSE_EQUAL)) ||
-			      ((aflags & RPMSENSE_LESS) && (bflags & RPMSENSE_LESS)) ||
-			      ((aflags & RPMSENSE_GREATER) && (bflags & RPMSENSE_GREATER))))
-	RETVAL = 1;
-    }
+    RETVAL = ranges_overlap(aflags, sa, bflags, sb, b_nopromote);
   }
   OUTPUT:
   RETVAL
@@ -2878,10 +3036,34 @@ Urpm_unsatisfied_requires2(urpm, db, state, pkg, ...)
   PREINIT:
   char *option_name = NULL;
   int option_nopromoteepoch = 0;
+  HV *cached_installed = NULL;
+  HV *rejected = NULL;
+  HV *selected = NULL;
   PPCODE:
+  if (SvROK(state) && SvTYPE(SvRV(state)) == SVt_PVHV) {
+    SV **fcached_installed = hv_fetch((HV*)SvRV(state), "cached_installed", 16, 1);
+    SV **frejected = hv_fetch((HV*)SvRV(state), "rejected", 8, 0);
+    SV **fselected = hv_fetch((HV*)SvRV(state), "selected", 8, 0);
+
+    if (fcached_installed) {
+      if (!SvROK(*fcached_installed) || SvTYPE(SvRV(*fcached_installed)) != SVt_PVHV) {
+	SvREFCNT_dec(*fcached_installed);
+	*fcached_installed = newRV_noinc((SV*)newHV());
+      }
+      if (SvROK(*fcached_installed) && SvTYPE(SvRV(*fcached_installed)) == SVt_PVHV)
+	cached_installed = (HV*)SvRV(*fcached_installed);
+    }
+    if (frejected && SvROK(*frejected) && SvTYPE(SvRV(*frejected)) == SVt_PVHV)
+      rejected = (HV*)SvRV(*frejected);
+    if (fselected && SvROK(*fselected) && SvTYPE(SvRV(*fselected)) == SVt_PVHV)
+      selected = (HV*)SvRV(*fselected);
+  } else croak("state should be a reference to HASH");
   if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
     SV **fprovides = hv_fetch((HV*)SvRV(urpm), "provides", 8, 0);
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
+    SV **fdepslist = hv_fetch((HV*)SvRV(urpm), "depslist", 8, 0);
+    AV *depslist = fdepslist && SvROK(*fdepslist) && SvTYPE(SvRV(*fdepslist)) == SVt_PVAV ? (AV*)SvRV(*fdepslist) : NULL;
+    SV **f;
 
     /* get options */
     if (items > 4) {
@@ -2902,7 +3084,7 @@ Urpm_unsatisfied_requires2(urpm, db, state, pkg, ...)
       /* we have to iterate over requires of pkg */
       char b[65536];
       char *p = b;
-      int n = return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, b, sizeof(b));
+      int n = return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, NULL, NULL);
 
       while (n--) {
 	char *n = p, *s, *eos;
@@ -2914,10 +3096,14 @@ Urpm_unsatisfied_requires2(urpm, db, state, pkg, ...)
 	/* if option name is given, it should match the name found in requires on go to next requires */
 	if (option_name != NULL && strcmp(n, option_name)) { p = eos + 1; continue; }
 
-	
+	/* check for installed packages in the cache */
+	if ((f = hv_fetch(cached_installed, n, strlen(n), 0))) {
+	  /* f is a reference to an hash containing the name of packages as keys */
+	  
+	}
       }
     }
-  } else croak("first argument should be a reference to HASH");
+  } else croak("urpm should be a reference to HASH");
 
 void
 Urpm_parse_synthesis(urpm, filename, ...)

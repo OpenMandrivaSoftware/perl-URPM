@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 12mdk
+%define release 13mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,14 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jul 24 2003 François Pons <fpons@mandrakesoft.com> 0.91-13mdk
+- modified internal handling of string list to allow complex
+  combined method in pure C in order to increase speed.
+- added provides_overlap and obsoletes_overlap in XS to implement
+  a scalar grep of ranges_overlap on provides or obsoletes.
+- fixed a small typo in constant character in ranges_overlap which
+  may have caused some strange result.
+
 * Wed Jul 16 2003 François Pons <fpons@mandrakesoft.com> 0.91-12mdk
 - fixed typo in regex handling in URPM::compute_flags.
 - fixed cache contents not taken into account.
