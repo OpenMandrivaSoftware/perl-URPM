@@ -493,7 +493,7 @@ callback_list_str_xpush(char *s, int slen, char *name, int_32 flags, char *evr, 
   } else {
     char buff[4096];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
-    if (len > 0)
+    if (len >= 0)
       XPUSHs(sv_2mortal(newSVpv(buff, len)));
   }
   PUTBACK;
@@ -3026,84 +3026,6 @@ Urpm_ranges_overlap(a, b, b_nopromote=0)
   }
   OUTPUT:
   RETVAL
-
-void
-Urpm_unsatisfied_requires2(urpm, db, state, pkg, ...)
-  SV *urpm
-  URPM::DB db
-  SV *state
-  URPM::Package pkg
-  PREINIT:
-  char *option_name = NULL;
-  int option_nopromoteepoch = 0;
-  HV *cached_installed = NULL;
-  HV *rejected = NULL;
-  HV *selected = NULL;
-  PPCODE:
-  if (SvROK(state) && SvTYPE(SvRV(state)) == SVt_PVHV) {
-    SV **fcached_installed = hv_fetch((HV*)SvRV(state), "cached_installed", 16, 1);
-    SV **frejected = hv_fetch((HV*)SvRV(state), "rejected", 8, 0);
-    SV **fselected = hv_fetch((HV*)SvRV(state), "selected", 8, 0);
-
-    if (fcached_installed) {
-      if (!SvROK(*fcached_installed) || SvTYPE(SvRV(*fcached_installed)) != SVt_PVHV) {
-	SvREFCNT_dec(*fcached_installed);
-	*fcached_installed = newRV_noinc((SV*)newHV());
-      }
-      if (SvROK(*fcached_installed) && SvTYPE(SvRV(*fcached_installed)) == SVt_PVHV)
-	cached_installed = (HV*)SvRV(*fcached_installed);
-    }
-    if (frejected && SvROK(*frejected) && SvTYPE(SvRV(*frejected)) == SVt_PVHV)
-      rejected = (HV*)SvRV(*frejected);
-    if (fselected && SvROK(*fselected) && SvTYPE(SvRV(*fselected)) == SVt_PVHV)
-      selected = (HV*)SvRV(*fselected);
-  } else croak("state should be a reference to HASH");
-  if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
-    SV **fprovides = hv_fetch((HV*)SvRV(urpm), "provides", 8, 0);
-    HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
-    SV **fdepslist = hv_fetch((HV*)SvRV(urpm), "depslist", 8, 0);
-    AV *depslist = fdepslist && SvROK(*fdepslist) && SvTYPE(SvRV(*fdepslist)) == SVt_PVAV ? (AV*)SvRV(*fdepslist) : NULL;
-    SV **f;
-
-    /* get options */
-    if (items > 4) {
-      int i;
-      for (i = 4; i < items-1; i+=2) {
-	STRLEN len;
-	char *s = SvPV(ST(i), len);
-
-	if (len == 4 && !memcmp(s, "name", 4)) {
-	  option_name = SvPV_nolen(ST(i+1));
-	} else if (len == 14 && !memcmp(s, "nopromoteepoch", 14)) {
-	  option_nopromoteepoch = SvIV(ST(i+1));
-	}
-      }
-    }
-
-    if (provides != NULL) {
-      /* we have to iterate over requires of pkg */
-      char b[65536];
-      char *p = b;
-      int n = return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, NULL, NULL);
-
-      while (n--) {
-	char *n = p, *s, *eos;
-
-	/* first search for name and sense informations */
-	s = strchr(p, '['); if (s == NULL) s = strchr(p, ' '); *s++ = 0;
-	if ((eos = strchr(s, ']'))) *eos = 0; else eos = s + strlen(s);
-
-	/* if option name is given, it should match the name found in requires on go to next requires */
-	if (option_name != NULL && strcmp(n, option_name)) { p = eos + 1; continue; }
-
-	/* check for installed packages in the cache */
-	if ((f = hv_fetch(cached_installed, n, strlen(n), 0))) {
-	  /* f is a reference to an hash containing the name of packages as keys */
-	  
-	}
-      }
-    }
-  } else croak("urpm should be a reference to HASH");
 
 void
 Urpm_parse_synthesis(urpm, filename, ...)
