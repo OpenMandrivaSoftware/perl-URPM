@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.04
-%define release 5mdk
+%define release 6mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jun 26 2002 François Pons <fpons@mandrakesoft.com> 0.04-6mdk
+- fixed work around of rpmlib where provides should be at
+  left position of rpmRangesOverlap.
+
 * Tue Jun 18 2002 François Pons <fpons@mandrakesoft.com> 0.04-5mdk
 - fixed wrong range overlap evaluation (libgcc >= 3.1 and libgcc.so.1).
 

@@ -20,7 +20,7 @@ sub find_candidate_packages {
 		#- check if at least one provide of the package overlap the property.
 		my $satisfied = 0;
 		foreach ($pkg->provides) {
-		    ranges_overlap($property, $_) and ++$satisfied, last;
+		    ranges_overlap($_, $property) and ++$satisfied, last;
 		}
 		$satisfied and push @{$packages{$pkg->name}}, $pkg;
 	    }
@@ -137,7 +137,8 @@ sub resolve_requested {
 	    @chosen = values %$packages;
 	}
 	if (!$pkg && $options{callback_choices} && @chosen > 1) {
-	    $pkg ||= $options{callback_choices}->($urpm, $db, $state, \@chosen);
+	    $pkg = $options{callback_choices}->($urpm, $db, $state, \@chosen);
+	    $pkg or next; #- callback may decide to not continue (or state is already updated).
 	}
 	$pkg ||= $chosen[0];
 	$pkg && !$pkg->flag_requested && !$pkg->flag_required or next;
