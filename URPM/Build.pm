@@ -109,10 +109,8 @@ sub parse_rpms_build_headers {
 #- allow rereading of hdlist and clean.
 sub unresolved_provides_clean {
     my ($urpm) = @_;
-    my @potentially_unresolved = keys %{$urpm->{provides} || {}};
-
-    @$urpm{qw(depslist provides)} = ([], {});
-    @{$urpm->{provides}}{@potentially_unresolved} = ();
+    $urpm->{depslist} = [];
+    $urpm->{provides}{$_} = undef for keys %{$urpm->{provides} || {}};
 }
 
 #- read a list of headers (typically when building an hdlist when provides have
