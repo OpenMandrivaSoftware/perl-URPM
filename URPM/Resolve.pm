@@ -420,8 +420,6 @@ sub resolve_requested {
 					  @{$packages->{$p->name}};
 
 				      if (length $best) {
-					  print STDERR "using1 $best for promoting $n\n";
-					  print STDERR $urpm->{depslist}[$best]->fullname."\n";
 					  push @properties, { required => $best, promote => $n, psel => $pkg };
 				      } else {
 					  #- no package have been found, we may need to remove the package examined unless
@@ -439,10 +437,8 @@ sub resolve_requested {
 					  }
 
 					  if (@best == @l) {
-					      print STDERR "using2 @best for promoting $n\n";
 					      push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 					  } else {
-					      print STDERR "rejecting after trying to promote $n\n";
 					      if ($options{keep}) {
 						  unshift @properties, $urpm->backtrack_selected($db, $state,
 												 { keep => scalar $p->fullname,
