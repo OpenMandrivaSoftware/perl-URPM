@@ -400,7 +400,7 @@ print_list_entry(char *buff, int sz, char *name, int_32 flags, char *evr) {
   if (len >= sz || !strncmp(name, "rpmlib(", 7)) return -1;
   memcpy(p, name, len); p += len;
 
-  if (flags & RPMSENSE_PREREQ) {
+  if (flags & (RPMSENSE_PREREQ|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POSTUN|RPMSENSE_SCRIPT_POST)) {
     if (p - buff + 3 >= sz) return -1;
     memcpy(p, "[*]", 4); p += 3;
   }
