@@ -2953,7 +2953,7 @@ Urpm_parse_rpm(urpm, filename, ...)
       pkg.flag = 1 + av_len(depslist);
       sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
 			    _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package)));
-      if (update_header(filename, &_pkg, keep_all_tags)) {
+      if (update_header(filename, _pkg, keep_all_tags)) {
 	if (call_package_callback(urpm, sv_pkg, callback)) {
 	  if (provides) {
 	    update_provides(_pkg, provides);
@@ -2962,8 +2962,6 @@ Urpm_parse_rpm(urpm, filename, ...)
 	  if (packing) pack_header(_pkg);
 	  av_push(depslist, sv_pkg);
 	}
-	av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
-				       memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
 
 	/* only one element read */
 	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
