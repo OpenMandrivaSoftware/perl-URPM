@@ -2,6 +2,9 @@
  * All rights reserved.
  * This program is free software; you can redistribute it and/or
  * modify it under the same terms as Perl itself.
+ *
+ * $Id$
+ * 
  */
 
 #include "EXTERN.h"
@@ -3178,7 +3181,8 @@ Urpm_read_config_files()
   read_config_files(1); /* force re-read of configuration files */
 
 void
-Urpm_list_rpm_tag()
+Urpm_list_rpm_tag(urpm=Nullsv)
+   SV *urpm
    PREINIT:
        int i = 0;
    PPCODE:
