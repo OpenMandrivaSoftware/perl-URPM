@@ -33,7 +33,7 @@ sub parse_armored_file {
     #- check if an already opened file has been given directly.
     unless (ref $file) {
 	my $F;
-	open $F, $file;
+	open $F, $file or return ();
 	$file = $F;
     }
 
@@ -55,8 +55,6 @@ sub parse_armored_file {
 	    }
 	}
     }
-    close F;
-
     @l;
 }
 
@@ -96,7 +94,6 @@ sub parse_pubkeys {
 #- import pubkeys only if it is needed.
 sub import_needed_pubkeys {
     my ($urpm, $l, %options) = @_;
-    local (*F, $_);
     my $block = '';
 
     #- use the same database handle to avoid re-opening multiple times the database.
