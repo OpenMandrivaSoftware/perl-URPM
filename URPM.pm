@@ -6,7 +6,7 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.70';
+$VERSION = '0.71';
 
 bootstrap URPM $VERSION;
 
@@ -35,7 +35,7 @@ sub search {
 		my $pkg = $urpm->{depslist}[$_];
 		my ($n, $v, $r, $a) = $pkg->fullname;
 		$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
-		$n eq $1 or next;
+		"$n-$v-$r" eq $name or next;
 		!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
 	    }
 	    $best and return $best;
@@ -43,9 +43,9 @@ sub search {
 	if ($name =~ /^(.*)-([^\-]*)$/) {
 	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
-		my ($n, $v, $r, $a) = $pkg->fullname;
+		my ($n, $v, undef, $a) = $pkg->fullname;
 		$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
-		$n eq $1 or next;
+		"$n-$v" eq $name or next;
 		!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
 	    }
 	    $best and return $best;
@@ -54,7 +54,7 @@ sub search {
 
     foreach (keys %{$urpm->{provides}{$_} || {}}) {
 	my $pkg = $urpm->{depslist}[$_];
-	my ($n, $v, $r, $a) = $pkg->fullname;
+	my ($n, undef, undef, $a) = $pkg->fullname;
 	$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
 	$n eq $name or next;
 	!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;

@@ -1882,12 +1882,43 @@ Trans_set_script_fd(trans, fdno)
   rpmtransSetScriptFd(trans->ts, trans->script_fd);
 
 int
-Trans_add(trans, pkg, update)
+Trans_add(trans, pkg, ...)
   URPM::Transaction trans
   URPM::Package pkg
-  int update
   CODE:
-  RETVAL = (pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL && rpmtransAddPackage(trans->ts, pkg->h, NULL, (void *)(1+(pkg->flag & FLAG_ID)), update, NULL) == 0;
+  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL) {
+    int update = 0;
+    rpmRelocation *relocations = NULL;
+    /* compability mode with older interface of add */
+    if (items == 3) {
+      update = SvIV(ST(2));
+    } else if (items > 3) {
+      int i;
+      for (i = 2; i < items-1; i+=2) {
+	STRLEN len;
+	char *s = SvPV(ST(i), len);
+
+	if (len == 6 && !memcmp(s, "update", 6)) {
+	  update = SvIV(ST(i+1));
+	} else if (len == 11 && !memcmp(s, "excludepath", 11)) {
+	  if (SvROK(ST(i+1)) && SvTYPE(SvRV(ST(i+1))) == SVt_PVAV) {
+	    AV *excludepath = (AV*)SvRV(ST(i+1));
+	    I32 j = 1 + av_len(excludepath);
+	    relocations = calloc(2 + av_len(excludepath), sizeof(rpmRelocation));
+	    while (--j >= 0) {
+	      SV **e = av_fetch(excludepath, j, 0);
+	      if (e != NULL && *e != NULL) {
+		relocations[j].oldPath = SvPV_nolen(*e);
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    RETVAL = rpmtransAddPackage(trans->ts, pkg->h, NULL, (void *)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
+    /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
+    free(relocations);
+  } else RETVAL = 0;
   OUTPUT:
   RETVAL
 
