@@ -331,7 +331,8 @@ sub resolve_rejected {
 					      my $rv = $state->{rejected}{$p->fullname} ||= {};
 
 					      #- keep track of what cause closure.
-					      $rv->{closure}{$pkg->fullname} = { unsatisfied => \@l };
+					      my %d; @d{@{$rv->{closure}{$pkg->fullname}{unsatisfied} ||= []}} = ();
+					      push @{$rv->{closure}{$pkg->fullname}{unsatisfied}}, grep { ! exists $d{$_} } @l;
 
 					      #- set removed and obsoleted level.
 					      foreach (qw(removed obsoleted)) {
@@ -548,8 +549,14 @@ sub resolve_requested {
 		    #- examine rpm db too.
 		    $db->traverse_tag('whatprovides', [ $n ], sub {
 					  my ($p) = @_;
-					  my $satisfied = !$o || eval($p->compare($v) . $o . 0);
+					  my %provides;
 
+					  #- a provide obsoleted in not concerned by this theory.
+					  @provides{$p->provides_nosense} = ();
+					  delete @provides{$p->obsoletes_nosense};
+					  exists $provides{$n} or return;
+
+					  my $satisfied = !$o || eval($p->compare($v) . $o . 0);
 					  $n eq $p->name && $p->name eq $pkg->name && $p->fullname ne $pkg->fullname ||
 					    $satisfied or return;
 
@@ -595,10 +602,10 @@ sub resolve_requested {
 	}
 
 	#- all requires should be satisfied according to selected package, or installed packages.
-	push @properties, map { +{ required => $_, from => $pkg,
-				   exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
-				   exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
-				 } } $urpm->unsatisfied_requires($db, $state, $pkg);
+	unshift @properties, map { +{ required => $_, from => $pkg,
+				      exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
+				      exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
+				    } } $urpm->unsatisfied_requires($db, $state, $pkg);
 
 	#- keep in mind what is requiring each item (for unselect to work).
 	foreach ($pkg->requires_nosense) {
@@ -646,7 +653,7 @@ sub resolve_requested {
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
-					      push @properties, { required => $best, promote_conflicts => $name,  };
+					      unshift @properties, { required => $best, promote_conflicts => $name,  };
 					  } else {
 					      if ($options{keep}) {
 						  push @keep, scalar $p->fullname;
