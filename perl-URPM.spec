@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.94
-%define release 13mdk
+%define version 0.95
+%define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -9,7 +9,7 @@
 %{expand:%%define compat_makeinstall_std %(perl -e 'printf "%%s\n", "%{?makeinstall_std:1}" ? "%%makeinstall_std" : "%%{__make} install PREFIX=%%{buildroot}%%{_prefix}"')}
 %{expand:%%define compat_perl_vendorarch %(perl -MConfig -e 'printf "%%s\n", "%{?perl_vendorarch:1}" ? "%%{perl_vendorarch}" : "$Config{installvendorarch}"')}
 %{expand:%%define buildreq_perl_devel %%(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "perl-devel" : "perl"')}
-%{expand:%%define distribution %%(perl -e 'printf "%%s\\n", ("%_vendor" =~ /mandrake/i ? "Mandrake Linux" : "Red Hat Linux")')}
+%{expand:%%define distribution %%(perl -e 'printf "%%s\\n", ("%_vendor" =~ /mandrake/i ? "Mandrakelinux" : "Red Hat Linux")')}
 %{expand:%%define real_release %%(perl -e 'printf "%%s\\n", ("%_vendor" !~ /mandrake/i && ("%release" =~ /(.*?)mdk/)[0] || "%release")')}
 
 Summary:	URPM module for perl
@@ -58,6 +58,9 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Thu May 06 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.95-1mdk
+- Add a way to make some error messages non-fatal
+
 * Fri Apr 30 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.94-13mdk
 - A few bugfixes
 - Add the methods $pkg->queryformat() and $urpm->list_rpm_tag()
