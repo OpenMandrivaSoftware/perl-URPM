@@ -23,6 +23,11 @@
 #undef Stat
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
+#ifdef RPM_42
+#include <rpm/rpmdb.h>
+#include <rpm/rpmts.h>
+#include <rpm/rpmps.h>
+#endif
 
 struct s_Package {
   char *info;
@@ -37,9 +42,14 @@ struct s_Package {
 };
 
 struct s_Transaction {
+#ifdef RPM_42
+  rpmts ts;
+  int count;
+#else
   rpmdb db;
   rpmTransactionSet ts;
   FD_t script_fd;
+#endif
 };
 
 struct s_TransactionData {
@@ -52,7 +62,11 @@ struct s_TransactionData {
   SV *data; /* chain with another data user provided */
 };
 
+#ifdef RPM_42
+typedef struct s_Transaction* URPM__DB;
+#else
 typedef rpmdb URPM__DB;
+#endif
 typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
@@ -292,7 +306,7 @@ xreturn_files(register SV **sp, Header header, int filter_mode) {
 	if ((filter_mode & FILTER_MODE_UPGRADE_FILES) && fmodes &&
 	    (S_ISDIR(fmodes[i]) || S_ISLNK(fmodes[i]) ||
 	     !strncmp(s, "/dev", 4) || !strncmp(s, "/etc/rc.d", 9) ||
-	     len >= 3 && !strncmp(s+len-3, ".la", 3))) continue;
+	     (len >= 3 && !strncmp(s+len-3, ".la", 3)))) continue;
       }
 
       XPUSHs(sv_2mortal(newSVpv(s, len)));
@@ -383,7 +397,7 @@ update_provide_entry(char *name, STRLEN len, int force, URPM__Package pkg, HV *p
   if (!len) len = strlen(name);
   if ((isv = hv_fetch(provides, name, len, force))) {
     /* check if an entry has been found or created, it should so be updated */
-    if (isv && !SvROK(*isv) || SvTYPE(SvRV(*isv)) != SVt_PVHV) {
+    if (!SvROK(*isv) || SvTYPE(SvRV(*isv)) != SVt_PVHV) {
       SV* choice_set = (SV*)newHV();
       if (choice_set) {
 	SvREFCNT_dec(*isv); /* drop the old as we are changing it */
@@ -404,10 +418,6 @@ update_provide_entry(char *name, STRLEN len, int force, URPM__Package pkg, HV *p
 static void
 update_provides(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
-    /* char buff[4096];
-       int_32 *flags = NULL;
-       char **list_evr = NULL; */
-    char *p;
     int len;
     int_32 type, count;
     char **list = NULL;
@@ -483,8 +493,6 @@ update_provides_files(URPM__Package pkg, HV *provides) {
       char *p;
 
       for(i = 0; i < count; i++) {
-	SV** isv;
-
 	len = strlen(dirNames[dirIndexes[i]]);
 	if (len >= sizeof(buff)) continue;
 	memcpy(p = buff, dirNames[dirIndexes[i]], len + 1); p += len;
@@ -650,10 +658,21 @@ update_header(char *filename, URPM__Package pkg, HV *provides, int packing, int 
       if (sig[0] == 0xed && sig[1] == 0xab && sig[2] == 0xee && sig[3] == 0xdb) {
 	FD_t fd = fdDup(d);
 	Header header;
+#ifdef RPM_42
+	rpmts ts;
+	/* rpmVSFlags vsflags, ovsflags; */
+#else
 	int isSource;
+#endif
 
 	close(d);
+#ifdef RPM_42
+	ts = rpmtsCreate();
+	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES);
+	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0) {
+#else
 	if (fd != NULL && rpmReadPackageHeader(fd, &header, &isSource, NULL, NULL) == 0) {
+#endif
 	  struct stat sb;
 	  char *basename;
 	  int_32 size;
@@ -738,7 +757,6 @@ static void *rpmRunTransactions_callback(const void *h,
 					 const unsigned long total,
 					 const void * pkgKey,
 					 void * data) {
-  static int last_amount;
   static struct timeval tprev;
   static struct timeval tcurr;
   static FD_t fd = NULL;
@@ -769,6 +787,9 @@ static void *rpmRunTransactions_callback(const void *h,
   case RPMCALLBACK_INST_START:
   case RPMCALLBACK_INST_PROGRESS:
     callback = td->callback_inst; callback_type = "inst"; break;
+
+  default:
+    break;
   }
 
   if (callback != NULL) {
@@ -794,6 +815,9 @@ static void *rpmRunTransactions_callback(const void *h,
     case RPMCALLBACK_TRANS_STOP:
     case RPMCALLBACK_UNINST_STOP:
       callback_subtype = "stop"; break;
+
+    default:
+      break;
     }
 
     if (callback != NULL) {
@@ -818,7 +842,7 @@ static void *rpmRunTransactions_callback(const void *h,
 	i = POPi;
 	fd = fdDup(i);
 	fd = fdLink(fd, "persist perl-URPM");
-	Fcntl(fd, F_SETFD, 1); /* necessary to avoid forked/execed process to lock removable */
+	Fcntl(fd, F_SETFD, (void *)1); /* necessary to avoid forked/execed process to lock removable */
 	PUTBACK;
       } else if (callback == td->callback_close) {
 	fd = fdFree(fd, "persist perl-URPM");
@@ -833,6 +857,7 @@ static void *rpmRunTransactions_callback(const void *h,
   }
   return callback == td->callback_open ? fd : NULL;
 }
+
 
 MODULE = URPM            PACKAGE = URPM::Package       PREFIX = Pkg_
 
@@ -1775,11 +1800,8 @@ Pkg_set_rflags(pkg, ...)
   int i;
   PPCODE:
   total_len = 0;
-  for (i = 1; i < items; ++i) {
-    STRLEN len;
-    char *s = SvPV(ST(i), len);
-    total_len += len + 1;
-  }
+  for (i = 1; i < items; ++i)
+    total_len += SvCUR(ST(i)) + 1;
 
   new_rflags = malloc(total_len);
   total_len = 0;
@@ -1813,15 +1835,25 @@ Db_open(prefix="", write_perm=0)
   char *prefix
   int write_perm
   PREINIT:
-  rpmdb db;
+  URPM__DB db;
+#ifndef RPM_42
   rpmErrorCallBackType old_cb;
+#endif
   CODE:
   read_config_files(0);
+#ifdef RPM_42
+  db = malloc(sizeof(struct s_Transaction));
+  db->ts = rpmtsCreate();
+  db->count = 1;
+  rpmtsSetRootDir(db->ts, prefix);
+  RETVAL = rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0 ? db : NULL;
+#else
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbOpen(prefix, &db, write_perm ? O_RDWR | O_CREAT : O_RDONLY, 0644) == 0 ? db : NULL;
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
+#endif
   OUTPUT:
   RETVAL
 
@@ -1829,15 +1861,25 @@ int
 Db_rebuild(prefix="")
   char *prefix
   PREINIT:
-  rpmdb db;
+#ifdef RPM_42
+  rpmts ts;
+#else
   rpmErrorCallBackType old_cb;
+#endif
   CODE:
   read_config_files(0);
+#ifdef RPM_42
+  ts = rpmtsCreate();
+  rpmtsSetRootDir(ts, prefix);
+  RETVAL = rpmtsRebuildDB(ts) == 0;
+  rpmtsFree(ts);
+#else
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbRebuild(prefix) == 0;
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
+#endif
   OUTPUT:
   RETVAL
 
@@ -1845,7 +1887,14 @@ void
 Db_DESTROY(db)
   URPM::DB db
   CODE:
+#ifdef RPM_42
+  if (--db->count <= 0) {
+    rpmtsFree(db->ts);
+    free(db);
+  }
+#else
   rpmdbClose(db);
+#endif
 
 int
 Db_traverse(db,callback)
@@ -1856,8 +1905,12 @@ Db_traverse(db,callback)
   rpmdbMatchIterator mi;
   int count = 0;
   CODE:
+#ifdef RPM_42
+  mi = rpmtsInitIterator(db->ts, RPMDBI_PACKAGES, NULL, 0);
+#else
   mi = rpmdbInitIterator(db, RPMDBI_PACKAGES, NULL, 0);
-  while (header = rpmdbNextIterator(mi)) {
+#endif
+  while ((header = rpmdbNextIterator(mi))) {
     if (SvROK(callback)) {
       dSP;
       URPM__Package pkg = calloc(1, sizeof(struct s_Package));
@@ -1893,7 +1946,6 @@ Db_traverse_tag(db,tag,names,callback)
   if (SvROK(names) && SvTYPE(SvRV(names)) == SVt_PVAV) {
     AV* names_av = (AV*)SvRV(names);
     int len = av_len(names_av);
-    SV** isv;
     int i, rpmtag;
 
     if (!strcmp(tag, "name"))
@@ -1916,9 +1968,12 @@ Db_traverse_tag(db,tag,names,callback)
       STRLEN str_len;
       SV **isv = av_fetch(names_av, i, 0);
       char *name = SvPV(*isv, str_len);
-
-      mi = rpmdbInitIterator((rpmdb)db, rpmtag, name, str_len);
-      while (header = rpmdbNextIterator(mi)) {
+#ifdef RPM_42
+      mi = rpmtsInitIterator(db->ts, rpmtag, name, str_len);
+#else
+      mi = rpmdbInitIterator(db, rpmtag, name, str_len);
+#endif
+      while ((header = rpmdbNextIterator(mi))) {
 	if (SvROK(callback)) {
 	  dSP;
 	  URPM__Package pkg = calloc(1, sizeof(struct s_Package));
@@ -1947,11 +2002,18 @@ Db_create_transaction(db, prefix="/")
   URPM::DB db
   char *prefix
   CODE:
+#ifdef RPM_42
+  /* this *REALLY* dangerous to create a new transaction while another is open,
+     so use the db transaction instead. */
+  RETVAL = db;
+  ++RETVAL->count;
+#else
   if ((RETVAL = calloc(1, sizeof(struct s_Transaction))) != NULL) {
     /* rpmSetVerbosity(RPMMESS_DEBUG); TODO check remove and add in same transaction */
     RETVAL->db = db;
     RETVAL->ts = rpmtransCreateSet(db, prefix);
   }
+#endif
   OUTPUT:
   RETVAL
 
@@ -1962,19 +2024,29 @@ void
 Trans_DESTROY(trans)
   URPM::Transaction trans
   CODE:
-  /* db should be SV with reference count updated */
+#ifdef RPM_42
+  if (--trans->count <= 0) {
+    rpmtsFree(trans->ts);
+    free(trans);
+  }
+#else
   rpmtransFree(trans->ts);
   if (trans->script_fd != NULL) fdClose(trans->script_fd);
   free(trans);
+#endif
 
 void
 Trans_set_script_fd(trans, fdno)
   URPM::Transaction trans
   int fdno
   CODE:
+#ifdef RPM_42
+  rpmtsSetScriptFd(trans->ts, fdDup(fdno));
+#else
   if (trans->script_fd != NULL) fdClose(trans->script_fd);
   trans->script_fd = fdDup(fdno);
   rpmtransSetScriptFd(trans->ts, trans->script_fd);
+#endif
 
 int
 Trans_add(trans, pkg, ...)
@@ -2010,7 +2082,11 @@ Trans_add(trans, pkg, ...)
 	}
       }
     }
+#ifdef RPM_42
+    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (void *)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
+#else
     RETVAL = rpmtransAddPackage(trans->ts, pkg->h, NULL, (void *)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
+#endif
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
     free(relocations);
   } else RETVAL = 0;
@@ -2026,10 +2102,21 @@ Trans_remove(trans, name)
   rpmdbMatchIterator mi;
   int count = 0;
   CODE:
+#ifdef RPM_42
+  mi = rpmtsInitIterator(trans->ts, RPMDBI_LABEL, name, 0);
+#else
   mi = rpmdbInitIterator(trans->db, RPMDBI_LABEL, name, 0);
-  while (h = rpmdbNextIterator(mi)) {
+#endif
+  while ((h = rpmdbNextIterator(mi))) {
     unsigned int recOffset = rpmdbGetIteratorOffset(mi);
-    count += recOffset != 0 && rpmtransRemovePackage(trans->ts, recOffset) == 0;
+    if (recOffset != 0) {
+#ifdef RPM_42
+      rpmtsAddEraseElement(trans->ts, h, recOffset);
+#else
+      rpmtransRemovePackage(trans->ts, recOffset);
+#endif
+      ++count;
+    }
   }
   rpmdbFreeIterator(mi);
   RETVAL=count;
@@ -2041,15 +2128,36 @@ Trans_check(trans)
   URPM::Transaction trans
   PREINIT:
   I32 gimme = GIMME_V;
+#ifndef RPM_42
   rpmDependencyConflict conflicts;
   int num_conflicts;
+#endif
   PPCODE:
+#ifdef RPM_42
+  if (rpmtsCheck(trans->ts)) {
+#else
   if (rpmdepCheck(trans->ts, &conflicts, &num_conflicts)) {
+#endif
     if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSViv(0)));
     } else if (gimme == G_ARRAY) {
       XPUSHs(sv_2mortal(newSVpv("error while checking dependencies", 0)));
     }
+#ifdef RPM_42
+  } else {
+    rpmps ps = rpmtsProblems(trans->ts);
+    if (rpmpsNumProblems(ps) > 0) {
+      if (gimme == G_SCALAR) {
+	XPUSHs(sv_2mortal(newSViv(0)));
+      } else if (gimme == G_ARRAY) {
+	XPUSHs(sv_2mortal(newSVpv("failed dependencies to be completed", 0)));
+	/* TODO */
+      }
+    } else if (gimme == G_SCALAR) {
+      XPUSHs(sv_2mortal(newSViv(1)));
+    }
+    ps = rpmpsFree(ps);
+#else
   } else if (conflicts) {
     if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSViv(0)));
@@ -2081,6 +2189,7 @@ Trans_check(trans)
     rpmdepFreeConflicts(conflicts, num_conflicts);
   } else if (gimme == G_SCALAR) {
     XPUSHs(sv_2mortal(newSViv(1)));
+#endif
   }
 
 int
@@ -2089,7 +2198,11 @@ Trans_order(trans)
   PREINIT:
   I32 gimme = GIMME_V;
   PPCODE:
+#ifdef RPM_42
+  if (rpmtsOrder(trans->ts) == 0) {
+#else
   if (rpmdepOrder(trans->ts) == 0) {
+#endif
     if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSViv(1)));
     }
@@ -2113,7 +2226,9 @@ Trans_run(trans, data, ...)
   struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, 100000, data };
   rpmtransFlags transFlags = RPMTRANS_FLAG_NONE;
   int probFilter = 0;
+#ifndef RPM_42
   rpmProblemSet probs;
+#endif
   int translate_message = 0;
   int i;
   PPCODE:
@@ -2152,6 +2267,17 @@ Trans_run(trans, data, ...)
 	td.callback_inst = ST(i+1);
     }
   }
+#ifdef RPM_42
+  rpmtsSetFlags(trans->ts, transFlags);
+  rpmtsSetNotifyCallback(trans->ts, rpmRunTransactions_callback, &td);
+  if (rpmtsRun(trans->ts, NULL, probFilter) > 0) {
+    rpmps ps = rpmtsProblems(trans->ts);
+    XPUSHs(sv_2mortal(newSViv(rpmpsNumProblems(ps))));
+    ps = rpmpsFree(ps);
+    /* problems here more detailed TODO */
+  }
+  rpmtsEmpty(trans->ts);
+#else
   if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, &td, NULL, &probs, transFlags, probFilter)) {
     EXTEND(SP, probs->numProblems);
     for (i = 0; i < probs->numProblems; i++) {
@@ -2208,6 +2334,7 @@ Trans_run(trans, data, ...)
       }
     }
   }
+#endif
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
@@ -2229,8 +2356,8 @@ Urpm_ranges_overlap(a, b)
     ++sa;
     ++sb;
   }
-  if (*sa && *sa != ' ' && *sa != '[' && *sa != '<' && *sa != '>' && *sa != '=' ||
-      *sb && *sb != ' ' && *sb != '[' && *sb != '<' && *sb != '>' && *sb != '=') {
+  if ((*sa && *sa != ' ' && *sa != '[' && *sa != '<' && *sa != '>' && *sa != '=') ||
+      (*sb && *sb != ' ' && *sb != '[' && *sb != '<' && *sb != '>' && *sb != '=')) {
     /* the strings are sure to be different */
     RETVAL = 0;
   } else {
@@ -2253,14 +2380,65 @@ Urpm_ranges_overlap(a, b)
     if (!aflags || !bflags)
       RETVAL = 1; /* really faster to test it there instead of later */
     else {
+      int sense = 0;
       char *eosa = strchr(sa, ']');
       char *eosb = strchr(sb, ']');
+      char *ea, *va, *ra, *eb, *vb, *rb;
 
       if (eosa) *eosa = 0;
       if (eosb) *eosb = 0;
-      RETVAL = rpmRangesOverlap("", sa, aflags, "", sb, bflags);
+      /* parse sa as an [epoch:]version[-release] */
+      for (ea = sa; *sa >= '0' && *sa <= '9'; ++sa);
+      if (*sa == ':') {
+	*sa++ = 0; /* ea could be an empty string (should be interpreted as 0) */
+	va = sa;
+      } else {
+	va = ea; /* no epoch */
+	ea = NULL;
+      }
+      if ((ra = strrchr(sa, '-'))) *ra++ = 0;
+      /* parse sb as an [epoch:]version[-release] */
+      for (eb = sb; *sb >= '0' && *sb <= '9'; ++sb);
+      if (*sb == ':') {
+	*sb++ = 0; /* ea could be an empty string (should be interpreted as 0) */
+	vb = sb;
+      } else {
+	vb = eb; /* no epoch */
+	eb = NULL;
+      }
+      if ((rb = strrchr(sb, '-'))) *rb++ = 0;
+      /* now compare epoch */
+      if (ea && eb)
+	sense = rpmvercmp(*ea ? ea : "0", *eb ? eb : "0");
+      /* if we need to promote, sense is 1 else it is kept as 0
+	 else if (ea && *ea && atol(ea) > 0)
+	 sense = 0;
+      */
+      else if (eb && *eb && atol(eb) > 0)
+	sense = -1;
+      /* now compare version and release if epoch has not been enough */
+      if (sense == 0) {
+	sense = rpmvercmp(va, vb);
+	if (sense == 0 && ra && *ra && rb && *rb)
+	  sense = rpmvercmp(ra, rb);
+      }
+      /* restore all character that have been modified inline */
+      if (rb) rb[-1] = '-';
+      if (ra) ra[-1] = '-';
+      if (eb) vb[-1] = ':';
+      if (ea) va[-1] = '-';
       if (eosb) *eosb = ']';
       if (eosa) *eosa = ']';
+      /* finish the overlap computation */
+      RETVAL = 0;
+      if (sense < 0 && ((aflags & RPMSENSE_GREATER) || (bflags & RPMSENSE_LESS)))
+	RETVAL = 1;
+      else if (sense > 0 && ((aflags & RPMSENSE_LESS) || (bflags & RPMSENSE_GREATER)))
+	RETVAL = 1;
+      else if (sense == 0 && (((aflags & RPMSENSE_EQUAL) && (bflags & RPMSENSE_EQUAL)) ||
+			      ((aflags & RPMSENSE_LESS) && (bflags & RPMSENSE_LESS)) ||
+			      ((aflags & RPMSENSE_GREATER) && (bflags & RPMSENSE_GREATER))))
+	RETVAL = 1;
     }
   }
   OUTPUT:
@@ -2284,7 +2462,6 @@ Urpm_parse_synthesis(urpm, filename, ...)
       struct s_Package pkg;
       gzFile f;
       int start_id = 1 + av_len(depslist);
-      int count = 1;
       SV *callback = NULL;
 
       if (items > 2) {
@@ -2534,6 +2711,9 @@ Urpm_verify_rpm(filename, ...)
     } else if (lead.major == 1) {
       RETVAL = "RPM version of package doesn't support signatures";
     } else {
+#ifdef RPM_42
+      RETVAL = "md5 OK"; /* TODO */
+#else
       i = rpmReadSignature(fd, &sig, lead.signature_type);
       if (i != RPMRC_OK && i != RPMRC_BADSIZE) {
 	RETVAL = "Could not read signature block (`rpmReadSignature' failed)";
@@ -2724,6 +2904,7 @@ Urpm_verify_rpm(filename, ...)
       }
       fdClose(ofd);
       unlink(tmpfile);
+#endif
     }
     fdClose(fd);
   }

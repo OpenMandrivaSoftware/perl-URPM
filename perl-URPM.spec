@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.82
-%define release 4mdk
+%define version 0.83
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Apr 29 2003 François Pons <fpons@mandrakesoft.com> 0.83-1mdk
+- added preliminary support for rpm 4.2, there is lack of
+  signature checking but interface of URPM is kept.
+
 * Thu Apr 24 2003 François Pons <fpons@mandrakesoft.com> 0.82-4mdk
 - intergrated another patch from Olivier Thauvin to add method
   for manipulating source rpm to URPM::Package (buildarchs,

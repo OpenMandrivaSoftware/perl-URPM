@@ -17,4 +17,8 @@ make dist
 cp -f perl-URPM.spec "$RPM/SPECS"
 bzme URPM-$VERSION.tar.gz
 mv -f URPM-$VERSION.tar.bz2 "$RPM/SOURCES"
-rpm -ba --clean --rmsource "$RPM/SPECS/perl-URPM.spec"
+if [ -x /usr/bin/rpmbuild ]; then
+    rpmbuild -ba --clean --rmsource "$RPM/SPECS/perl-URPM.spec"
+else
+    rpm -ba --clean --rmsource "$RPM/SPECS/perl-URPM.spec"
+fi
