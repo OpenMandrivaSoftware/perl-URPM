@@ -81,6 +81,10 @@ typedef struct s_Package* URPM__Package;
 #define FILTER_MODE_UPGRADE_FILES 1
 #define FILTER_MODE_CONF_FILES    2
 
+/* these are in rpmlib but not in rpmlib.h */
+int readLead(FD_t fd, struct rpmlead *lead);
+int rpmReadSignature(FD_t fd, Header *header, short sig_type);
+
 
 static void
 get_fullname_parts(URPM__Package pkg, char **name, char **version, char **release, char **arch, char **eos) {
@@ -685,10 +689,10 @@ update_header(char *filename, URPM__Package pkg, HV *provides, int packing) {
 }
 
 static void
-read_config_files() {
+read_config_files(int force) {
   static int already = 0;
 
-  if (!already) {
+  if (!already || force) {
     rpmReadConfigFiles(NULL, NULL);
     already = 1;
   }
@@ -868,7 +872,7 @@ int
 Pkg_is_arch_compat(pkg)
   URPM::Package pkg
   CODE:
-  read_config_files();
+  read_config_files(0);
   if (pkg->info) {
     char *arch;
     char *eos;
@@ -1041,7 +1045,7 @@ Pkg_compare_pkg(lpkg, rpkg)
 	char *eolarch = strchr(larch, '@');
 	char *eorarch = strchr(rarch, '@');
 
-	read_config_files();
+	read_config_files(0);
 	if (eolarch) *eolarch = 0; lscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, larch);
 	if (eorarch) *eorarch = 0; rscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, rarch);
 	if (lscore == 0) {
@@ -1680,14 +1684,14 @@ Pkg_set_rflags(pkg, ...)
 MODULE = URPM            PACKAGE = URPM::DB            PREFIX = Db_
 
 URPM::DB
-Db_open(prefix="/", write_perm=0)
+Db_open(prefix="", write_perm=0)
   char *prefix
   int write_perm
   PREINIT:
   rpmdb db;
   rpmErrorCallBackType old_cb;
   CODE:
-  read_config_files();
+  read_config_files(0);
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbOpen(prefix, &db, write_perm ? O_RDWR | O_CREAT : O_RDONLY, 0644) == 0 ? db : NULL;
@@ -1697,13 +1701,13 @@ Db_open(prefix="/", write_perm=0)
   RETVAL
 
 int
-Db_rebuild(prefix="/")
+Db_rebuild(prefix="")
   char *prefix
   PREINIT:
   rpmdb db;
   rpmErrorCallBackType old_cb;
   CODE:
-  read_config_files();
+  read_config_files(0);
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
   RETVAL = rpmdbRebuild(prefix) == 0;
@@ -2055,6 +2059,12 @@ Trans_run(trans, data, ...)
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
+
+void
+Urpm_read_config_files()
+  CODE:
+  read_config_files(1); /* force re-read of configuration files */
+
 int
 Urpm_ranges_overlap(a, b)
   char *a
@@ -2255,3 +2265,240 @@ Urpm_parse_rpm(urpm, filename, packing=0)
     } else croak("first argument should contains a depslist ARRAY reference");
   } else croak("first argument should be a reference to HASH");
 
+char *
+Urpm_verify_rpm(filename, ...)
+  char *filename
+  PREINIT:
+  int nopgp = 0, nogpg = 0, nomd5 = 0;
+  struct rpmlead lead;
+  Header sig;
+  HeaderIterator sigIter;
+  const void *ptr;
+  int_32 tag, type, count;
+  FD_t fd, ofd;
+  const char *tmpfile = NULL;
+  int i;
+  char result[8*BUFSIZ];
+  unsigned char buffer[8192];
+  CODE:
+  for (i = 1; i < items-1; i+=2) {
+    STRLEN len;
+    char *s = SvPV(ST(i), len);
+
+    if (len == 5) {
+      if (!memcmp(s, "nopgp", 5))
+	nopgp = SvIV(ST(i+1));
+      else if (!memcmp(s, "nogpg", 5))
+	nogpg = SvIV(ST(i+1));
+      else if (!memcmp(s, "nomd5", 5))
+	nomd5 = SvIV(ST(i+1));
+    } else if (len == 12 && !memcmp(s, "tmp_filename", 12))
+      tmpfile = SvPV_nolen(ST(i+1));
+  }
+  RETVAL = NULL;
+  fd = fdOpen(filename, O_RDONLY, 0);
+  if (fdFileno(fd) < 0) {
+    RETVAL = "Couldn't open file";
+  } else {
+    memset(&lead, 0, sizeof(lead));
+    if (readLead(fd, &lead)) {
+      RETVAL = "Could not read lead bytes";
+    } else if (lead.major == 1) {
+      RETVAL = "RPM version of package doesn't support signatures";
+    } else {
+      i = rpmReadSignature(fd, &sig, lead.signature_type);
+      if (i != RPMRC_OK && i != RPMRC_BADSIZE) {
+	RETVAL = "Could not read signature block (`rpmReadSignature' failed)";
+      } else if (!sig) {
+	RETVAL = "No signatures";
+      } else if (makeTempFile(NULL, &tmpfile, &ofd)) {
+	if (tmpfile) {
+	  unlink(tmpfile);
+	  ofd = Fopen(tmpfile, "w+x.ufdio");
+	  if (ofd == NULL || Ferror(fd))
+	    RETVAL = "Unable to create tempory file";
+	} else
+	  if (makeTempFile(NULL, &tmpfile, &ofd))
+	    RETVAL = "Unable to create tempory file";
+      }
+      if (!RETVAL) {
+	while ((i = fdRead(fd, buffer, sizeof(buffer))) != 0) {
+	  if (i == -1) {
+	    RETVAL = "Error reading file";
+	    break;
+	  }
+	  if (fdWrite(ofd, buffer, i) < 0) {
+	    RETVAL = "Error writing temp file";
+	    break;
+	  }
+	}
+	if (!RETVAL) {
+	  int res2 = 0;
+	  int res3;
+	  unsigned char missingKeys[7164] = { 0 };
+	  unsigned char untrustedKeys[7164] = { 0 };
+
+	  buffer[0] = 0; /* reset buffer as it is used again */
+	  for (sigIter = headerInitIterator(sig);
+	       headerNextIterator(sigIter, &tag, &type, &ptr, &count);
+	       ptr = headerFreeData(ptr, type)) {
+	    switch (tag) {
+	    case RPMSIGTAG_PGP5:
+	    case RPMSIGTAG_PGP:
+	      if (nopgp) continue;
+	      break;
+
+	    case RPMSIGTAG_GPG:
+	      if (nogpg) continue;
+	      break;
+
+	    case RPMSIGTAG_LEMD5_2:
+	    case RPMSIGTAG_LEMD5_1:
+	    case RPMSIGTAG_MD5:
+	      if (nomd5) continue;
+	      break;
+
+	    default:
+	      continue;
+	    }
+	    if (ptr == NULL) continue;
+
+	    if ((res3 = rpmVerifySignature(tmpfile, tag, ptr, count, result)) != RPMSIG_OK) {
+	      /* all the following code directly taken from lib/rpmchecksig.c */
+	      if (rpmIsVerbose()) {
+		strcat(buffer, result);
+		res2 = 1;
+	      } else {
+		char *tempKey;
+		switch (tag) {
+		case RPMSIGTAG_SIZE:
+		  strcat(buffer, "SIZE ");
+		  res2 = 1;
+		  break;
+		case RPMSIGTAG_LEMD5_2:
+		case RPMSIGTAG_LEMD5_1:
+		case RPMSIGTAG_MD5:
+		  strcat(buffer, "MD5 ");
+		  res2 = 1;
+		  break;
+		case RPMSIGTAG_PGP5:	/* XXX legacy */
+		case RPMSIGTAG_PGP:
+		  switch (res3) {
+		  case RPMSIG_NOKEY:
+		    res2 = 1;
+		    /*@fallthrough@*/
+		  case RPMSIG_NOTTRUSTED:
+		    {   int offset = 7;
+		    strcat(buffer, "(PGP) ");
+		    tempKey = strstr(result, "Key ID");
+		    if (tempKey == NULL) {
+		      tempKey = strstr(result, "keyid:");
+		      offset = 9;
+		    }
+		    if (tempKey) {
+		      if (res3 == RPMSIG_NOKEY) {
+			strcat(missingKeys, " PGP#");
+			/*@-compdef@*/
+			strncat(missingKeys, tempKey + offset, 8);
+			/*@=compdef@*/
+		      } else {
+			strcat(untrustedKeys, " PGP#");
+			/*@-compdef@*/
+			strncat(untrustedKeys, tempKey + offset, 8);
+			/*@=compdef@*/
+		      }
+		    }
+		    }   break;
+		  default:
+		    strcat(buffer, "PGP ");
+		    res2 = 1;
+		    break;
+		  }
+		  break;
+		case RPMSIGTAG_GPG:
+		  /* Do not consider this a failure */
+		  switch (res3) {
+		  case RPMSIG_NOKEY:
+		    strcat(buffer, "(GPG) ");
+		    strcat(missingKeys, " GPG#");
+		    tempKey = strstr(result, "key ID");
+		    if (tempKey)
+		      /*@-compdef@*/
+		      strncat(missingKeys, tempKey+7, 8);
+		    /*@=compdef@*/
+		    res2 = 1;
+		    break;
+		  default:
+		    strcat(buffer, "GPG ");
+		    res2 = 1;
+		    break;
+		  }
+		  break;
+		default:
+		  strcat(buffer, "?UnknownSignatureType? ");
+		  res2 = 1;
+		  break;
+		}
+	      }
+	    } else {
+	      if (rpmIsVerbose()) {
+		strcat(buffer, result);
+	      } else {
+		switch (tag) {
+		case RPMSIGTAG_SIZE:
+		  strcat(buffer, "size ");
+		  break;
+		case RPMSIGTAG_LEMD5_2:
+		case RPMSIGTAG_LEMD5_1:
+		case RPMSIGTAG_MD5:
+		  strcat(buffer, "md5 ");
+		  break;
+		case RPMSIGTAG_PGP5:	/* XXX legacy */
+		case RPMSIGTAG_PGP:
+		  strcat(buffer, "pgp ");
+		  break;
+		case RPMSIGTAG_GPG:
+		  strcat(buffer, "gpg ");
+		  break;
+		default:
+		  strcat(buffer, "??? ");
+		  break;
+		}
+	      }
+	    }
+	  }
+	  sigIter = headerFreeIterator(sigIter);
+
+	  if (!rpmIsVerbose()) {
+	    if (res2) {
+	      sprintf(buffer+strlen(buffer), "%s%s%s%s%s%s%s",
+		      _("NOT OK"),
+		      (missingKeys[0] != '\0') ? _(" (MISSING KEYS:") : "",
+		      (char *)missingKeys,
+		      (missingKeys[0] != '\0') ? _(") ") : "",
+		      (untrustedKeys[0] != '\0') ? _(" (UNTRUSTED KEYS:") : "",
+		      (char *)untrustedKeys,
+		      (untrustedKeys[0] != '\0') ? _(")") : "");
+	    } else {
+	      sprintf(buffer+strlen(buffer), "%s%s%s%s%s%s%s",
+		      _("OK"),
+		      (missingKeys[0] != '\0') ? _(" (MISSING KEYS:") : "",
+		      (char *)missingKeys,
+		      (missingKeys[0] != '\0') ? _(") ") : "",
+		      (untrustedKeys[0] != '\0') ? _(" (UNTRUSTED KEYS:") : "",
+		      (char *)untrustedKeys,
+		      (untrustedKeys[0] != '\0') ? _(")") : "");
+	    }
+	  }
+
+	  RETVAL = buffer;
+	}
+      }
+      fdClose(ofd);
+      unlink(tmpfile);
+    }
+    fdClose(fd);
+  }
+  if (!RETVAL) RETVAL = "";
+  OUTPUT:
+  RETVAL

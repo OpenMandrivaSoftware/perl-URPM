@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.60
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Aug  7 2002 François Pons <fpons@mandrakesoft.com> 0.60-3mdk
+- added read_config_files and verify_rpm methods.
+
 * Tue Aug  6 2002 François Pons <fpons@mandrakesoft.com> 0.60-2mdk
 - fixed typo on diff provides resolved (unable to search requiring
   packages if a sense was given).
