@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 6mdk
+%define release 7mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,16 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jun  5 2003 François Pons <fpons@mandrakesoft.com> 0.90-7mdk
+- no_flag_update is no more used.
+- added clever cache management when building headers.
+- fixed disable_selected_unrequested_dependencies.
+- fixed packages still required when their root requested
+  was deselected (option keep_unrequested_dependencies not set).
+- fixed too early closure of rejected package when an older one
+  was selected.
+- fixed some reasons of removing packages to be lost.
+
 * Tue Jun 03 2003 Warly <warly@mandrakesoft.com> 0.90-6mdk
 - add Pkg_buildtime to get RPMTAG_BUILDTIME
 

@@ -240,8 +240,8 @@ sub backtrack_selected {
 
     #- at this point, dep cannot be resolved, this means we need to disable
     #- all selection tree, re-enabling removed and obsoleted packages as well.
-    if (defined $dep->{from}) {
-	unless ($options{nodeps} || exists $state->{rejected}{$dep->{from}->fullname}) {
+    if (!$options{nodeps} && defined $dep->{from}) {
+	unless (exists $state->{rejected}{$dep->{from}->fullname}) {
 	    #- package is not currently rejected, compute the closure now.
 	    my @l = $options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, $dep->{from}) :
 	      $urpm->disable_selected_unrequested_dependencies($db, $state, $dep->{from});
@@ -359,7 +359,11 @@ sub resolve_requested {
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     while (defined ($dep = shift @properties)) {
-	my (%diff_provides);
+	#- in case of keep_unrequested_dependencies option is not set, we need to avoid
+	#- selecting packages if the source has been disabled.
+	if (exists $dep->{from} && !$options{keep_unrequested_dependencies}) {
+	    $dep->{from}->flag_selected || exists $state->{selected}{$dep->{from}->id} or next;
+	}
 
 	#- take the best choice possible.
 	my @chosen = $urpm->find_chosen_packages($db, $state, $dep->{required});
@@ -409,9 +413,10 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      if ($pkg->compare_pkg($p) < 0) {
 					  $allow = ++$state->{oldpackage};
-					  $urpm->resolve_rejected($db, $state, $p,
-								  removed => 1, unsatisfied => \@properties,
-								  from => scalar $pkg->fullname, why => { old_requested => 1 });
+					  #- avoid recusive rejects, else everything may be removed.
+					  my $v = $state->{rejected}{$p->fullname} ||= {};
+					  $v->{closure}{$pkg->fullname} = { old_requested => 1 };
+					  $v->{removed} = 1;
 				      }
 				  });
 		#- if nothing has been removed, just ignore it.
@@ -432,6 +437,8 @@ sub resolve_requested {
 	#- check if package is not already installed before trying to use it, compute
 	#- obsoleted package too. this is valable only for non source package.
 	if ($pkg->arch ne 'src') {
+	    my (%diff_provides);
+
 	    foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
 		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 		    #- populate avoided entries according to what is selected.
@@ -447,7 +454,7 @@ sub resolve_requested {
 			}
 			#- these packages are not yet selected, if they happens to be selected,
 			#- they must first be unselected.
-			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
+			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} ||= undef;
 		    }
 		    #- examine rpm db too.
 		    $db->traverse_tag('name', [ $n ], sub {
@@ -652,11 +659,11 @@ sub disable_selected_unrequested_dependencies {
 
     #- disable selected packages, then extend unselection to all required packages
     #- no more needed and not requested.
-    while (my @unselected = disable_selected($db, $state, @closure)) {
+    while (my @unselected = $urpm->disable_selected($db, $state, @closure)) {
 	my %required;
 
-	#- keep in mind averything that have been unselected.
-	push @unselected_closure, @unselected;
+	#- keep in the packages that have needed to be unselected.
+	@unselected_closure or push @unselected_closure, @unselected;
 
 	#- search for unrequested required packages.
 	foreach (@unselected) {
@@ -676,7 +683,7 @@ sub disable_selected_unrequested_dependencies {
 	    foreach ($pkg->provides_nosense) {
 		foreach (keys %{$state->{whatrequires}{$_}}) {
 		    my $p = $urpm->{depslist}[$_] or next;
-		    $p eq $pkg and next;
+		    exists $required{$p->id} and next;
 		    $p->flag_selected and $required{$pkg->id} = 1;
 		}
 	    }
