@@ -13,7 +13,7 @@ my $define = $version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/ ? '-DRPM_42' : '';
 WriteMakefile(
     'NAME'      => 'URPM',
     'CCFLAGS'   => '-Wall',
-    'OPTIMIZE'  => '-O3 -fomit-frame-pointer -fno-exceptions -fno-rtti -pipe -s -ffast-math -fexpensive-optimizations',
+    'OPTIMIZE'  => '-O3 -fomit-frame-pointer -fno-exceptions -pipe -s -ffast-math -fexpensive-optimizations',
     'MAKEFILE'  => 'Makefile',
     'OBJECT'    => 'URPM.o',
     'VERSION_FROM'   => 'URPM.pm',
