@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.09
-%define release 2mdk
+%define version 0.10
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul 15 2002 François Pons <fpons@mandrakesoft.com> 0.10-1mdk
+- added search method for search from name.
+- added composite flag_available method (installed or selected).
+
 * Thu Jul 11 2002 François Pons <fpons@mandrakesoft.com> 0.09-2mdk
 - fixed ask_unselect computation.
 - added clear_state option to relove_requested (rollback state

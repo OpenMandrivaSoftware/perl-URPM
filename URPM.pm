@@ -6,7 +6,7 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 bootstrap URPM $VERSION;
 
@@ -16,6 +16,22 @@ sub new {
 	   depslist      => [],
 	   provides      => {},
 	  }, $class;
+}
+
+sub search {
+    my ($urpm, $name, %options) = @_;
+    my $best = undef;
+
+    foreach (keys %{$urpm->{provides}{$name} || {}}) {
+	my $pkg = $urpm->{depslist}[$_];
+	my ($n, $v, $r, $a) = $pkg->fullname;
+
+	$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
+	$n eq $name || !$options{strict} && ("$n-$v" eq $name || "$n-$v-$r" eq $name || "$n-$v-$r.$a" eq $name) or next;
+	!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+    }
+
+    $best;
 }
 
 sub traverse {

@@ -196,17 +196,6 @@ sub resolve_requested {
 	#- check if package is not already installed before trying to use it, compute
 	#- obsoleted package too. this is valable only for non source package.
 	if ($pkg->arch ne 'src') {
-	    unless ($pkg->flag_upgrade || $pkg->flag_installed) {
-		#- assume for this small algorithm package to be upgradable.
-		$pkg->set_flag_upgrade;
-		$db->traverse_tag('name', [ $pkg->name ], sub {
-				      my ($p) = @_;
-				      $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
-				      $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
-				  });
-	    }
-	    $pkg->flag_installed && !$pkg->flag_upgrade and next;
-
 	    #- keep in mind the provides of this package, so that future requires can be satisfied
 	    #- with this package potentially.
 	    foreach ($pkg->provides) {
