@@ -38,8 +38,8 @@ sub find_candidate_packages {
 		$pkg->is_arch_compat or next;
 		$options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
-		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, $options{nopromoteepoch}) and
-		  push @{$packages{$pkg->name}}, $pkg;
+		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, $options{nopromoteepoch})
+		    and push @{$packages{$pkg->name}}, $pkg;
 	    }
 	}
     }
@@ -117,10 +117,10 @@ sub find_chosen_packages {
 		#- assume for this small algorithm package to be upgradable.
 		$p->set_flag_upgrade;
 		$db->traverse_tag('name', [ $p->name ], sub {
-				      my ($pp) = @_;
-				      $p->set_flag_installed;
-				      $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
-				  });
+		    my ($pp) = @_;
+		    $p->set_flag_installed;
+		    $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
+		});
 	    }
 	    my $arch_score = ($p->is_arch_compat < min map { $_->is_arch_compat } @chosen) ? 10 : 0;
 	    if ($p->flag_requested && $p->flag_installed) {
@@ -189,13 +189,13 @@ sub unsatisfied_requires {
 	    #- avoid recomputing the same all the time.
 	    exists $properties{$dep} and next REQUIRES;
 
-	    #- check for installed package in the cache (only without sense to speed up)
+	    #- check for installed packages in the installed cache.
 	    foreach (keys %{$state->{cached_installed}{$n} || {}}) {
 		exists $state->{rejected}{$_} and next;
 		next REQUIRES;
 	    }
 
-	    #- check on selected package if a provide is satisfying the resolution (need to do the ops).
+	    #- check on the selected package if a provide is satisfying the resolution (need to do the ops).
 	    foreach (keys %{$urpm->{provides}{$n} || {}}) {
 		my $p = $urpm->{depslist}[$_];
 		exists $state->{selected}{$_} or next;
@@ -205,27 +205,27 @@ sub unsatisfied_requires {
 	    #- check if the package itself provides what is necessary.
 	    $pkg->provides_overlap($dep) and next REQUIRES;
 
-	    #- check on installed system a package which is not obsoleted is satisfying the require.
+	    #- check on installed system if a package which is not obsoleted is satisfying the require.
 	    my $satisfied = 0;
 	    if ($n =~ m!^/!) {
 		$db->traverse_tag('path', [ $n ], sub {
-				      my ($p) = @_;
-				      exists $state->{rejected}{$p->fullname} and return;
-				      $state->{cached_installed}{$n}{$p->fullname} = undef;
-				      ++$satisfied;
-				  });
+		    my ($p) = @_;
+		    exists $state->{rejected}{$p->fullname} and return;
+		    $state->{cached_installed}{$n}{$p->fullname} = undef;
+		    ++$satisfied;
+		});
 	    } else {
 		$db->traverse_tag('whatprovides', [ $n ], sub {
-				      my ($p) = @_;
-				      exists $state->{rejected}{$p->fullname} and return;
-				      foreach ($p->provides) {
-					  if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-					      $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
-					      $pn eq $n or next;
-					      ranges_overlap($ps, $s, $options{nopromoteepoch}) and ++$satisfied;
-					  }
-				      }
-				  });
+		    my ($p) = @_;
+		    exists $state->{rejected}{$p->fullname} and return;
+		    foreach ($p->provides) {
+			if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+			    $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
+			    $pn eq $n or next;
+			    ranges_overlap($ps, $s, $options{nopromoteepoch}) and ++$satisfied;
+			}
+		    }
+		});
 	    }
 	    #- if nothing can be done, the require should be resolved.
 	    $satisfied or $properties{$dep} = undef;
@@ -381,28 +381,28 @@ sub resolve_rejected {
 			}
 		    }
 		    $db->traverse_tag('whatrequires', [ $n ], sub {
-					  my ($p) = @_;
-					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
-					      my $rv = $state->{rejected}{$p->fullname} ||= {};
+			my ($p) = @_;
+			if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
+			    my $rv = $state->{rejected}{$p->fullname} ||= {};
 
-					      #- keep track of what cause closure.
-					      my %d; @d{@{$rv->{closure}{$pkg->fullname}{unsatisfied} ||= []}} = ();
-					      push @{$rv->{closure}{$pkg->fullname}{unsatisfied}}, grep { ! exists $d{$_} } @l;
+			    #- keep track of what causes closure.
+			    my %d; @d{@{$rv->{closure}{$pkg->fullname}{unsatisfied} ||= []}} = ();
+			    push @{$rv->{closure}{$pkg->fullname}{unsatisfied}}, grep { ! exists $d{$_} } @l;
 
-					      #- set removed and obsoleted level.
-					      foreach (qw(removed obsoleted)) {
-						  $options{$_} && (! exists $rv->{$_} || $options{$_} <= $rv->{$_}) and
-						    $rv->{$_} = $options{$_};
-					      }
+			    #- set removed and obsoleted level.
+			    foreach (qw(removed obsoleted)) {
+				$options{$_} && (! exists $rv->{$_} || $options{$_} <= $rv->{$_})
+				    and $rv->{$_} = $options{$_};
+			    }
 
-					      #- continue the closure unless already examined.
-					      exists $rv->{size} and return;
-					      $rv->{size} = $p->size;
+			    #- continue the closure unless already examined.
+			    exists $rv->{size} and return;
+			    $rv->{size} = $p->size;
 
-					      $p->pack_header; #- need to pack else package is no longer visible...
-					      push @closure, $p;
-					  }
-				      });
+			    $p->pack_header; #- need to pack else package is no longer visible...
+			    push @closure, $p;
+			}
+		    });
 		}
 	    }
 	}
@@ -535,8 +535,8 @@ sub resolve_requested {
 
 	    $pkg->set_flag_required;
 
-	    #- check if package is not already installed before trying to use it, compute
-	    #- obsoleted package too. this is valable only for non source package.
+	    #- check if the package is not already installed before trying to use it, compute
+	    #- obsoleted packages too. This is valable only for non source packages.
 	    if ($pkg->arch ne 'src' && !$pkg->flag_disable_obsolete) {
 		my (%diff_provides);
 
@@ -669,55 +669,55 @@ sub resolve_requested {
 		    });
 		} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		    $db->traverse_tag('whatprovides', [ $name ], sub {
-					  @keep and return;
-					  my ($p) = @_;
-					  if ($p->provides_overlap($property)) {
-					      #- the existing package will conflict with the selection; check
-					      #- whether a newer version will be ok, else ask to remove the old.
-					      my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
-						$p->version . "-" . $p->release;
-					      my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
-					      my $best = join '|', map { $_->id }
-						grep { ! $_->provides_overlap($property) }
-						  @{$packages->{$p->name}};
+			@keep and return;
+			my ($p) = @_;
+			if ($p->provides_overlap($property)) {
+			    #- the existing package will conflict with the selection; check
+			    #- whether a newer version will be ok, else ask to remove the old.
+			    my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
+			    $p->version . "-" . $p->release;
+			    my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
+			    my $best = join '|', map { $_->id }
+			    grep { ! $_->provides_overlap($property) }
+			    @{$packages->{$p->name}};
 
-					      if (length $best) {
-						  unshift @properties, { required => $best, promote_conflicts => $name,  };
-					      } else {
-						  if ($options{keep}) {
-						      push @keep, scalar $p->fullname;
-						  } else {
-						      #- no package has been found, we need to remove the package examined.
-						      delete $state->{rejected}{$p->fullname}; #- force resolution
-						      $urpm->resolve_rejected($db, $state, $p,
-									      removed => 1, unsatisfied => \@properties,
-									      from => scalar $pkg->fullname,
-									      why => { conflicts => scalar $pkg->fullname });
-						  }
-					      }
-					  }
-				      });
+			    if (length $best) {
+				unshift @properties, { required => $best, promote_conflicts => $name,  };
+			    } else {
+				if ($options{keep}) {
+				    push @keep, scalar $p->fullname;
+				} else {
+				    #- no package has been found, we need to remove the package examined.
+				    delete $state->{rejected}{$p->fullname}; #- force resolution
+				    $urpm->resolve_rejected($db, $state, $p,
+				    removed => 1, unsatisfied => \@properties,
+				    from => scalar $pkg->fullname,
+				    why => { conflicts => scalar $pkg->fullname });
+				}
+			    }
+			}
+		    });
 		}
 	    }
 
 	    #- examine if an existing package does not conflict with this one.
 	    $db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
-				  @keep and return;
-				  my ($p) = @_;
-				  foreach my $property ($p->conflicts) {
-				      if ($pkg->provides_overlap($property)) {
-					  if ($options{keep}) {
-					      push @keep, scalar $p->fullname;
-					  } else {
-					      #- all these packages should be removed.
-					      $urpm->resolve_rejected($db, $state, $p,
-								      removed => 1, unsatisfied => \@properties,
-								      from => scalar $pkg->fullname,
-								      why => { conflicts => $property });
-					  }
-				      }
-				  }
-			      });
+		@keep and return;
+		my ($p) = @_;
+		foreach my $property ($p->conflicts) {
+		    if ($pkg->provides_overlap($property)) {
+			if ($options{keep}) {
+			    push @keep, scalar $p->fullname;
+			} else {
+			    #- all these packages should be removed.
+			    $urpm->resolve_rejected($db, $state, $p,
+			    removed => 1, unsatisfied => \@properties,
+			    from => scalar $pkg->fullname,
+			    why => { conflicts => $property });
+			}
+		    }
+		}
+	    });
 
 	    #- keep existing package and therefore cancel current one.
 	    if (@keep) {
@@ -1144,7 +1144,7 @@ sub has_dependence {
     return 0;
 }
 
-#- build transaction set for given selection already done.
+#- build transaction set for given selection
 sub build_transaction_set {
     my ($urpm, $db, $state, %options) = @_;
 
@@ -1163,7 +1163,7 @@ sub build_transaction_set {
 	      keys %{$state->{selected}});
 
 	#- second step consists of re-applying resolve_requested in the same
-	#- order computed in first step and to update a list of package to
+	#- order computed in first step and to update a list of packages to
 	#- install, to upgrade and to remove.
 	my (%requested, %examined);
 	foreach (@sorted) {
@@ -1171,10 +1171,13 @@ sub build_transaction_set {
 	    if (keys(%requested) >= $options{split_length}) {
 		my %set;
 
-		$urpm->resolve_requested($db, $state->{transaction_state} ||= {}, \%requested,
-					 keep_requested_flag => 1,
-					 defined $options{start} ? (start => $options{start}) : @{[]},
-					 defined $options{end}   ? (end   => $options{end}) : @{[]});
+		$urpm->resolve_requested(
+		    $db, $state->{transaction_state} ||= {},
+		    \%requested,
+		    keep_requested_flag => 1,
+		    defined $options{start} ? (start => $options{start}) : @{[]},
+		    defined $options{end}   ? (end   => $options{end}) : @{[]},
+		);
 		%requested = ();
 
 		foreach (keys %{$state->{transaction_state}{selected}}) {
@@ -1193,8 +1196,8 @@ sub build_transaction_set {
 	    }
 	}
 
-	#- check transaction set has been correctly created,
-	#- possible error is other package removed which should not be the case.
+	#- check that the transaction set has been correctly created.
+	#- (ie that no other package was removed)
 	if (keys(%{$state->{selected}}) == keys(%{$state->{transaction_state}{selected}}) &&
 	    (grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} } keys %{$state->{rejected}}) ==
 	    (grep { $state->{transaction_state}{rejected}{$_}{removed} && !$state->{transaction_state}{rejected}{$_}{obsoleted} }
