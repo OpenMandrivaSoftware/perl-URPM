@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.70
-%define release 8mdk
+%define release 9mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Sep  9 2002 François Pons <fpons@mandrakesoft.com> 0.70-9mdk
+- select package already installed to be taken instead of proposing
+  choice to the user.
+- fixed bad test for first package of first synthesis to be chosen
+  to be upgraded.
+
 * Mon Sep  2 2002 François Pons <fpons@mandrakesoft.com> 0.70-8mdk
 - added start and end options to request_packages_to_upgrade
   for DrakX to choose updated packages to upgrade.

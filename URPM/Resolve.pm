@@ -204,6 +204,7 @@ sub resolve_requested {
 				      });
 		}
 		if ($p->flag_installed) {
+		    $p->flag_upgrade or $pkg = $p, last; #- already installed package is taken.
 		    if (exists $requested{$p->id}) {
 			push @chosen_requested_upgrade, $p;
 		    } else {
@@ -334,13 +335,13 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p)) {
 					  #- try if upgrading the package will be satisfying all the requires
-					  #- else it will be necessary to ask hte user for removing it.
+					  #- else it will be necessary to ask the user for removing it.
 					  my $packages = $urpm->find_candidate_packages($p->name);
 					  my $best = join '|', map { $_->id }
 					    grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
 					      @{$packages->{$p->name}};
 
-					  if ($best) {
+					  if (length $best) {
 					      push @properties, $best;
 					  } else {
 					      #- no package have been found, we may need to remove the package examined unless
@@ -395,7 +396,7 @@ sub resolve_requested {
 					    grep { ! grep { ranges_overlap($_, $property) } $_->provides }
 					      @{$packages->{$p->name}};
 
-					  if ($best) {
+					  if (length $best) {
 					      push @properties, $best;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
