@@ -33,7 +33,7 @@ sub find_candidate_packages {
 
 #- return unresolved requires of a package (a new one or a existing one).
 sub unsatisfied_requires {
-    my ($urpm, $db, $state, $pkg, %options) = @_;
+    my ($_urpm, $db, $state, $pkg, %options) = @_;
     my %properties;
 
     #- all requires should be satisfied according to selected package, or installed packages.
@@ -244,7 +244,6 @@ sub resolve_requested {
 	my (@chosen_good_locales, @chosen_bad_locales, @chosen_other);
 	foreach (@chosen) {
 	    $_ or next;
-	    my $good_locales;
 	    if (my ($specific_locales) = grep { /locales-/ && ! /locales-en/ } $_->requires_nosense) {
 		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
 		    $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
@@ -416,7 +415,9 @@ sub resolve_requested {
 				      if (grep { ranges_overlap($_, $property) } $p->provides) {
 					  #- the existing package will conflicts with selection, check if a newer
 					  #- version will be ok, else ask to remove the old.
-					  my $packages = $urpm->find_candidate_packages($p->name, \%avoided);
+					  my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
+					                                     $p->version . "-" . $p->release;
+					  my $packages = $urpm->find_candidate_packages($need_deps, \%avoided);
 					  my $best = join '|', map { $_->id }
 					    grep { ! grep { ranges_overlap($_, $property) } $_->provides }
 					      @{$packages->{$p->name}};
@@ -625,7 +626,7 @@ sub compute_installed_flags {
 #- by default, only takes best package and its obsoleted and compute
 #- all installed or upgrade flag.
 sub request_packages_to_upgrade {
-    my ($urpm, $db, $state, $requested, %options) = @_;
+    my ($urpm, $db, $_state, $requested, %options) = @_;
     my (%provides, %names, %skip, %requested, %obsoletes, @obsoleters);
 
     #- build direct access to best package according to name.

@@ -11,14 +11,14 @@ use strict;
 #-   clean    : bool to clean cache before (default no).
 sub parse_rpms_build_headers {
     my ($urpm, %options) = @_;
-    my ($dir, %cache, @headers, %names);
+    my ($dir, %cache, @headers);
     local (*DIR, *F);
 
     #- check for mandatory options.
     if (@{$options{rpms} || []} > 0) {
 	#- build a working directory which will hold rpm headers.
 	$dir = $options{dir} || ($ENV{TMPDIR} || "/tmp") . "/.build_hdlist";
-	$options{clean} and system(($ENV{LD_LOADER} ? ($ENV{LD_LOADER}) : ()), "rm", "-rf", $dir);
+	$options{clean} and system($ENV{LD_LOADER} ? $ENV{LD_LOADER} : @{[]}, "rm", "-rf", $dir);
 	-d $dir or mkdir $dir, 0755 or die "cannot create directory $dir\n";
 
 	#- examine cache if it contains any headers which will be much faster to read
@@ -104,7 +104,7 @@ sub parse_headers {
 	defined $id or die "bad header $dir/$_\n";
 	$options{callback} and $options{callback}->($urpm, $id, %options);
     }
-    defined $id ? ($start, $id) : ();
+    defined $id ? ($start, $id) : @{[]};
 }
 
 #- compute dependencies, result in stored in info values of urpm.
@@ -178,7 +178,7 @@ sub compute_deps {
     #- expand choices and closure again.
     my %ordered;
     foreach ($start .. $end) {
-	my @requires = ($_);
+	my @requires = $_;
 	my ($dep, %requires);
 	while (defined ($dep = shift @requires)) {
 	    exists $requires{$dep} || /^[^\d\|]*$/ and next;
@@ -230,7 +230,7 @@ sub compute_deps {
 	    my ($na, $nb) = map { $urpm->{depslist}[$_]->name } ($a, $b);
 	    my ($sa, $sb) = map { /^lib(.*)/ and $1 } ($na, $nb);
 	    $sa && $sb ? $sa cmp $sb : $sa ? -1 : $sb ? +1 : $na cmp $nb;
-	}} ($start .. $end)} = ($start .. $end);
+	} } ($start .. $end)} = ($start .. $end);
 
     #- recompute requires to use packages id, drop any base packages or
     #- reference of a package to itself.
@@ -248,7 +248,7 @@ sub compute_deps {
 		#- this allow computation of dropable choices.
 		my ($to_drop, @choices_base_id, @choices_id);
 		foreach (split /\|/, $_) {
-		    my ($id, $base) = (exists $remap_ids{$_} ? $remap_ids{$_} : $_, $urpm->{depslist}[$_]->flag_base);
+		    my ($id, $base) = (exists($remap_ids{$_}) ? $remap_ids{$_} : $_, $urpm->{depslist}[$_]->flag_base);
 		    $base and push @choices_base_id, $id;
 		    $base &&= ! $pkg->flag_base;
 		    $to_drop ||= $id == $pkg->id || exists $requires_id{$id} || $base;
@@ -271,7 +271,7 @@ sub compute_deps {
 		    next;
 		}
 	    } elsif (/^\d+$/) {
-		($id, $base) =  (exists $remap_ids{$_} ? $remap_ids{$_} : $_, $urpm->{depslist}[$_]->flag_base);
+		($id, $base) =  (exists($remap_ids{$_}) ? $remap_ids{$_} : $_, $urpm->{depslist}[$_]->flag_base);
 	    } else {
 		$not_founds{$_} = undef;
 		next;
@@ -294,7 +294,7 @@ sub compute_deps {
     foreach my $h (values %{$urpm->{provides}}) {
 	my %provided;
 	foreach (keys %{$h || {}}) {
-	    $provided{exists $remap_ids{$_} ? $remap_ids{$_} : $_} = delete $h->{$_};
+	    $provided{exists($remap_ids{$_}) ? $remap_ids{$_} : $_} = delete $h->{$_};
 	}
 	$h = \%provided;
     }
@@ -332,6 +332,7 @@ sub build_hdlist {
     $ratio = $options{ratio} || 4;
     $split = $options{split} || 400000;
 
+    local *B;
     open B, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
     foreach my $pkg (@{$urpm->{depslist}}[$start .. $end]) {
 	my $filename = $pkg->fullname;
@@ -398,7 +399,7 @@ sub build_base_files {
 
     if ($options{depslist}) {
 	open F, ">$options{depslist}";
-	for (0 .. $#{$urpm->{depslist}}) {
+	foreach (0 .. $#{$urpm->{depslist}}) {
 	    my $pkg = $urpm->{depslist}[$_];
 
 	    printf F ("%s-%s-%s.%s%s %s %s\n", $pkg->fullname,

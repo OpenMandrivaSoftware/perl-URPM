@@ -50,7 +50,7 @@ sub search {
 	}
     }
 
-    foreach (keys %{$urpm->{provides}{$_} || {}}) {
+    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 	my $pkg = $urpm->{depslist}[$_];
 	my ($n, undef, undef, $a) = $pkg->fullname;
 	$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;

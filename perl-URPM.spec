@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 11mdk
+%define release 12mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Mar 10 2003 François Pons <fpons@mandrakesoft.com> 0.81-12mdk
+- fixed typo in search method.
+- fixed wrong resolution of conflicts where an older package
+  may be used whereas only a newer one should be tested.
+- make it somewhat perl_checker clean.
+
 * Mon Mar  3 2003 François Pons <fpons@mandrakesoft.com> 0.81-11mdk
 - fixed duplicated filehandle not with close-on-exec flag
   which caused removable device to be locked on some case
