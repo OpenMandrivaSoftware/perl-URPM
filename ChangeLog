@@ -1,3 +1,24 @@
+2005-01-20 21:35  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: Require perl-base >= 5.8.6, so perl will be
+	  upgraded early in the process 10.1 to 10.2
+
+2005-01-04 12:06  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: Croak if build_base_files can't write files
+
+2004-12-21 16:38  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm: Typos in documentation
+
+2004-12-21 15:25  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Indentation and comments
+
+2004-12-13 18:21  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: 1.07-2mdk
+
 2004-12-13 14:43  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM.pm, perl-URPM.spec: 1.07-1mdk

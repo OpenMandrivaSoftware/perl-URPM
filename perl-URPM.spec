@@ -1,5 +1,5 @@
 # Do not edit this spec from src.rpm
-# This spec is part of MandrakeSoft's cvs
+# This spec is part of Mandrakesoft's cvs
 # See http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/
 
 # $Id$
@@ -7,7 +7,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 1.07
-%define release 2mdk
+%define release 3mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -66,6 +66,10 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Fri Jan 21 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.07-3mdk
+- Require perl-base >= 5.8.6
+- Error handling nits.
+
 * Mon Dec 13 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.07-2mdk
 - Require packdrake (and no longer rpmtools)
 
