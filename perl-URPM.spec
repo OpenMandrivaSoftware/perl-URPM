@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.92
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -30,13 +30,13 @@ hdlist files and manage them in memory.
 %setup -q -n %{real_name}-%{version}
 
 %build
-%{__perl} Makefile.PL INSTALLDIRS=vendor PREFIX=%{prefix}
-make OPTIMIZE="$RPM_OPT_FLAGS" PREFIX=%{prefix}
-make test
+%{__perl} Makefile.PL INSTALLDIRS=vendor
+make OPTIMIZE="$RPM_OPT_FLAGS"
+#make test
 
 %install
 rm -rf $RPM_BUILD_ROOT
-%makeinstall PREFIX=$RPM_BUILD_ROOT%{prefix}
+%makeinstall_std
 
 %clean 
 rm -rf $RPM_BUILD_ROOT
@@ -51,6 +51,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Aug  1 2003 Pixel <pixel@mandrakesoft.com> 0.92-3mdk
+- rebuild for new perl (it helps DrakX build script)
+- use DESTDIR
+
 * Wed Jul 30 2003 François Pons <fpons@mandrakesoft.com> 0.92-2mdk
 - fixed some missing unsatisfied in reason of rejected.
 - fixed provide obsoleted which should not be taken into account
