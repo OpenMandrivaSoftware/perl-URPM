@@ -1309,6 +1309,14 @@ Pkg_url(pkg)
   }
 
 void
+Pkg_license(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_LICENSE), 0)));
+  }
+
+void
 Pkg_fullname(pkg)
   URPM::Package pkg
   PREINIT:

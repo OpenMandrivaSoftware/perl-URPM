@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed May 28 2003 Warly <warly@mandrakesoft.com> 0.90-3mdk
+- add license function for urpm->{depslist}[$id]
+
 * Mon May 26 2003 François Pons <fpons@mandrakesoft.com> 0.90-2mdk
 - fixed URPM::resolve_requested return value (list of package
   selected by this call).
