@@ -897,10 +897,10 @@ sub compute_flag {
 #- %options :
 #-   callback : sub to be called for each package where the flag is set
 #-   skip : if true, set the 'skip' flag
-#-   disable_obsolete : if true, set the 'risable_obsolete' flag
+#-   disable_obsolete : if true, set the 'disable_obsolete' flag
 sub compute_flags {
     my ($urpm, $val, %options) = @_;
-    if (ref $val eq 'HASH') { $val = \ keys %$val }; #- compatibility with urpmi <= 4.5-13mdk
+    if (ref $val eq 'HASH') { $val = [ keys %$val ] }; #- compatibility with urpmi <= 4.5-13mdk
     my @regex;
 
     #- unless a regular expression is given, search in provides
