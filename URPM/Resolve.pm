@@ -191,43 +191,50 @@ sub backtrack_selected {
     my @properties;
 
     if (defined $dep->{required}) {
-	#- search for all possible packages, first is to try the selection, then if it is
-	#- impossible, backtrack the origin.
-	my $packages = $urpm->find_candidate_packages($dep->{required});
+	#- avoid deadlock here...
+	if (exists $state->{backtrack}{deadlock}{$dep->{required}}) {
+	    $options{keep} = 1; #- force keeping package to that backtrakc is doing something.
+	} else {
+	    $state->{backtrack}{deadlock}{$dep->{required}} = undef;
 
-	foreach (values %$packages) {
-	    foreach (@$_) {
-		#- avoid dead loop.
-		exists $state->{backtrack}{selected}{$_->id} and next;
-		#- a package if found is problably rejected or there is a problem.
-		if ($state->{rejected}{$_->fullname}) {
-		    if (!$options{callback_backtrack} ||
-			$options{callback_backtrack}->($urpm, $db, $state, $_,
-						       dep => $dep, alternatives => $packages, %options) <= 0) {
-			#- keep in mind a backtrack has happening here...
-			$state->{rejected}{$_->fullname}{backtrack} ||=
-			  { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
-			    exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
-			  };
-			#- backtrack callback should return a strictly positive value if the selection of the new
-			#- package is prefered over the currently selected package.
-			next;
+	    #- search for all possible packages, first is to try the selection, then if it is
+	    #- impossible, backtrack the origin.
+	    my $packages = $urpm->find_candidate_packages($dep->{required});
+
+	    foreach (values %$packages) {
+		foreach (@$_) {
+		    #- avoid dead loop.
+		    exists $state->{backtrack}{selected}{$_->id} and next;
+		    #- a package if found is problably rejected or there is a problem.
+		    if ($state->{rejected}{$_->fullname}) {
+			if (!$options{callback_backtrack} ||
+			    $options{callback_backtrack}->($urpm, $db, $state, $_,
+							   dep => $dep, alternatives => $packages, %options) <= 0) {
+			    #- keep in mind a backtrack has happening here...
+			    $state->{rejected}{$_->fullname}{backtrack} ||=
+			      { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
+				exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
+			      };
+			    #- backtrack callback should return a strictly positive value if the selection of the new
+			    #- package is prefered over the currently selected package.
+			    next;
+			}
 		    }
+		    $state->{backtrack}{selected}{$_->id} = undef;
+
+		    #- in such case, we need to drop the problem caused so that rejected condition is removed.
+		    #- if this is not possible, the next backtrack on the same package will be refused above.
+		    my @l = map { $urpm->search($_, strict_fullname => 1) }
+		      keys %{($state->{rejected}{$_->fullname} || {})->{closure}};
+
+		    $options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, @l) :
+		      $urpm->disable_selected_unrequested_dependencies($db, $state, @l);
+
+		    return { required => $_->id,
+			     exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+			     exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+			   };
 		}
-		$state->{backtrack}{selected}{$_->id} = undef;
-
-		#- in such case, we need to drop the problem caused so that rejected condition is removed.
-		#- if this is not possible, the next backtrack on the same package will be refused above.
-		my @l = map { $urpm->search($_, strict_fullname => 1) }
-		  keys %{($state->{rejected}{$_->fullname} || {})->{closure}};
-
-		$options{keep_unrequested_dependencies} ? $urpm->disable_selected($db, $state, @l) :
-		  $urpm->disable_selected_unrequested_dependencies($db, $state, @l);
-
-		return { required => $_->id,
-			 exists $dep->{from} ? (from => $dep->{from}) : @{[]},
-			 exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
-		       };
 	    }
 	}
     }
