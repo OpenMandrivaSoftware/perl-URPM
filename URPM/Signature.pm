@@ -27,7 +27,7 @@ sub compare_pubkeys {
 
 #- parse an armored file and import in keys hash if the key does not already exists.
 sub parse_armored_file {
-    my ($urpm, $file, %options) = @_;
+    my (undef, $file) = @_;
     my ($block, $content, @l);
 
     #- check if an already opened file has been given directly.
@@ -61,40 +61,39 @@ sub parse_armored_file {
 #- pare from rpmlib db.
 sub parse_pubkeys {
     my ($urpm, %options) = @_;
-    my ($block, @l, $content);
+    my ($block, $content);
 
     my $db = $options{db};
     $db ||= URPM::DB::open($options{root});
 
     $db->traverse_tag('name', [ 'gpg-pubkey' ], sub {
-			  my ($p) = @_;
-			  my $s;
-			  foreach (split "\n", $p->description) {
-			      $block ||= /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/;
-			      if ($block) {
-				  my $inside_block = /^$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
-				  if ($inside_block > 1) {
-				      if ($inside_block =~ /E/) {
-					  $urpm->{keys}{$p->version} = { $p->summary =~ /^gpg\((.*)\)$/ ? (name => $1) : @{[]},
-									 id => $p->version,
-									 content => $content,
-									 block => $p->description,
-								       };
-					  $block = undef;
-					  $content = '';
-				      } else {
-					  $content .= $_;
-				      }
-				  }
-			      }
-			  }
-		      })
+	    my ($p) = @_;
+	    foreach (split "\n", $p->description) {
+		$block ||= /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/;
+		if ($block) {
+		    my $inside_block = /^$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
+		    if ($inside_block > 1) {
+			if ($inside_block =~ /E/) {
+			    $urpm->{keys}{$p->version} = {
+				$p->summary =~ /^gpg\((.*)\)$/ ? (name => $1) : @{[]},
+				id => $p->version,
+				content => $content,
+				block => $p->description,
+			    };
+			    $block = undef;
+			    $content = '';
+			} else {
+			    $content .= $_;
+			}
+		    }
+		}
+	    }
+	});
 }
 
 #- import pubkeys only if it is needed.
 sub import_needed_pubkeys {
     my ($urpm, $l, %options) = @_;
-    my $block = '';
 
     #- use the same database handle to avoid re-opening multiple times the database.
     my $db = $options{db};
