@@ -158,8 +158,8 @@ sub unsatisfied_requires {
 
 	    #- check on selected package if a provide is satisfying the resolution (need to do the ops).
 	    foreach (keys %{$urpm->{provides}{$n} || {}}) {
-		exists $state->{selected}{$_} or next;
 		my $p = $urpm->{depslist}[$_];
+		$p->flag_selected || exists $state->{selected}{$_} or next;
 		if ($urpm->{provides}{$n}{$_}) {
 		    #- sense information are used, this means we have to examine carrefully the provides.
 		    foreach ($p->provides) {
@@ -623,6 +623,11 @@ sub disable_selected {
 	    }
 	}
 
+	#- the package being examined has to be unselected.
+	$pkg->set_flag_requested(0);
+	$pkg->set_flag_required(0);
+	delete $state->{selected}{$pkg->id};
+
 	#- determine package that requires properties no more available, so that they need to be
 	#- unselected too.
 	foreach my $n ($pkg->provides_nosense) {
@@ -635,11 +640,6 @@ sub disable_selected {
 		}
 	    }
 	}
-
-	#- the package being examined has to be unselected.
-	$pkg->set_flag_requested(0);
-	$pkg->set_flag_required(0);
-	delete $state->{selected}{$pkg->id};
 
 	#- clean whatrequires hash.
 	foreach ($pkg->requires_nosense) {

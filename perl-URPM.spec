@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 8mdk
+%define release 9mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jun 11 2003 François Pons <fpons@mandrakesoft.com> 0.90-9mdk
+- fixed problem in disable_selected (ordering of operations).
+
 * Thu Jun  5 2003 François Pons <fpons@mandrakesoft.com> 0.90-8mdk
 - cleaned code to be more perl portable.
 - fixed severe bug on perl stack manipulation when using callback.
