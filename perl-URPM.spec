@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 8mdk
+%define release 9mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Nov 17 2003 François Pons <fpons@mandrakesoft.com> 0.94-9mdk
+- fixed bug preventing adding local media.
+
 * Sat Nov 15 2003 François Pons <fpons@mandrakesoft.com> 0.94-8mdk
 - added patch from Olivier Thauvin (new features).
 
