@@ -292,6 +292,11 @@ sub resolve_requested {
 	#- all requires should be satisfied according to selected package, or installed packages.
 	push @properties, $urpm->unsatisfied_requires($db, $state, $pkg);
 
+	#- keep in mind what is requiring each item (for unselect to work).
+	foreach ($pkg->requires_nosense) {
+	    $state->{whatrequires}{$_}{$pkg->id} = undef;
+	}
+
 	#- examine conflicts, an existing package conflicting with this selection should
 	#- be upgraded to a new version which will be safe, else it should be removed.
 	foreach ($pkg->conflicts) {
@@ -335,7 +340,7 @@ sub resolve_requested {
 	    #- we need to check a selected package is not selected.
 	    #- if true, it should be unselected.
 	    unless ($options{keep_state}) {
-		if (my ($name) =~ /^([^\s\[]*)/) {
+		if (my ($name) = /^([^\s\[]*)/) {
 		    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 			my $p = $urpm->{depslist}[$_];
 			$p->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
@@ -396,6 +401,7 @@ sub resolve_unrequested {
 
     #- keep in mind unrequested package in order to allow unselection
     #- of requested package.
+    #NOT YET USED TODO
     @unrequested{@$unrequested} = ();
 
     #- iterate over package needing unrequested one.
@@ -406,9 +412,9 @@ sub resolve_unrequested {
 	$pkg->flag_selected or next;
 
 	#- the package being examined has to be unselected.
-	$pkg->set_flag_requested(0);
-	$pkg->set_flag_required(0);
-	$state->{unselect}{$pkg->id} = undef;
+	$options{no_flag_update} or
+	  $pkg->set_flag_requested(0), $pkg->set_flag_required(0);
+	$state->{unselected}{$pkg->id} = undef;
 
 	#- state should be cleaned by any reference to it.
 	foreach ($pkg->provides) {
@@ -437,10 +443,10 @@ sub resolve_unrequested {
 	#- determine package that requires properties no more available, so that they need to be
 	#- unselected too.
 	foreach (keys %diff_provides) {
-	    if (my ($n) =~ /^([^\s\[]*)/) {
+	    if (my ($n) = /^([^\s\[]*)/) {
 		$db->traverse_tag('whatrequires', [ $n ], sub {
 				      my ($p) = @_;
-				      if ($urpm->unsatisfied_requires($db, $state, $p, $n) == 0) {
+				      if ($urpm->unsatisfied_requires($db, $state, $p, $n)) {
 					  #- the package has broken dependencies, but it is already installed.
 					  #- we can remove it (well this is problably not normal).
 					  #TODO
@@ -450,11 +456,13 @@ sub resolve_unrequested {
 		#- check a whatrequires on selected packages directly.
 		foreach (keys %{$state->{whatrequires}{$n} || {}}) {
 		    my $p = $urpm->{depslist}[$_];
-		    $p->flag_selected or next;
-		    if ($urpm->unsatisfied_requires($db, $state, $p, $n) == 0) {
+		    print STDERR "examine to drop ".$p->fullname."\n";
+		    $p->flag_selected || exists $state->{unselected}{$p->id} or next;
+		    if ($urpm->unsatisfied_requires($db, $state, $p, $n)) {
 			#- this package has broken dependencies, but it is installed.
 			#- just add it to unrequested.
-			push @$unrequested, $_;
+			print STDERR "dropping ".$p->fullname."\n";
+			push @$unrequested, $p->id;
 		    }
 		}
 	    }

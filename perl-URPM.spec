@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.20
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jul 23 2002 François Pons <fpons@mandrakesoft.com> 0.20-2mdk
+- fixed unrequested code resolution.
+
 * Mon Jul 22 2002 François Pons <fpons@mandrakesoft.com> 0.20-1mdk
 - added remove new package if an older package is requested.
 - fixed incomplete closure on ask_remove.
