@@ -579,7 +579,13 @@ sub resolve_requested {
 					#- unless urpmi was invoked with --allow-force (in which
 					#- case rpm could be invoked with --oldpackage)
 					if (!$urpm->{options}{'allow-force'}) {
-					    $urpm->disable_selected($db, $state, $pkg);
+					    #- since the originally requested packages (or other
+					    #- non-installed ones) could be unselected by the following
+					    #- operation, remember them, to warn the user
+					    my @unselected_uninstalled = grep {
+						!$_->flag_installed
+					    } $urpm->disable_selected($db, $state, $pkg);
+					    $state->{unselected_uninstalled} = \@unselected_uninstalled;
 					}
 				    } elsif ($satisfied) {
 					$rv->{obsoleted} = 1;
