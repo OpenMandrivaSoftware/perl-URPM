@@ -82,13 +82,18 @@ sub unsatisfied_requires {
 
 #- close ask_remove (as urpme previously) for package to be removable without error.
 sub resolve_closure_ask_remove {
-    my ($urpm, $db, $state, $pkg, $why) = @_;
+    my ($urpm, $db, $state, $pkg, $from, $why) = @_;
     my $name = join '-', ($pkg->fullname)[0..2]; #- specila name (without arch) to allow selection.
 
-    #- check if the package has already been asked to removed,
+    #- allow default value for 'from' to be taken.
+    $from ||= $name;
+
+    #- check if the package has already been asked to be removed,
     #- this means only add the new reason and return.
     unless ($state->{ask_remove}{$name}) {
-	push @{$state->{ask_remove}{$name}}, $why;
+	$state->{ask_remove}{$name} = { size    => $pkg->size,
+					closure => { $from => $why },
+				      };
 
 	my @removes = ($pkg);
 	while ($pkg = shift @removes) {
@@ -103,10 +108,13 @@ sub resolve_closure_ask_remove {
 		if (my ($n) = /^([^\s\[]*)/) {
 		    $db->traverse_tag('whatrequires', [ $n ], sub {
 					  my ($p) = @_;
-					  $state->{ask_remove}{join '-', ($p->fullname)[0..2]} and return;
 					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n, keep_state => 1)) {
-					      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
-						{ unsatisfied => \@l, closure => $name };
+					      my $v = $state->{ask_remove}{join '-', ($p->fullname)[0..2]} ||= {};
+
+					      #- keep track of what cause closure.
+					      $v->{closure}{$name} = { unsatisfied => \@l };
+					      exists $v->{size} and return;
+					      $v->{size} = $p->size;
 
 					      $p->pack_header; #- need to pack else package is no more visible...
 					      push @removes, $p;
@@ -115,6 +123,8 @@ sub resolve_closure_ask_remove {
 		}
 	    }
 	}
+    } else {
+	$state->{ask_remove}{$name}{closure}{$from} = $why;
     }
 }
 
@@ -266,8 +276,8 @@ sub resolve_requested {
 					  $allow or update_state_provides($state, $pkg);
 					  $allow = ++$state->{oldpackage};
 					  $options{keep_state} or
-					    $urpm->resolve_closure_ask_remove($db, $state, $p,
-									      { old_requested => 1, id => $pkg->id });
+					    $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+									      { old_requested => 1 });
 				      }
 				  });
 		#- if nothing has been removed, just ignore it.
@@ -345,8 +355,8 @@ sub resolve_requested {
 						  push @properties, @best;
 					      } else {
 						  $options{keep_state} or
-						    $urpm->resolve_closure_ask_remove($db, $state, $p,
-										      { unsatisfied => \@l, id => $pkg->id });
+						    $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+										      { unsatisfied => \@l });
 					      }
 					  }
 				      }
@@ -370,8 +380,8 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      #- all these packages should be removed.
 				      $options{keep_state} or
-					$urpm->resolve_closure_ask_remove($db, $state, $p,
-									  { conflicts => $file, id => $pkg->id });
+					$urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+									  { conflicts => $file });
 				  });
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
@@ -389,8 +399,8 @@ sub resolve_requested {
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
 					      $options{keep_state} or
-						$urpm->resolve_closure_ask_remove($db, $state, $p,
-										  { conflicts => $property, id => $pkg->id });
+						$urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+										  { conflicts => $property });
 					  }
 				      }
 				  });
@@ -414,8 +424,8 @@ sub resolve_requested {
 				  if (grep { ranges_overlap($_, $property) } $pkg->provides) {
 				      #- all these packages should be removed.
 				      $options{keep_state} or
-					$urpm->resolve_closure_ask_remove($db, $state, $p,
-									  { conflicts => $property, id => $pkg->id });
+					$urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+									  { conflicts => $property });
 				  }
 			      }
 			  });
@@ -499,26 +509,20 @@ sub resolve_unrequested {
 			      });
 	}
 	foreach (keys %{$state->{ask_remove}}) {
-	    my @l = grep { defined $_->{id} && $_->{id} != $pkg->id } @{$state->{ask_remove}{$_}};
-	    if (@l < @{$state->{ask_remove}{$_}}) {
-		if (@l > 0) {
-		    $state->{ask_remove}{$_} = \@l;
-		} else {
-		    delete $state->{ask_remove}{$_};
-		    push @clean_closure_ask_remove, $_;
-		}
+	    exists $state->{ask_remove}{$_}{closure}{$pkg->id} or next;
+	    delete $state->{ask_remove}{$_}{closure}{$pkg->id};
+	    unless (%{$state->{ask_remove}{$_}{closure}}) {
+		delete $state->{ask_remove}{$_};
+		push @clean_closure_ask_remove, $_;
 	    }
 	}
 	while ($name = shift @clean_closure_ask_remove) {
 	    foreach (keys %{$state->{ask_remove}}) {
-		my @l = grep { defined $_->{closure} && $_->{closure} ne $name } @{$state->{ask_remove}{$_}};
-		if (@l < @{$state->{ask_remove}{$_}}) {
-		    if (@l > 0) {
-			$state->{ask_remove}{$_} = \@l;
-		    } else {
-			delete $state->{ask_remove}{$_};
-			push @clean_closure_ask_remove, $_;
-		    }
+		exists $state->{ask_remove}{$_}{closure}{$name} or next;
+		delete $state->{ask_remove}{$_}{closure}{$name};
+		unless (%{$state->{ask_remove}{$_}{closure}}) {
+		    delete $state->{ask_remove}{$_};
+		    push @clean_closure_ask_remove, $_;
 		}
 	    }
 	}
@@ -534,8 +538,8 @@ sub resolve_unrequested {
 					  #- the package has broken dependencies, but it is already installed.
 					  #- we can remove it (well this is problably not normal).
 					  #TODO
-					  $urpm->resolve_closure_ask_remove($db, $state, $p,
-									    { unrequested => 1, id => $pkg->id });
+					  $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
+									    { unrequested => 1 });
 				      }
 				  });
 		#- check a whatrequires on selected packages directly.
