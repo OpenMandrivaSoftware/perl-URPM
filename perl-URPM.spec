@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.93
-%define release 6mdk
+%define release 7mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Aug 20 2003 François Pons <fpons@mandrakesoft.com> 0.93-7mdk
+- added URPM::Signature::compare_pubkeys to workaround rpm
+  importation of key with modified armor.
+
 * Tue Aug 19 2003 François Pons <fpons@mandrakesoft.com> 0.93-6mdk
 - make URPM::Signature::import_armored_file independent from rpm.
 - added URPM::import_pubkey in xs directly.

@@ -11,8 +11,10 @@ URPM->bootstrap($VERSION);
 sub new {
     my ($class) = @_;
     bless {
-	   depslist      => [],
-	   provides      => {},
+	   depslist => [],
+	   provides => {},
+	   media    => [],
+	   options  => {},
 	  }, $class;
 }
 

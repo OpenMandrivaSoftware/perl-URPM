@@ -2,6 +2,29 @@ package URPM;
 
 use strict;
 
+#- compare keys to avoid glitches introduced during the importation where
+#- some characters may be modified on the fly by rpm --import...
+sub compare_pubkeys {
+    my ($a, $b, %options) = @_;
+    my $diff = 0;
+    my @a = unpack "C*", $a->{content};
+    my @b = unpack "C*", $b->{content};
+
+    #- default options to use.
+    $options{start} ||= 0;
+    $options{end} ||= @a < @b ? scalar(@b) : scalar(@a);
+    $options{diff} ||= 1;
+
+    #- check element one by one, count all difference (do not work well if elements
+    #- have been inserted/deleted).
+    foreach ($options{start} .. $options{end}) {
+	$a[$_] != $b[$_] and ++$diff;
+    }
+
+    #- diff options give level to consider the key equal (a character is not always the same).
+    $diff <= $options{diff} ? 0 : $diff;
+}
+
 #- pare from rpmlib db.
 sub parse_pubkeys {
     my ($urpm, %options) = @_;
@@ -49,7 +72,7 @@ sub parse_armored_file {
 	    my $inside_block = /^$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
 	    if ($inside_block > 1) {
 		if ($inside_block =~ /E/) {
-		    push @l, $content;
+		    push @l, +{ content => $content };
 		    $block = undef;
 		    $content = '';
 		} else {
@@ -60,22 +83,18 @@ sub parse_armored_file {
     }
     close F or die "unable to parse armored file $file";
 
-    #- check at least one key has been found.
-    @l < 1 and die "no key found while parsing armored file";
-
     #- check if key has been found, remove from list.
     if ($options{only_unknown_keys}) {
 	@l = grep {
 	    my $found = 0;
 	    foreach my $k (values %{$urpm->{keys} || {}}) {
-		$k->{content} eq $_ and $found = 1, last;
+		compare_pubkeys($k, $_) == 0 and $found = 1, last;
 	    }
 	    !$found;
 	} @l;
     }
 
-    #- now return something (true) which reflect what should be found in keys.
-    map { +{ content => $_ } } @l;
+    @l;
 }
 
 sub import_armored_file {
