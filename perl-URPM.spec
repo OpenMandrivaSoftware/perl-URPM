@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jun 17 2003 François Pons <fpons@mandrakesoft.com> 0.91-2mdk
+- fixed promotion of epoch to be rpm 4.2 compliant.
+
 * Mon Jun 16 2003 François Pons <fpons@mandrakesoft.com> 0.91-1mdk
 - added transaction set methods.
 - added disable_obsolete flags to improve installation mode of

@@ -98,6 +98,11 @@ typedef struct s_Package* URPM__Package;
 #define FILTER_MODE_UPGRADE_FILES 1
 #define FILTER_MODE_CONF_FILES    2
 
+/* promote epoch sense should be :
+     0 for compability with old packages
+     1 for rpm 4.2 and better new approach. */
+#define PROMOTE_EPOCH_SENSE       1
+
 /* these are in rpmlib but not in rpmlib.h */
 int readLead(FD_t fd, struct rpmlead *lead);
 #ifdef RPM_42
@@ -2812,10 +2817,8 @@ Urpm_ranges_overlap(a, b)
       /* now compare epoch */
       if (ea && eb)
 	sense = rpmvercmp(*ea ? ea : "0", *eb ? eb : "0");
-      /* if we need to promote, sense is 1 else it is kept as 0
-	 else if (ea && *ea && atol(ea) > 0)
-	 sense = 0;
-      */
+      else if (ea && *ea && atol(ea) > 0)
+	sense = PROMOTE_EPOCH_SENSE;
       else if (eb && *eb && atol(eb) > 0)
 	sense = -1;
       /* now compare version and release if epoch has not been enough */
