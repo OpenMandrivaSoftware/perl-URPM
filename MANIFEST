@@ -1,0 +1,9 @@
+README
+MANIFEST
+Makefile.PL
+typemap
+URPM.xs
+URPM.pm
+URPM/Build.pm
+t/rpmdb.t
+t/synthesis.t

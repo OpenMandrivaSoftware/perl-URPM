@@ -1,0 +1,9 @@
+The URPM module allows you to manipulate rpm files, rpm header files and
+hdlist files and manage them in memory.
+
+You will need perl version 5.6.1 or better to install this module.
+
+Copyright 2002 MandrakeSoft (François Pons <fpons@mandrakesoft.com>)
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
