@@ -546,18 +546,18 @@ sub resolve_requested {
 			foreach (keys %{$urpm->{provides}{$n} || {}}) {
 			    my $p = $urpm->{depslist}[$_];
 			    if ($p->name eq $pkg->name) {
-				#- all package with the same name should now be avoided except what is chosen.
+				#- all packages with the same name should now be avoided except when chosen.
 				$p->fullname eq $pkg->fullname and next;
 			    } else {
 				#- in case of obsoletes, keep track of what should be avoided
 				#- but only if package name equals the obsolete name.
 				$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
 			    }
-			    #- these packages are not yet selected, if they happens to be selected,
+			    #- these packages are not yet selected, if they happen to be selected,
 			    #- they must first be unselected.
 			    $state->{rejected}{$p->fullname}{closure}{$pkg->fullname} ||= undef;
 			}
-			#- examine rpm db too (but only according to packages name as a fix in rpm itself)
+			#- examine rpm db too (but only according to package names as a fix in rpm itself)
 			$db->traverse_tag('name', [ $n ], sub {
 				my ($p) = @_;
 
@@ -653,18 +653,20 @@ sub resolve_requested {
 		}
 		if (my ($file) = m!^(/[^\s\[]*)!) {
 		    $db->traverse_tag('path', [ $file ], sub {
-					  @keep and return;
-					  my ($p) = @_;
-					  if ($options{keep}) {
-					      push @keep, scalar $p->fullname;
-					  } else {
-					      #- all these packages should be removed.
-					      $urpm->resolve_rejected($db, $state, $p,
-								      removed => 1, unsatisfied => \@properties,
-								      from => scalar $pkg->fullname,
-								      why => { conflicts => $file });
-					  }
-				      });
+			@keep and return;
+			my ($p) = @_;
+			if ($options{keep}) {
+			    push @keep, scalar $p->fullname;
+			} else {
+			    #- all these package should be removed.
+			    $urpm->resolve_rejected(
+				$db, $state, $p,
+				removed => 1, unsatisfied => \@properties,
+				from => scalar $pkg->fullname,
+				why => { conflicts => $file },
+			    );
+			}
+		    });
 		} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		    $db->traverse_tag('whatprovides', [ $name ], sub {
 					  @keep and return;
@@ -840,7 +842,7 @@ sub disable_selected {
     @unselected;
 }
 
-#- determine dependencies that can safely been removed and are not requested,
+#- determine dependencies that can safely been removed and are not requested
 sub disable_selected_unrequested_dependencies {
     my ($urpm, $db, $state, @closure) = @_;
     my @unselected_closure;
@@ -850,7 +852,7 @@ sub disable_selected_unrequested_dependencies {
     while (my @unselected = $urpm->disable_selected($db, $state, @closure)) {
 	my %required;
 
-	#- keep in the packages that have needed to be unselected.
+	#- keep in the packages that had to be unselected.
 	@unselected_closure or push @unselected_closure, @unselected;
 
 	#- search for unrequested required packages.
@@ -903,12 +905,12 @@ sub selected_size {
     $size;
 }
 
-#- compute installed flags for all package in depslist.
+#- compute installed flags for all packages in depslist.
 sub compute_installed_flags {
     my ($urpm, $db) = @_;
     my %sizes;
 
-    #- first pass to initialize flags installed and upgrade for all package.
+    #- first pass to initialize flags installed and upgrade for all packages.
     foreach (@{$urpm->{depslist}}) {
 	$_->is_arch_compat or next;
 	$_->flag_upgrade || $_->flag_installed or $_->set_flag_upgrade;
@@ -916,18 +918,18 @@ sub compute_installed_flags {
 
     #- second pass to set installed flag and clean upgrade flag according to installed packages.
     $db->traverse(sub {
-		      my ($p) = @_;
-		      #- keep mind of sizes of each packages.
-		      $sizes{$p->name} += $p->size;
-		      #- compute flags.
-		      foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
-			  my $pkg = $urpm->{depslist}[$_];
-			  $pkg->is_arch_compat && $pkg->name eq $p->name or next;
-			  #- compute only installed and upgrade flags.
-			  $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
-			  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
-		      }
-		  });
+	my ($p) = @_;
+	#- remember sizes of each package.
+	$sizes{$p->name} += $p->size;
+	#- compute flags.
+	foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
+	    my $pkg = $urpm->{depslist}[$_];
+	    $pkg->is_arch_compat && $pkg->name eq $p->name or next;
+	    #- compute only installed and upgrade flags.
+	    $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+	    $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
+	}
+    });
 
     \%sizes;
 }
@@ -986,7 +988,7 @@ sub request_packages_to_upgrade {
 
     my @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
     
-    #- build direct access to best package according to name.
+    #- build direct access to best package per name.
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 
 	if ($pkg->is_arch_compat) {
@@ -1015,9 +1017,9 @@ sub request_packages_to_upgrade {
 	}
     }
 
-    #- cleans up direct access, a package in names should have
-    #- checked consistency with obsoletes of eligible package.
-    #- It is important not to select a package which obsoletes
+    #- cleans up direct access, a package in %names should have
+    #- checked consistency with obsoletes of eligible packages.
+    #- It is important to avoid selecting a package that obsoletes
     #- an old one.
     foreach my $pkg (values %names) {
 	foreach ($pkg->obsoletes) {
@@ -1036,55 +1038,57 @@ sub request_packages_to_upgrade {
 
     #- now we can examine all existing packages to find packages to upgrade.
     $db->traverse(sub {
-		      my ($p) = @_;
-		      #- first try with package using the same name.
-		      #- this will avoid selecting all packages obsoleting an old one.
-		      if (my $pkg = $names{$p->name}) {
-			  unless ($pkg->flag_upgrade || $pkg->flag_installed) {
-			      $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
-			      $pkg->set_flag_upgrade;
-			  }
-			  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
-			  #- keep in mind the package is requested.
-			  if ($pkg->flag_upgrade) {
-			      $requested{$p->name} = undef;
-			  } else {
-			      delete $names{$p->name};
-			  }
-		      }
+	my ($p) = @_;
+	#- first try with package using the same name.
+	#- this will avoid selecting all packages obsoleting an old one.
+	if (my $pkg = $names{$p->name}) {
+	    unless ($pkg->flag_upgrade || $pkg->flag_installed) {
+		$pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+		$pkg->set_flag_upgrade;
+	    }
+	    $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
+	    #- keep in mind the package is requested.
+	    if ($pkg->flag_upgrade) {
+		$requested{$p->name} = undef;
+	    } else {
+		delete $names{$p->name};
+	    }
+	}
 
-		      #- check provides of existing package to see if a obsolete
-		      #- may allow selecting it.
-		      foreach my $property ($p->provides) {
-			  #- only real provides should be taken into account, this means internal obsoletes
-			  #- should be avoided.
-			  unless ($p->obsoletes_overlap($property)) {
-			      if (my ($n) = $property =~ /^([^\s\[]*)/) {
-				  foreach my $pkg (@{$obsoletes{$n} || []}) {
-				      next if $pkg->name eq $p->name || $p->name ne $n || !$names{$pkg->name};
-				      if ($pkg->obsoletes_overlap($property)) {
-					  #- the package being examined can be obsoleted.
-					  #- do not set installed and provides flags.
-					  push @obsoleters, $pkg;
-					  return;
-				      }
-				  }
-			      }
-			  }
-		      }
-		  });
+	#- check provides of existing package to see if an obsolete
+	#- may allow selecting it.
+	foreach my $property ($p->provides) {
+	    #- only real provides should be taken into account, this means internal obsoletes
+	    #- should be avoided.
+	    unless ($p->obsoletes_overlap($property)) {
+		if (my ($n) = $property =~ /^([^\s\[]*)/) {
+		    foreach my $pkg (@{$obsoletes{$n} || []}) {
+			next if $pkg->name eq $p->name || $p->name ne $n || !$names{$pkg->name};
+			if ($pkg->obsoletes_overlap($property)) {
+			    #- the package being examined can be obsoleted.
+			    #- do not set installed and provides flags.
+			    push @obsoleters, $pkg;
+			    return;
+			}
+		    }
+		}
+	    }
+	}
+    });
 
-    #- examine all obsoleters packages, compute installer and upgrade flag if needed.
+    #- examine all obsoleter packages, compute installer and upgrade flag if needed.
     foreach my $pkg (@obsoleters) {
 	next if !$names{$pkg->name};
 	unless ($pkg->flag_upgrade || $pkg->flag_installed) {
 	    #- assume for this small algorithm package to be upgradable.
 	    $pkg->set_flag_upgrade;
-	    $db->traverse_tag('name', [ $pkg->name ], sub {
-				  my ($p) = @_;
-				  $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
-				  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
-			      });
+	    $db->traverse_tag(
+		'name', [ $pkg->name ], sub {
+		    my ($p) = @_;
+		    $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+		    $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
+		},
+	    );
 	}
 	if ($pkg->flag_installed && !$pkg->flag_upgrade) {
 	    delete $names{$pkg->name};
