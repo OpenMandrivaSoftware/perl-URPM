@@ -954,6 +954,30 @@ Pkg_sourcerpm(pkg)
   }
 
 void
+Pkg_packager(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_PACKAGER), 0)));
+  }
+
+void
+Pkg_buildhost(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_BUILDHOST), 0)));
+  }
+
+void
+Pkg_url(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_URL), 0)));
+  }
+
+void
 Pkg_fullname(pkg)
   URPM::Package pkg
   PREINIT:

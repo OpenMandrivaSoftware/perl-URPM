@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.82
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Apr 22 2003 François Pons <fpons@mandrakesoft.com> 0.82-3mdk
+- integrated patch from Olivier Thauvin to add misc method to
+  URPM::Package (packager, buildhost, url).
+
 * Mon Apr 14 2003 François Pons <fpons@mandrakesoft.com> 0.82-2mdk
 - fixed skip flag computation.
 
