@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 6mdk
+%define release 7mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Oct 13 2003 François Pons <fpons@mandrakesoft.com> 0.94-7mdk
+- fixed search for package broken in full provides instead of
+  simply better package version, so that pam-devel is upgraded
+  to libpam0-devel for example.
+
 * Wed Sep 10 2003 François Pons <fpons@mandrakesoft.com> 0.94-6mdk
 - fixed diff provides on obsoleted provides still needed.
 
