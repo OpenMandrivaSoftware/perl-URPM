@@ -6,7 +6,7 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 bootstrap URPM $VERSION;
 
@@ -69,6 +69,13 @@ sub traverse_tag {
 	} elsif ($tag eq 'whatrequires') {
 	    foreach (@{$urpm->{depslist} || []}) {
 		if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->requires) {
+		    $callback and $callback->($_);
+		    ++$count;
+		}
+	    }
+	} elsif ($tag eq 'whatconflicts') {
+	    foreach (@{$urpm->{depslist} || []}) {
+		if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->conflicts) {
 		    $callback and $callback->($_);
 		    ++$count;
 		}

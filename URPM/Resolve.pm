@@ -317,6 +317,20 @@ sub resolve_requested {
 		}
 	    }
 	}
+
+	#- examine if an existing package does not conflicts with this one.
+	$db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
+			     my ($p) = @_;
+			     foreach my $property ($p->conflicts) {
+				 if (grep { ranges_overlap($_, $property) } $pkg->provides) {
+				     $state->{conflicts}{$p->fullname}{$pkg->id} = undef;
+				     #- all these packages should be removed.
+				     $options{keep_state} or
+				       $urpm->resolve_closure_ask_remove($db, $state, $p,
+									 { conflicts => $property, pkg => $pkg });
+				 }
+			     }
+			 });
     }
 
     if ($options{keep_state}) {

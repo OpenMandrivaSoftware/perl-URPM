@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.10
-%define release 2mdk
+%define version 0.11
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jul 19 2002 François Pons <fpons@mandrakesoft.com> 0.11-1mdk
+- added whatconflicts to traverse_tag.
+- fixed semantic of flag_available (package installed or selected).
+
 * Tue Jul 16 2002 François Pons <fpons@mandrakesoft.com> 0.10-2mdk
 - extended selected and available flag to take care of base flag.
 - improved resolve_requested (use keep_state) and delete

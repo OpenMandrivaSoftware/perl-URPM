@@ -1593,7 +1593,8 @@ int
 Pkg_flag_available(pkg)
   URPM::Package pkg
   CODE:
-  RETVAL = pkg->flag & FLAG_INSTALLED || (pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUESTED | FLAG_REQUIRED) : 0);
+  RETVAL = (pkg->flag & FLAG_INSTALLED && !(pkg->flag & FLAG_UPGRADE)) ||
+           (pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUESTED | FLAG_REQUIRED) : 0);
   OUTPUT:
   RETVAL
 
@@ -1774,6 +1775,8 @@ Db_traverse_tag(db,tag,names,callback)
       rpmtag = RPMTAG_PROVIDENAME;
     else if (!strcmp(tag, "whatrequires"))
       rpmtag = RPMTAG_REQUIRENAME;
+    else if (!strcmp(tag, "whatconflicts"))
+      rpmtag = RPMTAG_CONFLICTNAME;
     else if (!strcmp(tag, "group"))
       rpmtag = RPMTAG_GROUP;
     else if (!strcmp(tag, "triggeredby"))
