@@ -55,6 +55,7 @@ rm -rf $RPM_BUILD_ROOT
 - fixed promotion of epoch to be rpm 4.2 compliant :
    - added promotion boolean to URPM::ranges_overlap.
    - changed URPM::find_candidate_packages interface.
+- fixed compilation on old rpm-4.0.4.
 
 * Mon Jun 16 2003 François Pons <fpons@mandrakesoft.com> 0.91-1mdk
 - added transaction set methods.
