@@ -677,6 +677,8 @@ Pkg_is_arch_compat(pkg)
   } else {
     RETVAL = 0;
   }
+  OUTPUT:
+  RETVAL
 
 void
 Pkg_summary(pkg)
@@ -769,10 +771,12 @@ Pkg_compare_pkg(lpkg, rpkg)
   int lepoch;
   char *lversion;
   char *lrelease;
+  char *larch;
   char *leos;
   int repoch;
   char *rversion;
   char *rrelease;
+  char *rarch;
   char *reos;
   CODE:
   if (lpkg->info) {
@@ -785,14 +789,15 @@ Pkg_compare_pkg(lpkg, rpkg)
     } else {
       lepoch = 0;
     }
-    get_fullname_parts(lpkg, NULL, &lversion, &lrelease, &leos, NULL);
+    get_fullname_parts(lpkg, NULL, &lversion, &lrelease, &larch, &leos);
     /* temporaly mark end of each substring */
     lrelease[-1] = 0;
-    leos[-1] = 0;
+    larch[-1] = 0;
   } else if (lpkg->h) {
     lepoch = get_int(lpkg->h, RPMTAG_EPOCH);
     lversion = get_name(lpkg->h, RPMTAG_VERSION);
     lrelease = get_name(lpkg->h, RPMTAG_RELEASE);
+    larch = headerIsEntry(lpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(lpkg->h, RPMTAG_ARCH);
   } else croak("undefined package");
   if (rpkg->info) {
     char *s;
@@ -804,36 +809,56 @@ Pkg_compare_pkg(lpkg, rpkg)
     } else {
       repoch = 0;
     }
-    get_fullname_parts(rpkg, NULL, &rversion, &rrelease, &reos, NULL);
+    get_fullname_parts(rpkg, NULL, &rversion, &rrelease, &rarch, &reos);
     /* temporaly mark end of each substring */
     rrelease[-1] = 0;
-    reos[-1] = 0;
+    rarch[-1] = 0;
   } else if (rpkg->h) {
     repoch = get_int(rpkg->h, RPMTAG_EPOCH);
     rversion = get_name(rpkg->h, RPMTAG_VERSION);
     rrelease = get_name(rpkg->h, RPMTAG_RELEASE);
+    rarch = headerIsEntry(rpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(rpkg->h, RPMTAG_ARCH);
   } else {
     /* restore info string modified */
     if (lpkg->info) {
       lrelease[-1] = '-';
-      leos[-1] = '.';
+      larch[-1] = '.';
     }
     croak("undefined package");
   }
   compare = lepoch - repoch;
   if (!compare) {
     compare = rpmvercmp(lversion, rversion);
-    if (!compare)
+    if (!compare) {
       compare = rpmvercmp(lrelease, rrelease);
+      if (!compare) {
+	int lscore, rscore;
+
+	read_config_files();
+	lscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, larch);
+	rscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, rarch);
+	if (lscore == 0) {
+	  if (rscore == 0)
+	    compare = strcmp(larch, rarch);
+	  else
+	    compare = -1;
+	} else {
+	  if (rscore == 0)
+	    compare = 1;
+	  else
+	    compare = rscore - lscore; /* score are lower for better */
+	}
+      }
+    }
   }
   /* restore info string modified */
   if (lpkg->info) {
     lrelease[-1] = '-';
-    leos[-1] = '.';
+    larch[-1] = '.';
   }
   if (rpkg->info) {
     rrelease[-1] = '-';
-    reos[-1] = '.';
+    rarch[-1] = '.';
   }
   RETVAL = compare;
   OUTPUT:

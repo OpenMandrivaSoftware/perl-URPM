@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.03
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jun  6 2002 François Pons <fpons@mandrakesoft.com> 0.03-2mdk
+- fixed incomplete compare_pkg not taking into account score
+  of arch.
+
 * Thu Jun  6 2002 François Pons <fpons@mandrakesoft.com> 0.03-1mdk
 - added more flag method to URPM::Package
 - avoid garbage output when reading hdlist archive.
