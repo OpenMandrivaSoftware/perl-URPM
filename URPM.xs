@@ -695,76 +695,50 @@ void
 return_list_tag(Header header, int_32 tag_name) {
   dSP;
   if (header) {
-    int_32 *list = NULL;
-    uint_16 *list16;
+    void *list = NULL;
     int_32 count, type;
     headerGetEntry(header, tag_name, &type, (void **) &list, &count);
     if (list) {
-      if (count == 1 ) {
-	switch (type) {
-	case RPM_NULL_TYPE:
-	  break;
-	case RPM_CHAR_TYPE:
-	  XPUSHs(sv_2mortal(newSVpv((char *) list,strlen((char *) list))));
-	  break;
-	case RPM_INT8_TYPE:
-	  break;
-	case RPM_INT16_TYPE:
-	  list16 = list;
-	  XPUSHs(sv_2mortal(newSViv(list16)));     	
-	  break;
-	case RPM_INT32_TYPE:
-	  XPUSHs(sv_2mortal(newSViv((int_32 *) list)));
-	  break;
-/*
-  case RPM_INT64_TYPE:
-  break; 
-*/
-	case RPM_STRING_TYPE:
-	  XPUSHs(sv_2mortal(newSVpv((char *) list, strlen((char *) list))));
-	  break;
-	case RPM_BIN_TYPE:
-	  break;
-	case RPM_STRING_ARRAY_TYPE:
-	  break;
-	case RPM_I18NSTRING_TYPE:
-	  break;
-	}
-      } else {
-	int i;
-	for (i=0; i< count; i++) {
-	  switch (type) {
+    
+    switch (type) {
 	  case RPM_NULL_TYPE:
 	    break;
 	  case RPM_CHAR_TYPE:
-	    XPUSHs(sv_2mortal(newSVpv((char *) list,strlen((char *) list))));
-	    break;
 	  case RPM_INT8_TYPE:
-	    break;
 	  case RPM_INT16_TYPE:
-	    list16 = list;
-	    XPUSHs(sv_2mortal(newSViv(list16[i])));     	
-	    break;
 	  case RPM_INT32_TYPE:
-	    XPUSHs(sv_2mortal(newSViv((int_32 *) list[i])));
+        {
+        int i;
+        int *r;
+        r = (int *)list;
+        for (i=0; i < count; i++) {
+    	    XPUSHs(sv_2mortal(newSViv(r[i])));
+        }
+        }
 	    break;
 /*
   case RPM_INT64_TYPE:
   break; 
 */
 	  case RPM_STRING_TYPE:
-	    XPUSHs(sv_2mortal(newSVpv((char *) list[i], strlen((char *) list[i]))));
+	    XPUSHs(sv_2mortal(newSVpv((char *) list, 0)));
 	    break;
 	  case RPM_BIN_TYPE:
 	    break;
 	  case RPM_STRING_ARRAY_TYPE:
-	    XPUSHs(sv_2mortal(newSVpv((char *) list[i],strlen((char *) list[i]))));
+        {
+        int i;
+        char **s;
+        
+        s = (char **)list;
+        for (i = 0; i < count; i++) {
+    	    XPUSHs(sv_2mortal(newSVpv(s[i], 0)));
+        }
+        }
 	    break;
 	  case RPM_I18NSTRING_TYPE:
 	    break;
 	  }
-	}
-      }
     }
   }
   PUTBACK;
