@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 13mdk
+%define release 14mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jul 24 2003 François Pons <fpons@mandrakesoft.com> 0.91-14mdk
+- fixed handling of kde packages being splitted with different
+  names which obfuscated the resolution algorithm, difference
+  of provides are now handled later (fifo).
+
 * Thu Jul 24 2003 François Pons <fpons@mandrakesoft.com> 0.91-13mdk
 - modified internal handling of string list to allow complex
   combined method in pure C in order to increase speed.

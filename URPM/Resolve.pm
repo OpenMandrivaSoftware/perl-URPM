@@ -207,7 +207,8 @@ sub backtrack_selected {
 			#- keep in mind a backtrack has happening here...
 			$state->{rejected}{$_->fullname}{backtrack} ||=
 			  { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
-			    exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]} };
+			    exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
+			    required => $dep->{required} };
 			#- backtrack callback should return a strictly positive value if the selection of the new
 			#- package is prefered over the currently selected package.
 			next;
@@ -376,6 +377,52 @@ sub resolve_requested {
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     while (defined ($dep = shift @properties)) {
+	if (exists $dep->{diff_provides}) {
+	    my ($n, $pkg) = ($dep->{diff_provides}, $dep->{psel});
+	    $db->traverse_tag('whatrequires', [ $n ], sub {
+				  my ($p) = @_;
+				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $n)) {
+				      #- try if upgrading the package will be satisfying all the requires...
+				      #- there is no need to avoid promoting epoch as the package examined is not
+				      #- already installed.
+				      my $packages = $urpm->find_candidate_packages($p->name, avoided => $state->{rejected});
+				      my $best = join '|', map { $_->id }
+					grep { $_->fullname ne $p->fullname &&
+						 $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
+					  @{$packages->{$p->name}};
+
+				      if (length $best) {
+					  push @properties, { required => $best, promote => $n, psel => $pkg };
+				      } else {
+					  #- no package have been found, we may need to remove the package examined unless
+					  #- there exists enough packages that provided the unsatisfied requires.
+					  my @best;
+					  foreach (@l) {
+					      $packages = $urpm->find_candidate_packages($_,
+											 nopromoteepoch => 1,
+											 avoided => $state->{rejected});
+					      $best = join('|',
+							   map { $_->id }
+							   grep { $_->fullname ne $p->fullname }
+							   map { @{$_ || []} } values %$packages);
+					      $best and push @best, $best;
+					  }
+
+					  if (@best == @l) {
+					      push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
+					  } else {
+					      $urpm->resolve_rejected($db, $state, $p,
+								      removed => 1,
+								      unsatisfied => \@properties,
+								      from => scalar $pkg->fullname,
+								      why => { unsatisfied => \@l });
+					  }
+				      }
+				  }
+			      });
+	}
+	exists $dep->{required} or next;
+
 	#- in case of keep_unrequested_dependencies option is not set, we need to avoid
 	#- selecting packages if the source has been disabled.
 	if (exists $dep->{from} && !$options{keep_unrequested_dependencies}) {
@@ -513,49 +560,7 @@ sub resolve_requested {
 		}
 	    }
 
-	    foreach my $n (keys %diff_provides) {
- 		$db->traverse_tag('whatrequires', [ $n ], sub {
-				      my ($p) = @_;
-				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $n)) {
-					  #- try if upgrading the package will be satisfying all the requires...
-					  #- there is no need to avoid promoting epoch as the package examined is not
-					  #- already installed.
-					  my $packages = $urpm->find_candidate_packages($p->name, avoided => $state->{rejected});
-					  my $best = join '|', map { $_->id }
-					    grep { $_->fullname ne $p->fullname &&
-						     $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
-					      @{$packages->{$p->name}};
-
-					  if (length $best) {
-					      push @properties, { required => $best, promote => $n, psel => $pkg };
-					  } else {
-					      #- no package have been found, we may need to remove the package examined unless
-					      #- there exists enough packages that provided the unsatisfied requires.
-					      my @best;
-					      foreach (@l) {
-						  $packages = $urpm->find_candidate_packages($_,
-											     nopromoteepoch => 1,
-											     avoided => $state->{rejected});
-						  $best = join('|',
-							       map { $_->id }
-							       grep { $_->fullname ne $p->fullname }
-							       map { @{$_ || []} } values %$packages);
-						  $best and push @best, $best;
-					      }
-
-					      if (@best == @l) {
-						  push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
-					      } else {
-						  $urpm->resolve_rejected($db, $state, $p,
-									  removed => 1,
-									  unsatisfied => \@properties,
-									  from => scalar $pkg->fullname,
-									  why => { unsatisfied => \@l });
-					      }
-					  }
-				      }
-				  });
-	    }
+	    push @properties, map { +{ diff_provides => $_, psel => $pkg } } keys %diff_provides;
 	}
 
 	#- all requires should be satisfied according to selected package, or installed packages.
