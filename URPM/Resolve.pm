@@ -164,13 +164,15 @@ sub find_chosen_packages {
 
 	#- sort packages in order to have preferred ones first
 	#- (this means good locales, no locales, bad locales).
-	return (sort { $a->id <=> $b->id } @chosen_good_locales),
-	       (sort { $a->id <=> $b->id } @chosen_other),
-	       (sort { $a->id <=> $b->id } @chosen_bad_locales);
+	return (sort sort_package_result @chosen_good_locales),
+	       (sort sort_package_result @chosen_other),
+	       (sort sort_package_result @chosen_bad_locales);
     }
 
     return values(%packages);
 }
+
+sub sort_package_result { $b->compare_pkg($a) || $a->id <=> $b->id }
 
 #- return unresolved requires of a package (a new one or an existing one).
 sub unsatisfied_requires {
