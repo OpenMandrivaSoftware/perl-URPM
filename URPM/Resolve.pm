@@ -528,10 +528,8 @@ sub resolve_requested {
 						  $rv->{obsoleted} = 1;
 					      }
 
-					      #- avoid diff_provides on obsoleted provides.
-					      my %obsoletes; @obsoletes{$p->obsoletes} = ();
+					      #- diff_provides on obsoleted provides are needed.
 					      foreach ($p->provides) {
-						  exists $obsoletes{$_} and next;
 						  #- check differential provides between obsoleted package and newer one.
 						  if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 						      $diff_provides{$pn} = undef;
@@ -648,6 +646,7 @@ sub resolve_requested {
 	}
 	if (defined ($dep = shift @diff_provides)) {
 	    my ($n, $pkg) = ($dep->{name}, $dep->{pkg});
+	    print STDERR "managing diff_provides on $dep->{name} from ".$dep->{pkg}->fullname."\n";
 	    $db->traverse_tag('whatrequires', [ $n ], sub {
 				  my ($p) = @_;
 				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $n)) {
