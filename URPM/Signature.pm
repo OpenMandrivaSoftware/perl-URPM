@@ -42,7 +42,7 @@ sub parse_pubkeys {
 				  my $inside_block = /^$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
 				  if ($inside_block > 1) {
 				      if ($inside_block =~ /E/) {
-					  $urpm->{keys}{$p->version} = { $p->summary =~ /^gpg\(\)$/ ? (name => $1) : @{[]},
+					  $urpm->{keys}{$p->version} = { $p->summary =~ /^gpg\((.*)\)$/ ? (name => $1) : @{[]},
 									 id => $p->version,
 									 content => $content,
 								       };
