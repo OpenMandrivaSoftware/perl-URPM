@@ -9,4 +9,7 @@ URPM/Resolve.pm
 URPM/Signature.pm
 t/rpmdb.t
 t/synthesis.t
-META.yml                                Module meta-data (added by MakeMaker)
+build_rpm
+ChangeLog
+perl-URPM.spec
+META.yml                                 Module meta-data (added by MakeMaker)

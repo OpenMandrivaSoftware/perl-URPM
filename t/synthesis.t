@@ -26,6 +26,8 @@ glibc-devel@info@glibc-devel-2.2.4-25mdk.i586@6@45692097@Development/C
 };
 close F;
 
+END { unlink $file1 }
+
 print "1..80\n";
 
 my $a = new URPM;

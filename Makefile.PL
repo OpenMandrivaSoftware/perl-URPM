@@ -1,9 +1,8 @@
 use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
 
-my $version = `rpm -q --qf '%{VERSION}\n' rpm`;
-$version =~ /^(?:[4-9]|\d{2})/ or die "unable to build URPM with too old (or undetected) rpm version $version";
+my $version = `rpm -q --qf '%{VERSION}' rpm`;
+$version =~ /^(?:[4-9]|\d{2})/
+    or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 
 #- search for correct libraries to use (above 4.0.3 is right).
 my $libs = $version =~ /^4\.0(?:\.[012])?$/ ?
