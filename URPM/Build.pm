@@ -48,14 +48,21 @@ sub parse_rpms_build_headers {
 		$filename = $cache{$key}{file};
 	    } else {
 		($id, undef) = $urpm->parse_rpm($_);
-		defined $id or die "bad rpm $_\n";
+		defined $id or do {
+            if ($options{dontdie}) {
+                print STDERR "bad rpm $_\n";
+                next;
+            } else {
+                die "bad rpm $_\n";
+            }
+        };
 
 		my $pkg = $urpm->{depslist}[$id];
 
 		$filename = $pkg->fullname;
 		"$filename.rpm" eq $pkg->filename or $filename .= ":$key";
 
-		print STDERR "$dir/$filename\n";
+		$options{silent} or print STDERR "$dir/$filename\n";
 		unless (-s "$dir/$filename") {
 		    open F, ">$dir/$filename" or die "unable to open $dir/$filename for writing\n";
 		    $pkg->build_header(fileno *F);
@@ -65,7 +72,7 @@ sub parse_rpms_build_headers {
 
 		#- make smart use of memory (no need to keep header in memory now).
 		if ($options{callback}) {
-		    $options{callback}->($urpm, $id, %options);
+		    $options{callback}->($urpm, $id, %options, (file => $_));
 		} else {
 		    $pkg->pack_header;
 		}
@@ -327,17 +334,23 @@ sub compute_deps {
 #-   dir      : directory wich contains headers (default to /tmp/.build_hdlist)
 #-   start    : index of first package (default to first index of depslist).
 #-   end      : index of last package (default to last index of depslist).
+#-   idlist   : ids list to rpm to compute (default is start .. end)
 #-   ratio    : compression ratio (default 4).
 #-   split    : split ratio (default 400000).
 sub build_hdlist {
     my ($urpm, %options) = @_;
-    my ($dir, $start, $end, $ratio, $split);
+    my ($dir, $start, $end, $ratio, $split, @idlist);
 
     $dir = $options{dir} || ($ENV{TMPDIR} || "/tmp") . "/.build_hdlist";
      -d $dir or die "no directory $dir\n";
 
-    $start = $options{start} || 0;
-    $end = $options{end} || $#{$urpm->{depslist}};
+    if (@{$options{idlist}}) {
+        @idlist = @{$options{idlist}};
+    } else {
+        $start = $options{start} || 0;
+        $end = $options{end} || $#{$urpm->{depslist}};
+        @idlist = ($start .. $end);
+    }
 
     #- compression ratio are not very high, sample for cooker
     #- gives the following (main only and cache fed up):
@@ -352,7 +365,7 @@ sub build_hdlist {
 
     local *B;
     open B, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
-    foreach my $pkg (@{$urpm->{depslist}}[$start .. $end]) {
+    foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 	my $filename = $pkg->fullname;
 	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ m!([^/]*)\.rpm$! and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
@@ -368,14 +381,20 @@ sub build_hdlist {
 #-   dir       : directory wich contains headers (default to /tmp/.build_hdlist)
 #-   start     : index of first package (default to first index of depslist).
 #-   end       : index of last package (default to last index of depslist).
+#-   idlist    : ids list to rpm to compute (default is start .. end)
 #-   ratio     : compression ratio (default 9).
 sub build_synthesis {
     my ($urpm, %options) = @_;
-    my ($start, $end, $ratio);
+    my ($start, $end, $ratio, @idlist);
 
-    $start = $options{start} || 0;
-    $end = $options{end} || $#{$urpm->{depslist}};
-    $start > $end and return;
+    if (@{$options{idlist}} > 0) {
+        @idlist = @{$options{idlist}};
+    } else {
+        $start = $options{start} || 0;
+        $end = $options{end} || $#{$urpm->{depslist}};
+        $start > $end and return;
+        @idlist = ($start .. $end);
+    }
     $ratio = $options{ratio} || 9;
     $options{synthesis} || defined $options{fd} or die "invalid parameters given";
 
@@ -392,7 +411,7 @@ sub build_synthesis {
     #- second pass: write each info including files provided.
     local *F;
     $options{synthesis} and open F, "| " . ($ENV{LD_LOADER} || '') . " gzip -$ratio >'$options{synthesis}'";
-    foreach ($start .. $end) {
+    foreach (@idlist) {
 	my $pkg = $urpm->{depslist}[$_];
 	my %files;
 

@@ -654,6 +654,124 @@ return_list_uint_16(Header header, int_32 tag_name) {
 }
 
 void
+return_list_tag_modifier(Header header, int_32 tag_name) {
+  dSP;
+  int_32 *list;
+  int_16 *list16;
+  int_32 count, type;
+  headerGetEntry(header, tag_name, &type, (void **) &list, &count);
+  
+  int i;
+  for (i=0; i<count; i++) {
+    char *buff[15];
+    char *s= buff;
+    switch (tag_name) {
+    case RPMTAG_FILEFLAGS:
+	  if (list[i] & RPMFILE_CONFIG)    *s++ = 'c';
+	  if (list[i] & RPMFILE_DOC)       *s++ = 'd';
+	  if (list[i] & RPMFILE_GHOST)     *s++ = 'g';
+	  if (list[i] & RPMFILE_LICENSE)   *s++ = 'l';
+	  if (list[i] & RPMFILE_ICON)      *s++ = 'i';
+	  if (list[i] & RPMFILE_MISSINGOK) *s++ = 'm';
+	  if (list[i] & RPMFILE_NOREPLACE) *s++ = 'n';
+	  if (list[i] & RPMFILE_SPECFILE)  *s++ = 'S';
+	  if (list[i] & RPMFILE_README)    *s++ = 'R';
+	  if (list[i] & RPMFILE_EXCLUDE)   *s++ = 'e';
+	  if (list[i] & RPMFILE_UNPATCHED) *s++ = 'u';
+	  if (list[i] & RPMFILE_PUBKEY)    *s++ = 'p';
+			 
+    break;
+    default:
+      return;  
+    }
+    *s = '\0';
+    XPUSHs(sv_2mortal(newSVpv(buff, strlen(buff))));
+    }
+  PUTBACK;
+}
+
+void 
+return_list_tag(Header header, int_32 tag_name) {
+   dSP;
+   if (header) {
+      int_32 *list = NULL;
+      uint_16 *list16;
+      int_32 count, type;
+      headerGetEntry(header, tag_name, &type, (void **) &list, &count);
+      if (list) {
+	 if (count == 1 ) {
+              switch (type) {
+              case RPM_NULL_TYPE:
+              break;
+	      case RPM_CHAR_TYPE:
+                XPUSHs(sv_2mortal(newSVpv((char *) list,strlen((char *) list))));
+	      break;
+              case RPM_INT8_TYPE:
+              break;
+              case RPM_INT16_TYPE:
+	        list16 = list;
+		XPUSHs(sv_2mortal(newSViv(list16)));     	
+              break;
+              case RPM_INT32_TYPE:
+                XPUSHs(sv_2mortal(newSViv((int_32 *) list)));
+	      break;
+/*
+              case RPM_INT64_TYPE:
+              break; 
+*/
+              case RPM_STRING_TYPE:
+                XPUSHs(sv_2mortal(newSVpv((char *) list, strlen((char *) list))));
+	      
+              break;
+              case RPM_BIN_TYPE:
+              break;
+              case RPM_STRING_ARRAY_TYPE:
+              break;
+              case RPM_I18NSTRING_TYPE:
+              break;
+	      }
+	 } else {
+	   int i;
+           for (i=0; i< count; i++) {
+              switch (type) {
+              case RPM_NULL_TYPE:
+              break;
+	      case RPM_CHAR_TYPE:
+                XPUSHs(sv_2mortal(newSVpv((char *) list,strlen((char *) list))));
+	      break;
+              case RPM_INT8_TYPE:
+              break;
+              case RPM_INT16_TYPE:
+	        list16 = list;
+		XPUSHs(sv_2mortal(newSViv(list16[i])));     	
+              break;
+              case RPM_INT32_TYPE:
+                XPUSHs(sv_2mortal(newSViv((int_32 *) list[i])));
+	      break;
+/*
+              case RPM_INT64_TYPE:
+              break; 
+*/
+              case RPM_STRING_TYPE:
+                XPUSHs(sv_2mortal(newSVpv((char *) list[i], strlen((char *) list[i]))));
+              break;
+              case RPM_BIN_TYPE:
+              break;
+              case RPM_STRING_ARRAY_TYPE:
+                XPUSHs(sv_2mortal(newSVpv((char *) list[i],strlen((char *) list[i]))));
+              break;
+              case RPM_I18NSTRING_TYPE:
+              break;
+	      }
+	   }
+	 }
+      }
+   }
+   PUTBACK;
+}
+
+
+void
 return_files(Header header, int filter_mode) {
   dSP;
   if (header) {
@@ -1499,6 +1617,30 @@ Pkg_license(pkg)
   }
 
 void
+Pkg_distribution(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_DISTRIBUTION), 0)));
+  }
+
+void
+Pkg_vendor(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_VENDOR), 0)));
+  }
+
+void
+Pkg_os(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_OS), 0)));
+  }
+
+void
 Pkg_fullname(pkg)
   URPM::Package pkg
   PREINIT:
@@ -2099,6 +2241,14 @@ Pkg_files_mode(pkg)
   SPAGAIN;
 
 void
+Pkg_files_flags(pkg)
+  URPM::Package pkg
+  PPCODE:
+  PUTBACK;
+  return_list_int_32(pkg->h, RPMTAG_FILEFLAGS);
+  SPAGAIN;
+  
+void
 Pkg_conf_files(pkg)
   URPM::Package pkg
   PPCODE:
@@ -2138,6 +2288,24 @@ Pkg_changelog_text(pkg)
   return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
+void
+Pkg_get_tag(pkg, tagname)
+  URPM::Package pkg
+  int tagname;
+  PPCODE:
+  PUTBACK;
+  return_list_tag(pkg->h, tagname);
+  SPAGAIN;
+
+void
+Pkg_get_tag_modifiers(pkg, tagname)
+  URPM::Package pkg
+  int tagname;
+  PPCODE:
+  PUTBACK;
+  return_list_tag_modifier(pkg->h, tagname);
+  SPAGAIN;
+  
 void
 Pkg_pack_header(pkg)
   URPM::Package pkg
