@@ -13,7 +13,7 @@ use strict;
 
 sub tag2id {
 	my @l = @_;
-	my %taglist = URPM::list_rpm_tag;
+	my %taglist = URPM::list_rpm_tag();
 	map { $taglist{uc($_)} || undef } @l;
 }
 
