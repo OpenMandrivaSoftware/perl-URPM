@@ -1,4 +1,13 @@
-2005-02-15 13:48  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+2005-03-02 15:38  Rafael Garcia-Suarez <rgarciasuarez at mandrakesoft.com>
+
+	* URPM.xs: Prepare for obsolescence of PREREQ, introduce equivalent
+	  RPMSENSE_SCRIPT_* tags
+
+2005-02-15 13:54  Rafael Garcia-Suarez <rgarciasuarez at mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 1.09-1mdk
+
+2005-02-15 13:48  Rafael Garcia-Suarez <rgarciasuarez at mandrakesoft.com>
 
 	* URPM/Resolve.pm: Comments and indentation
 

@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.09
+%define version 1.10
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -66,6 +66,10 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Wed Mar 02 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.10-1mdk
+- Prepare for obsolescence of PreReq rpm tag, introduce equivalent
+  RPMSENSE_SCRIPT_* tags
+
 * Tue Feb 15 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.09-1mdk
 - Force recomputation of rejected packages when deleting some in installation
   dependency resolution
