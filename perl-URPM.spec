@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 5mdk
+%define release 6mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jun 03 2003 Warly <warly@mandrakesoft.com> 0.90-6mdk
+- add Pkg_buildtime to get RPMTAG_BUILDTIME
+
 * Tue Jun  3 2003 François Pons <fpons@mandrakesoft.com> 0.90-5mdk
 - fixed typo in parse_rpm method.
 
@@ -64,6 +67,7 @@ rm -rf $RPM_BUILD_ROOT
 
 * Wed May 28 2003 Warly <warly@mandrakesoft.com> 0.90-3mdk
 - add license function for urpm->{depslist}[$id]
+- fix Urpm_parse_rpm argument initialization (sytematically setting packing and keep_all_tags to zero)
 
 * Mon May 26 2003 François Pons <fpons@mandrakesoft.com> 0.90-2mdk
 - fixed URPM::resolve_requested return value (list of package

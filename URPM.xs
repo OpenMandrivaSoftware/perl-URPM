@@ -1306,6 +1306,18 @@ Pkg_buildhost(pkg)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_BUILDHOST), 0)));
   }
 
+int
+Pkg_buildtime(pkg)
+  URPM::Package pkg
+  CODE:
+  if (pkg->h) {
+    RETVAL = get_int(pkg->h, RPMTAG_BUILDTIME);
+  } else {
+    RETVAL = 0;
+  }
+  OUTPUT:
+  RETVAL
+
 void
 Pkg_url(pkg)
   URPM::Package pkg
