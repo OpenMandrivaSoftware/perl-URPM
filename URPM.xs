@@ -3265,7 +3265,7 @@ Urpm_parse_synthesis(urpm, filename, ...)
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	}
-      } else croak("unable to uncompress synthesis file");
+      } else croak("unable to uncompress synthesis file %s", filename);
     } else croak("first argument should contains a depslist ARRAY reference");
   } else croak("first argument should be a reference to HASH");
 
@@ -3359,7 +3359,7 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	}
-      } else croak("cannot open hdlist file");
+      } else croak("cannot open hdlist file %s", filename);
     } else croak("first argument should contains a depslist ARRAY reference");
   } else croak("first argument should be a reference to HASH");
 
