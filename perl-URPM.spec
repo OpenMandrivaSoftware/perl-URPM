@@ -47,5 +47,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jun  3 2002 François Pons <fpons@mandrakesoft.com> 0.02-1mdk
+- new version with extended parameters list for URPM::Build.
+- fixed code to be -w clean.
+
 * Fri May 31 2002 François Pons <fpons@mandrakesoft.com> 0.01-1mdk
 - initial revision.
