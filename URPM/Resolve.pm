@@ -531,7 +531,15 @@ sub resolve_requested {
 				if ($p->name eq $pkg->name) {
 				    #- all packages older than the current one are obsoleted,
 				    #- the others are simply removed (the result is the same).
-				    if ($satisfied || $comparison > 0) {
+				    if ($comparison > 0) {
+					#- installed package is newer
+					#- remove this package from the list of packages to install,
+					#- unless urpmi was invoked with --allow-force (in which
+					#- case rpm could be invoked with --oldpackage)
+					if (!$urpm->{options}{'allow-force'}) {
+					    $urpm->disable_selected($db, $state, $pkg);
+					}
+				    } elsif ($satisfied) {
 					$rv->{obsoleted} = 1;
 				    } else {
 					$rv->{closure}{$pkg->fullname} = { old_requested => 1 };
