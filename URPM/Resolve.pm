@@ -412,20 +412,11 @@ sub resolve_requested {
 	    if ($pkg->flag_installed && !$pkg->flag_upgrade) {
 		my $allow;
 		#- the same or a more recent package is installed,
-		#- but this package may be required explicitely, in such
-		#- case we can ask to remove all the previous one and
-		#- choose this one to install.
 		$db->traverse_tag('name', [ $pkg->name ], sub {
 				      my ($p) = @_;
-				      if ($pkg->compare_pkg($p) < 0) {
-					  $allow = ++$state->{oldpackage};
-					  #- avoid recusive rejects, else everything may be removed.
-					  my $rv = $state->{rejected}{$p->fullname} ||= {};
-					  $rv->{closure}{$pkg->fullname} = { old_requested => 1 };
-					  $rv->{removed} = 1;
-				      }
+				      $allow ||= $pkg->compare_pkg($p) < 0;
 				  });
-		#- if nothing has been removed, just ignore it.
+		#- if nothing has been found, just ignore it.
 		$allow or next;
 	    }
 	}
@@ -466,14 +457,30 @@ sub resolve_requested {
 		    #- examine rpm db too.
 		    $db->traverse_tag('whatprovides', [ $n ], sub {
 					  my ($p) = @_;
-					  !$o || eval($p->compare($v) . $o . 0) or return;
+					  my $satisfied = !$o || eval($p->compare($v) . $o . 0);
+
+					  $n eq $p->name && $p->name eq $pkg->name && $p->fullname ne $pkg->fullname ||
+					    $satisfied or return;
 
 					  #- do not propagate now the broken dependencies as they are
 					  #- computed later.
 					  my $rv = $state->{rejected}{$p->fullname} ||= {};
 					  $rv->{closure}{$pkg->fullname} = undef;
-					  $rv->{obsoleted} = 1;
 					  $rv->{size} = $p->size;
+
+					  if ($p->name eq $pkg->name) {
+					      #- all packages older than the current one are obsoleted,
+					      #- the others are simply removed (the result is the same).
+					      if ($satisfied) {
+						  $rv->{obsoleted} = 1;
+					      } else {
+						  $rv->{closure}{$pkg->fullname} = { old_requested => 1 };
+						  $rv->{removed} = 1;
+						  ++$state->{oldpackage};
+					      }
+					  } else {
+					      $rv->{obsoleted} = 1;
+					  }
 
 					  foreach ($p->provides) {
 					      #- check differential provides between obsoleted package and newer one.
