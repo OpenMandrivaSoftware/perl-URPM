@@ -1,14 +1,12 @@
 package URPM;
 
 use strict;
-use vars qw($VERSION @ISA);
+use DynaLoader;
 
-require DynaLoader;
+our @ISA = qw(DynaLoader);
+our $VERSION = '0.81';
 
-@ISA = qw(DynaLoader);
-$VERSION = '0.81';
-
-bootstrap URPM $VERSION;
+URPM->bootstrap($VERSION);
 
 sub new {
     my ($class) = @_;
@@ -20,7 +18,7 @@ sub new {
 
 sub search {
     my ($urpm, $name, %options) = @_;
-    my $best = undef;
+    my $best;
 
     #- tries other alternative if no strict searching.
     unless ($options{strict}) {
@@ -77,7 +75,8 @@ sub traverse {
 
 sub traverse_tag {
     my ($urpm, $tag, $names, $callback) = @_;
-    my ($count, %names) = (0);
+    my $count = 0; 
+    my %names;
 
     if (@{$names || []}) {
 	if ($tag eq 'name') {

@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Dec 18 2002 Pixel <pixel@mandrakesoft.com> 0.81-2mdk
+- perl_checker fixes
+
 * Tue Dec 17 2002 François Pons <fpons@mandrakesoft.com> 0.81-1mdk
 - little improve on traverse_tag with tag name whit --env.
 - big improve on traverse_tag with tag whatrequires and
