@@ -2716,16 +2716,17 @@ Trans_run(trans, data, ...)
     } else if (len == 17 && !memcmp(s, "translate_message", 17))
       translate_message = 1;
     else if (len >= 9 && !memcmp(s, "callback_", 9)) {
-      if (len == 9+4 && !memcmp(s+9, "open", 4))
-	td.callback_open = ST(i+1);
-      else if (len == 9+5 && !memcmp(s+9, "close", 5))
-	td.callback_close = ST(i+1);
-      else if (len == 9+5 && !memcmp(s+9, "trans", 5))
-	td.callback_trans = ST(i+1);
-      else if (len == 9+6 && !memcmp(s+9, "uninst", 6))
-	td.callback_uninst = ST(i+1);
-      else if (len == 9+4 && !memcmp(s+9, "inst", 4))
-	td.callback_inst = ST(i+1);
+      if (len == 9+4 && !memcmp(s+9, "open", 4)) {
+	if (SvROK(ST(i+1))) td.callback_open = ST(i+1);
+      } else if (len == 9+5 && !memcmp(s+9, "close", 5)) {
+	if (SvROK(ST(i+1))) td.callback_close = ST(i+1);
+      } else if (len == 9+5 && !memcmp(s+9, "trans", 5)) {
+	if (SvROK(ST(i+1))) td.callback_trans = ST(i+1);
+      } else if (len == 9+6 && !memcmp(s+9, "uninst", 6)) {
+	if (SvROK(ST(i+1))) td.callback_uninst = ST(i+1);
+      } else if (len == 9+4 && !memcmp(s+9, "inst", 4)) {
+	if (SvROK(ST(i+1))) td.callback_inst = ST(i+1);
+      }
     }
   }
 #ifdef RPM_42
@@ -2883,7 +2884,7 @@ Urpm_parse_synthesis(urpm, filename, ...)
 	  char *s = SvPV(ST(i), len);
 
 	  if (len == 8 && !memcmp(s, "callback", 8)) {
-	    callback = ST(i+1);
+	    if (SvROK(ST(i+1))) callback = ST(i+1);
 	  }
 	}
       }
@@ -2961,7 +2962,7 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	    if (len == 7 && !memcmp(s, "packing", 7)) {
 	      packing = SvIV(ST(i+1));
 	    } else if (len == 8 && !memcmp(s, "callback", 8)) {
-	      callback = ST(i+1);
+	      if (SvROK(ST(i+1))) callback = ST(i+1);
 	    }
 	  }
 	}
@@ -3049,7 +3050,7 @@ Urpm_parse_rpm(urpm, filename, ...)
 	  } else if (len == 13 && !memcmp(s, "keep_all_tags", 13)) {
 	    keep_all_tags = SvIV(ST(i+1));
 	  } else if (len == 8 && !memcmp(s, "callback", 8)) {
-	    callback = ST(i+1);
+	    if (SvROK(ST(i+1))) callback = ST(i+1);
 	  }
 	}
       }
