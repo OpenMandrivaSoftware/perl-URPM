@@ -320,7 +320,6 @@ sub resolve_rejected {
 	}
     } else {
 	#- the package has already been rejected.
-	$options{from} and $state->{rejected}{$pkg->fullname}{closure}{$options{from}} = $options{why};
 	foreach (qw(removed obsoleted)) {
 	    $options{$_} && (! exists $state->{rejected}{$pkg->fullname}{$_} ||
 			     $options{$_} <= $state->{rejected}{$pkg->fullname}{$_})
@@ -328,6 +327,7 @@ sub resolve_rejected {
 	}
     }
 
+    $options{from} and $state->{rejected}{$pkg->fullname}{closure}{$options{from}} = $options{why};
     $options{unsatisfied} and push @{$options{unsatisfied}}, map { { required => $_, rejected => $pkg->fullname, } } @unsatisfied;
 }
 
@@ -464,7 +464,7 @@ sub resolve_requested {
 			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} ||= undef;
 		    }
 		    #- examine rpm db too.
-		    $db->traverse_tag('name', [ $n ], sub {
+		    $db->traverse_tag('whatprovides', [ $n ], sub {
 					  my ($p) = @_;
 					  !$o || eval($p->compare($v) . $o . 0) or return;
 
@@ -623,7 +623,7 @@ sub disable_selected {
 	push @unselected, $pkg;
 
 	#- do a closure on rejected packages (removed, obsoleted or avoided).
-	my @closure_rejected = $pkg->fullname;
+	my @closure_rejected = scalar $pkg->fullname;
 	while (my $fullname = shift @closure_rejected) {
 	    my @rejecteds = keys %{$state->{rejected}};
 	    foreach (@rejecteds) {
@@ -956,7 +956,7 @@ sub has_dependence {
 sub build_transaction_set {
     my ($urpm, $db, $state, %options) = @_;
 
-    if ($options{split_level}) {
+    if ($options{split_length}) {
 	#- first step consists of sorting packages according to dependencies.
 	my @sorted = sort { ($a <=> $b, -1, +1, 0)[($urpm->has_dependence($state, $a, $b) && 1) +
 						   ($urpm->has_dependence($state, $b, $a) && 2)] }
@@ -969,7 +969,7 @@ sub build_transaction_set {
 	my (%requested, %examined);
 	foreach (@sorted) {
 	    $requested{$_} = undef;
-	    if (keys(%requested) >= $options{split_level}) {
+	    if (keys(%requested) >= $options{split_length}) {
 		my %set;
 
 		$urpm->resolve_requested($db, $state->{transaction_state} ||= {}, \%requested,

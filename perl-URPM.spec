@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jun 18 2003 François Pons <fpons@mandrakesoft.com> 0.91-3mdk
+- fixed obssoletes on virtual provides not taken into account.
+- fixed option name given to URPM::build_transaction_set.
+- fixed missing closure on rejected (first one).
+- fixed bad disable closure on rejected.
+
 * Tue Jun 17 2003 François Pons <fpons@mandrakesoft.com> 0.91-2mdk
 - fixed promotion of epoch to be rpm 4.2 compliant :
    - added promotion boolean to URPM::ranges_overlap.
