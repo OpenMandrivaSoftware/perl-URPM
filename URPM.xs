@@ -1802,17 +1802,12 @@ Db_traverse(db,callback)
       pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
       pkg->h = header;
 
-      ENTER;
-      SAVETMPS;
       PUSHMARK(SP);
       XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
       PUTBACK;
 
       call_sv(callback, G_DISCARD | G_SCALAR);
       pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
-
-      FREETMPS;
-      LEAVE;
     }
     ++count;
   }
@@ -1868,17 +1863,12 @@ Db_traverse_tag(db,tag,names,callback)
 	  pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
 	  pkg->h = header;
 
-	  ENTER;
-	  SAVETMPS;
 	  PUSHMARK(SP);
 	  XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
 	  PUTBACK;
 
 	  call_sv(callback, G_DISCARD | G_SCALAR);
 	  pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
-
-	  FREETMPS;
-	  LEAVE;
 	}
 	++count;
       }
@@ -2313,7 +2303,7 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	    char *s = SvPV(ST(i), len);
 
 	    if (len == 7 && !memcmp(s, "packing", 7)) {
-	      packing = SvIV(ST(i + 1));
+	      packing = SvIV(ST(i+1));
 	    } else if (len == 8 && !memcmp(s, "callback", 8)) {
 	      callback = ST(i+1);
 	    }
@@ -2346,21 +2336,25 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	    sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
 				  _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package)));
 	    if (callback != NULL) {
+	      int count;
+
 	      /* now, a callback will be called for sure */
-	      dSP;
+	      ENTER;
+	      SAVETMPS;
 	      PUSHMARK(sp);
 	      XPUSHs(urpm);
 	      XPUSHs(sv_pkg);
 	      PUTBACK;
-	      if (call_sv(callback, G_SCALAR) == 1) {
-		SPAGAIN;
-		if (!POPi) {
-		  /* package should not be added in depslist, so we free it */
-		  SvREFCNT_dec(sv_pkg);
-		  sv_pkg = NULL;
-		}
-		PUTBACK;
+	      count = call_sv(callback, G_SCALAR);
+	      SPAGAIN;
+	      if (count == 1 && !POPi) {
+		/* package should not be added in depslist, so we free it */
+		SvREFCNT_dec(sv_pkg);
+		sv_pkg = NULL;
 	      }
+	      PUTBACK;
+	      FREETMPS;
+	      LEAVE;
 	    }
 	    if (sv_pkg) {
 	      if (provides) {
