@@ -149,6 +149,7 @@ sub resolve_requested {
 	    my $best;
 	    foreach (@$_) {
 		if ($best && $best != $_) {
+		    exists $requested{$_->id} || exists $state->{selected}{$_->id} and $best = $_, last;
 		    $_->compare_pkg($best) > 0 and $best = $_;
 		} else {
 		    $best = $_;
@@ -167,10 +168,21 @@ sub resolve_requested {
 		exists $state->{selected}{$p->id} and $pkg = $p, last; #- already selected package is taken.
 		if (exists $requested{$p->id}) {
 		    push @chosen_requested, $p; #- this only works if id (or choices of id) are used in requested.
-		} elsif ($db->traverse_tag('name', [ $p->name ], undef) > 0) {
-		    push @chosen_upgrade, $p;
 		} else {
-		    push @chosen, $p;
+		    unless ($p->flag_upgrade || $p->flag_installed) {
+			#- assume for this small algorithm package to be upgradable.
+			$p->set_flag_upgrade;
+			$db->traverse_tag('name', [ $p->name ], sub {
+					      my ($pp) = @_;
+					      $p->set_flag_installed;
+					      $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
+					  });
+		    }
+		    if ($p->flag_installed) {
+			push @chosen_upgrade, $p;
+		    } else {
+			push @chosen, $p;
+		    }
 		}
 	    }
 	    @chosen_requested > 0 and @chosen = @chosen_requested;
@@ -236,8 +248,8 @@ sub resolve_requested {
 		}
 	    }
 
-	    foreach ($pkg->name."< ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
-		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*)\s*([^\s\]]*)/) {
+	    foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
+		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 		    $db->traverse_tag('name', [ $n ], sub {
 					  my ($p) = @_;
 					  !$o || eval($p->compare($v) . $o . 0) or return;
@@ -270,17 +282,11 @@ sub resolve_requested {
 					  #- try if upgrading the package will be satisfying all the requires
 					  #- else it will be necessary to ask hte user for removing it.
 					  my $packages = $urpm->find_candidate_packages($p->name);
-					  my $best;
-					  foreach (grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
-						   @{$packages->{$p->name}}) {
-					      if ($best && $best != $_) {
-						  $_->compare_pkg($best) > 0 and $best = $_;
-					      } else {
-						  $best = $_;
-					      }
-					  }
+					  my $best = join '|', map { $_->id }
+					    grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
+					      @{$packages->{$p->name}};
 					  if ($best) {
-					      push @properties, $best->id;
+					      push @properties, $best;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
 					      $options{keep_state} or
@@ -340,32 +346,31 @@ sub resolve_requested {
 				      }
 				  });
 	    }
-	    #- we need to check a selected package is not selected.
-	    #- if true, it should be unselected.
-	    unless ($options{keep_state}) {
-		if (my ($name) = /^([^\s\[]*)/) {
-		    foreach (keys %{$urpm->{provides}{$name} || {}}) {
-			my $p = $urpm->{depslist}[$_];
-			$p->name eq $pkg->name or next;
-			$p->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
-		    }
-		}
+	}
+
+	#- we need to check a selected package is not selected.
+	#- if true, it should be unselected.
+	unless ($options{keep_state}) {
+	    foreach (keys %{$urpm->{provides}{$pkg->name} || {}}) {
+		my $p = $urpm->{depslist}[$_];
+		$p != $pkg && $p->name eq $pkg->name && exists $state->{selected}{$p->id} or next;
+		$state->{ask_unselect}{$pkg->id}{$p->id} = undef;
 	    }
 	}
 
 	#- examine if an existing package does not conflicts with this one.
 	$db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
-			     my ($p) = @_;
-			     foreach my $property ($p->conflicts) {
-				 if (grep { ranges_overlap($_, $property) } $pkg->provides) {
-				     $state->{conflicts}{$p->fullname}{$pkg->id} = undef;
-				     #- all these packages should be removed.
-				     $options{keep_state} or
-				       $urpm->resolve_closure_ask_remove($db, $state, $p,
-									 { conflicts => $property, pkg => $pkg });
-				 }
-			     }
-			 });
+			      my ($p) = @_;
+			      foreach my $property ($p->conflicts) {
+				  if (grep { ranges_overlap($_, $property) } $pkg->provides) {
+				      $state->{conflicts}{$p->fullname}{$pkg->id} = undef;
+				      #- all these packages should be removed.
+				      $options{keep_state} or
+					$urpm->resolve_closure_ask_remove($db, $state, $p,
+									  { conflicts => $property, pkg => $pkg });
+				  }
+			      }
+			  });
     }
 
     if ($options{keep_state}) {
@@ -510,7 +515,7 @@ sub compute_installed_flags {
 #- all installed or upgrade flag.
 sub request_packages_to_upgrade {
     my ($urpm, $db, $state, $requested, %options) = @_;
-    my (%names, %skip, %obsoletes);
+    my (%names, %skip, %obsoletes, @obsoleters);
 
     #- build direct access to best package according to name.
     foreach (@{$urpm->{depslist}}) {
@@ -541,6 +546,9 @@ sub request_packages_to_upgrade {
 	}
     }
 
+    #- ignore skipped packages.
+    delete @names{keys %skip};
+
     #- now we can examine all existing packages to find packages to upgrade.
     $db->traverse(sub {
 		      my ($p) = @_;
@@ -553,10 +561,8 @@ sub request_packages_to_upgrade {
 			      #- this means the package is already installed (or there
 			      #- is a old version in depslist).
 			      $pkg->set_flag_upgrade(0);
-			  } elsif ($pkg->flag_upgrade) {
-			      #- the depslist version is better than existing one and no existing package is still better.
-			      $requested->{$pkg->id} = $options{requested};
-			      return;
+			      #- ignore it now.
+			      delete $names{$p->name};
 			  }
 		      }
 
@@ -568,12 +574,12 @@ sub request_packages_to_upgrade {
 			  unless (grep { ranges_overlap($property, $_) } $p->obsoletes) {
 			      if (my ($n) = $property =~ /^([^\s\[]*)/) {
 				  foreach my $pkg (@{$obsoletes{$n} || []}) {
-				      next if $pkg->name eq $p->name || $p->name ne $n;
+				      next if $pkg->name eq $p->name || $p->name ne $n || !$names{$pkg->name};
 				      foreach ($pkg->obsoletes) {
 					  if (ranges_overlap($property, $_)) {
 					      #- the package being examined can be obsoleted.
 					      #- do not set installed and provides flags.
-					      $requested->{$pkg->id} = $options{requested};
+					      push @obsoleters, $pkg;
 					      return;
 					  }
 				      }
@@ -583,8 +589,25 @@ sub request_packages_to_upgrade {
 		      }
 		  });
 
-    #TODO is conflicts for selection of package, it is important to choose
-    #TODO right package to install.
+    #- examine all obsoleters packages, compute installer and upgrade flag if needed.
+    foreach my $pkg (@obsoleters) {
+	next if !$names{$pkg->name};
+	unless ($pkg->flag_upgrade || $pkg->flag_installed) {
+	    #- assume for this small algorithm package to be upgradable.
+	    $pkg->set_flag_upgrade;
+	    $db->traverse_tag('name', [ $pkg->name ], sub {
+				  my ($p) = @_;
+				  $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+				  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
+			      });
+	}
+	$pkg->flag_installed && !$pkg->flag_upgrade and delete $names{$pkg->name};
+    }
+
+    #- examine all packages potentially selectable.
+    foreach my $pkg (values %names) {
+	$pkg->flag_upgrade and $requested->{$pkg->id} = $options{requested};
+    }
 
     $requested;
 }

@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.50
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 24 2002 François Pons <fpons@mandrakesoft.com> 0.50-3mdk
+- fixed typo causing difference of provides to be not examined.
+- fixed best package as choice to avoid choosing package too early.
+- fixed mulitple definition of same package being selected.
+
 * Tue Jul 23 2002 François Pons <fpons@mandrakesoft.com> 0.50-2mdk
 - fixed resolve_closure_ask_remove to really closure.
 - changed unsatisfied_requires to use options hash.
