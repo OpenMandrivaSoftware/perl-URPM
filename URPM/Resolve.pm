@@ -646,7 +646,6 @@ sub resolve_requested {
 	}
 	if (defined ($dep = shift @diff_provides)) {
 	    my ($n, $pkg) = ($dep->{name}, $dep->{pkg});
-	    print STDERR "managing diff_provides on $dep->{name} from ".$dep->{pkg}->fullname."\n";
 	    $db->traverse_tag('whatrequires', [ $n ], sub {
 				  my ($p) = @_;
 				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $n)) {
