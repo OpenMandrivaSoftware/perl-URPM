@@ -6,7 +6,7 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 bootstrap URPM $VERSION;
 

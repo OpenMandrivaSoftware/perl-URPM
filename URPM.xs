@@ -38,6 +38,7 @@ struct s_Package {
 struct s_Transaction {
   rpmdb db;
   rpmTransactionSet ts;
+  FD_t script_fd;
 };
 
 struct s_TransactionData {
@@ -1798,7 +1799,7 @@ Db_create_transaction(db, prefix="/")
   URPM::DB db
   char *prefix
   CODE:
-  if ((RETVAL = malloc(sizeof(struct s_Transaction))) != NULL) {
+  if ((RETVAL = calloc(1, sizeof(struct s_Transaction))) != NULL) {
     RETVAL->db = db;
     RETVAL->ts = rpmtransCreateSet(db, prefix);
   }
@@ -1814,10 +1815,20 @@ Trans_DESTROY(trans)
   CODE:
   /* db should be SV with reference count updated */
   rpmtransFree(trans->ts);
+  if (trans->script_fd != NULL) fdClose(trans->script_fd);
   free(trans);
 
+void
+Trans_set_script_fd(trans, fdno)
+  URPM::Transaction trans
+  int fdno
+  CODE:
+  if (trans->script_fd != NULL) fdClose(trans->script_fd);
+  trans->script_fd = fdDup(fdno);
+  rpmtransSetScriptFd(trans->ts, trans->script_fd);
+
 int
-Trans_add_package(trans, pkg, update)
+Trans_add(trans, pkg, update)
   URPM::Transaction trans
   URPM::Package pkg
   int update
@@ -1827,7 +1838,7 @@ Trans_add_package(trans, pkg, update)
   RETVAL
 
 int
-Trans_remove_package(trans, name)
+Trans_remove(trans, name)
   URPM::Transaction trans
   char *name
   PREINIT:
@@ -1923,6 +1934,8 @@ Trans_run(trans, data, ...)
        callback(data, 'trans'|'uninst'|'inst', id|undef, 'start'|'progress'|'stop', amount, total)
   */
   struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, 100000, data };
+  rpmtransFlags transFlags = RPMTRANS_FLAG_NONE;
+  int probFilter = 0;
   rpmProblemSet probs;
   int i;
   PPCODE:
@@ -1930,7 +1943,14 @@ Trans_run(trans, data, ...)
     STRLEN len;
     char *s = SvPV(ST(i), len);
 
-    if (len >= 9 && !memcmp(s, "callback_", 9)) {
+    if (len == 5 && !memcmp(s, "force", 5)) {
+      if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_REPLACEPKG | 
+					RPMPROB_FILTER_REPLACEOLDFILES |
+					RPMPROB_FILTER_REPLACENEWFILES |
+					RPMPROB_FILTER_OLDPACKAGE);
+    } else if (len == 6 && !memcmp(s, "nosize", 6)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_DISKSPACE;
+    } else if (len >= 9 && !memcmp(s, "callback_", 9)) {
       if (len == 9+4 && !memcmp(s+9, "open", 4))
 	td.callback_open = ST(i+1);
       else if (len == 9+5 && !memcmp(s+9, "close", 5))
@@ -1944,7 +1964,7 @@ Trans_run(trans, data, ...)
     } else if (len == 5 && !memcmp(s, "delta", 5))
       td.min_delta = SvIV(ST(i+1));
   }
-  if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, &td, NULL, &probs, 0, 0)) {
+  if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, &td, NULL, &probs, transFlags, probFilter)) {
     EXTEND(SP, probs->numProblems);
     for (i = 0; i < probs->numProblems; i++) {
       const char *pkgNEVR = (probs->probs[i].pkgNEVR ? probs->probs[i].pkgNEVR : "");

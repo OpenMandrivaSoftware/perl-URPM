@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.07
-%define release 2mdk
+%define version 0.08
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul  8 2002 François Pons <fpons@mandrakesoft.com> 0.08-1mdk
+- added transaction flags (equivalence to --force and --ignoreSize).
+- simplified some transaction method names.
+- added script fd support.
+
 * Fri Jul  5 2002 François Pons <fpons@mandrakesoft.com> 0.07-2mdk
 - fixed transaction methods so that install works.
 
