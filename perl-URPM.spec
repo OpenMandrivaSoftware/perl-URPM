@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.04
-%define release 6mdk
+%define version 0.05
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jun 28 2002 François Pons <fpons@mandrakesoft.com> 0.05-1mdk
+- fixed ask_remove not to contains arch.
+- removed relocate_depslist (obsoleted).
+
 * Wed Jun 26 2002 François Pons <fpons@mandrakesoft.com> 0.04-6mdk
 - fixed work around of rpmlib where provides should be at
   left position of rpmRangesOverlap.

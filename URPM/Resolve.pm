@@ -212,7 +212,8 @@ sub resolve_requested {
 					      push @properties, $best->id;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
-					      push @{$state->{ask_remove}{$p->fullname}}, { unsatisfied => \@l, pkg => $pkg };
+					      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
+						{ unsatisfied => \@l, pkg => $pkg };
 					  }
 				      }
 				  });
@@ -230,7 +231,8 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      $state->{conflicts}{$p->fullname}{$pkg->id} = undef;
 				      #- all these packages should be removed.
-				      push @{$state->{ask_remove}{$p->fullname}}, { conflicts => $file, pkg => $pkg };
+				      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}}, 
+					{ conflicts => $file, pkg => $pkg };
 				  });
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
@@ -253,7 +255,8 @@ sub resolve_requested {
 					      push @properties, $best->id;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
-					      push @{$state->{ask_remove}{$p->fullname}}, { conflicts => $property, pkg => $pkg };
+					      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
+						{ conflicts => $property, pkg => $pkg };
 					  }
 				      }
 				  });
@@ -271,7 +274,7 @@ sub resolve_requested {
     }
 
     #- obsoleted packages are no longer marked as being asked to be removed.
-    delete @{$state->{ask_remove}}{keys %{$state->{obsoleted}}};
+    delete @{$state->{ask_remove}}{map { /(.*)\.[^\.]*$/ && $1 } keys %{$state->{obsoleted}}};
 }
 
 #- compute installed flags for all package in depslist.
