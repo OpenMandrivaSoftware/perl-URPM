@@ -33,7 +33,7 @@ sub parse_rpms_build_headers {
 	}
 
 	foreach (@{$options{rpms}}) {
-	    my ($key) = /([^\/]*)\.rpm$/ or next; #- get rpm filename.
+	    my ($key) = m!([^/]*)\.rpm$! or next; #- get rpm filename.
 	    my ($id, $filename);
 
 	    if ($cache{$key} && -s "$dir/$cache{$key}") {
@@ -80,7 +80,7 @@ sub unresolved_provides_clean {
     my ($urpm) = @_;
     my @potentially_unresolved = keys %{$urpm->{provides} || {}};
 
-    @{$urpm}{qw(depslist provides)} = ([], {});
+    @$urpm{qw(depslist provides)} = ([], {});
     @{$urpm->{provides}}{@potentially_unresolved} = ();
 }
 
@@ -229,7 +229,7 @@ sub compute_deps {
 	$ordered{$b} <=> $ordered{$a} or do {
 	    my ($na, $nb) = map { $urpm->{depslist}[$_]->name } ($a, $b);
 	    my ($sa, $sb) = map { /^lib(.*)/ and $1 } ($na, $nb);
-	    $sa && $sb ? $sa cmp $sb : $sa ? -1 : $sb ? +1 : $na cmp $nb;
+	    $sa && $sb ? $sa cmp $sb : $sa ? -1 : $sb ? 1 : $na cmp $nb;
 	} } ($start .. $end)} = ($start .. $end);
 
     #- recompute requires to use packages id, drop any base packages or
@@ -336,7 +336,7 @@ sub build_hdlist {
     open B, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
     foreach my $pkg (@{$urpm->{depslist}}[$start .. $end]) {
 	my $filename = $pkg->fullname;
-	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ /([^\/]*)\.rpm$/ and $filename .= ":$1";
+	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ m!([^/]*)\.rpm$! and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
 	print B "$filename\n";
     }
@@ -364,7 +364,7 @@ sub build_synthesis {
     #- first pass: traverse provides to find files provided.
     my %provided_files;
     foreach (keys %{$urpm->{provides}}) {
-	/^\// or next;
+	m!^/! or next;
 	foreach my $id (keys %{$urpm->{provides}{$_} || {}}) {
 	    push @{$provided_files{$id} ||= []}, $_;
 	}
