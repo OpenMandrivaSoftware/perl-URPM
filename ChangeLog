@@ -1,3 +1,12 @@
+2004-12-13 14:34  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Return the list of chosen packages sorted by
+	  descending version (bug #12645).
+
+2004-12-09 16:29  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 1.06-1mdk
+
 2004-12-09 16:16  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM/Build.pm: trust packdrake's defaults
