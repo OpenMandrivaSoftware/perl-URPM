@@ -12,7 +12,6 @@
 %{expand:%%define distribution %%(perl -e 'printf "%%s\\n", ("%_vendor" =~ /mandrake/i ? "Mandrake Linux" : "Red Hat Linux")')}
 %{expand:%%define real_release %%(perl -e 'printf "%%s\\n", ("%_vendor" !~ /mandrake/i && ("%release" =~ /(.*?)mdk/)[0] || "%release")')}
 
-Packager:       François Pons <fpons@mandrakesoft.com>
 Summary:	URPM module for perl
 Name:		%{name}
 Version:	%{version}
