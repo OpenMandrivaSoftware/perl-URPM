@@ -14,6 +14,7 @@ License:	GPL or Artistic
 Group:		Development/Perl
 Distribution:	Mandrake Linux
 Source:		%{real_name}-%{version}.tar.bz2
+URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 Prefix:		%{_prefix}
 BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
