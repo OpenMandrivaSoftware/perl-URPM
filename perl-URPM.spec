@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 12mdk
+%define release 13mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Mar 12 2003 François Pons <fpons@mandrakesoft.com> 0.81-13mdk
+- fixed bug 3207 (consolidated avoided hash with removed and
+  conflicting packages).
+
 * Mon Mar 10 2003 François Pons <fpons@mandrakesoft.com> 0.81-12mdk
 - fixed typo in search method.
 - fixed wrong resolution of conflicts where an older package
