@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Sep  5 2003 François Pons <fpons@mandrakesoft.com> 0.94-4mdk
+- fixed diff provides generation to be always managed when
+  requires have been completely handled.
+
 * Tue Sep  2 2003 François Pons <fpons@mandrakesoft.com> 0.94-3mdk
 - fixed updating with older package not properly handled.
 
