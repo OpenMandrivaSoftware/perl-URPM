@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.70
-%define release 2mdk
+%define release 3mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Aug 28 2002 François Pons <fpons@mandrakesoft.com> 0.70-3mdk
+- setup state to know if an old package will be upgraded.
+- added optional parameter to keep all tags from an rpm.
+- added URPM::Package::changelog_* method.
+
 * Mon Aug 26 2002 François Pons <fpons@mandrakesoft.com> 0.70-2mdk
 - added more flags to URPM::Transaction::run (oldpackage, test).
 - fixed choices to prefer right locales dependent packages.

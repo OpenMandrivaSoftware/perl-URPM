@@ -607,7 +607,7 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff) {
 }
 
 static int
-update_header(char *filename, URPM__Package pkg, HV *provides, int packing) {
+update_header(char *filename, URPM__Package pkg, HV *provides, int packing, int keep_all_tags) {
   int d = open(filename, O_RDONLY);
 
   if (d >= 0) {
@@ -642,7 +642,7 @@ update_header(char *filename, URPM__Package pkg, HV *provides, int packing) {
 	    update_provides_files(pkg, provides);
 	  }
 	  if (packing) pack_header(pkg);
-	  else {
+	  else if (!keep_all_tags) {
 	    headerRemoveEntry(pkg->h, RPMTAG_POSTIN);
 	    headerRemoveEntry(pkg->h, RPMTAG_POSTUN);
 	    headerRemoveEntry(pkg->h, RPMTAG_PREIN);
@@ -1383,17 +1383,37 @@ Pkg_upgrade_files(pkg)
   SP = xreturn_files(SP, pkg->h, FILTER_MODE_UPGRADE_FILES);
 
 void
+Pkg_changelog_time(pkg)
+  URPM::Package pkg
+  PPCODE:
+  SP = xreturn_list_int_32(SP, pkg->h, RPMTAG_CHANGELOGTIME);
+
+void
+Pkg_changelog_name(pkg)
+  URPM::Package pkg
+  PPCODE:
+  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0);
+
+void
+Pkg_changelog_text(pkg)
+  URPM::Package pkg
+  PPCODE:
+  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0);
+
+void
 Pkg_pack_header(pkg)
   URPM::Package pkg
   CODE:
   pack_header(pkg);
 
 int
-Pkg_update_header(pkg, filename)
+Pkg_update_header(pkg, filename, packing=0, keep_all_tags=0)
   URPM::Package pkg
   char *filename
+  int packing
+  int keep_all_tags
   CODE:
-  RETVAL = update_header(filename, pkg, NULL, 0);
+  RETVAL = update_header(filename, pkg, NULL, packing, keep_all_tags);
   OUTPUT:
   RETVAL
 
@@ -2242,10 +2262,11 @@ Urpm_parse_hdlist(urpm, filename, packing=0)
   } else croak("first argument should be a reference to HASH");
 
 void
-Urpm_parse_rpm(urpm, filename, packing=0)
+Urpm_parse_rpm(urpm, filename, packing=0, keep_all_tags=0)
   SV *urpm
   char *filename
   int packing
+  int keep_all_tags
   PPCODE:
   if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
     SV **fdepslist = hv_fetch((HV*)SvRV(urpm), "depslist", 8, 0);
@@ -2258,7 +2279,7 @@ Urpm_parse_rpm(urpm, filename, packing=0)
 
       memset(&pkg, 0, sizeof(struct s_Package));
       pkg.flag = 1 + av_len(depslist);
-      if (update_header(filename, &pkg, provides, packing)) {
+      if (update_header(filename, &pkg, provides, packing, keep_all_tags)) {
 	av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
 				       memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
 

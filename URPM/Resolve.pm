@@ -263,7 +263,7 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      if ($pkg->compare_pkg($p) < 0) {
 					  $allow or update_state_provides($state, $pkg);
-					  $allow = 1;
+					  $allow = ++$state->{oldpackage};
 					  $options{keep_state} or
 					    $urpm->resolve_closure_ask_remove($db, $state, $p,
 									      { old_requested => 1, id => $pkg->id });
