@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 4mdk
+%define release 5mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Jun  3 2003 François Pons <fpons@mandrakesoft.com> 0.90-5mdk
+- fixed typo in parse_rpm method.
+
 * Mon Jun  2 2003 François Pons <fpons@mandrakesoft.com> 0.90-4mdk
 - added an option to disable unrequested dependencies when
   backtracking a selection.
