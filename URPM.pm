@@ -209,6 +209,10 @@ URPM object.
 
 Force the re-reading of the RPM configuration files.
 
+=item list_rpm_tag()
+
+Return a hash containing the key/id values of know rpm tags
+
 =item ranges_overlap($range1, $range2 [, $nopromoteepoch])
 
 This utility function compares to version ranges, in order to calculate
@@ -229,11 +233,21 @@ and adds them to the URPM object.
 
 =item $urpm->parse_hdlist($file, %options)
 
-This method gets the B<depslist> and the B<provides> from a hdlist file
-and adds them to the URPM object. Allowed options are
+This method load rpm informations from B<headers> contains in hdlist file
+and adds them to the URPM object. Allowed options are 
 
     packing => 0 / 1
     callback => sub { ... }
+    keep_all_tags => 0 / 1
+
+Return value is an array of first and last id parsed.
+    
+=item $urpm->parse_rpms($files, %options)
+
+This method load rpm informations from rpms B<headers> and adds them to
+the URPM object. Allowed options are 
+
+Return value is an array of first and last id parsed.
 
 =item $urpm->parse_rpm($file, %options)
 
@@ -419,11 +433,17 @@ of an RPM package.
 
 =item $package->fullname()
 
-Returns a 4 element list: name, version, release and architecture.
+Returns a 4 element list: name, version, release and architecture in an array context.
+Returns a string NAME-VERSION-RELEASE.ARCH in scalar context.
 
-=item $package->get_tag($tagname)
+=item $package->get_tag($tagid)
 
-=item $package->get_tag_modifiers($tagname)
+Returns an array containing values of $tagid. $tagid is the numerical value of
+rpm tags. See rpmlib.h. 
+
+=item $package->get_tag_modifiers($tagid)
+
+Return an array of human readable view of tag values. $tagid is the numerical value of rpm tags.
 
 =item $package->group()
 

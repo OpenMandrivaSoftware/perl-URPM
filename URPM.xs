@@ -3163,6 +3163,17 @@ Urpm_read_config_files()
   CODE:
   read_config_files(1); /* force re-read of configuration files */
 
+void
+Urpm_list_rpm_tag()
+   PREINIT:
+       int i = 0;
+   PPCODE:
+       read_config_files(0);
+       for (i = 0; i < rpmTagTableSize; i++) {
+	XPUSHs(sv_2mortal(newSVpv(rpmTagTable[i].name, 0)));
+	XPUSHs(sv_2mortal(newSViv(rpmTagTable[i].val)));
+       }
+
 int
 Urpm_ranges_overlap(a, b, b_nopromote=0)
   char *a
