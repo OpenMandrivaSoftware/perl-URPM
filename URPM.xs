@@ -415,27 +415,36 @@ print_list_entry(char *buff, int sz, char *name, int_32 flags, char *evr) {
   return p - buff;
 }
 
-void
-return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version) {
+static int
+return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, char *buf, int buflen) {
+  int count = 0;
   dSP;
+
   if (s != NULL) {
     char *ps = strchr(s, '@');
     if (tag_flags && tag_version) {
       while(ps != NULL) {
-	XPUSHs(sv_2mortal(newSVpv(s, ps-s)));
+	if (buf != NULL) {
+	  buflen -= ps-s+1; if (buflen > 0) { memcpy(buf, s, ps-s); buf += ps-s; *buf++ = 0; ++count; }
+	} else XPUSHs(sv_2mortal(newSVpv(s, ps-s)));
 	s = ps + 1; ps = strchr(s, '@');
       }
-      XPUSHs(sv_2mortal(newSVpv(s, 0)));
+      if (buf != NULL) strcpy(buf, s);
+      else XPUSHs(sv_2mortal(newSVpv(s, 0)));
     } else {
       char *eos;
       while(ps != NULL) {
 	*ps = 0; eos = strchr(s, '['); if (!eos) eos = strchr(s, ' ');
-	XPUSHs(sv_2mortal(newSVpv(s, eos ? eos-s : ps-s)));
+	if (buf != NULL) {
+	  int l = eos ? eos-s : ps-s; buflen -= l; if (buflen > 0) { memcpy(buf, s, l); buf += l; *buf++ = 0; ++count; }
+	} else XPUSHs(sv_2mortal(newSVpv(s, eos ? eos-s : ps-s)));
 	*ps = '@'; /* restore in memory modified char */
 	s = ps + 1; ps = strchr(s, '@');
       }
       eos = strchr(s, '['); if (!eos) eos = strchr(s, ' ');
-      XPUSHs(sv_2mortal(newSVpv(s, eos ? eos-s : 0)));
+      if (buf != NULL) {
+	int l = eos ? eos-s : strlen(s); buflen -= l; if (buflen > 0) {	memcpy(buf, s, l); buf += l; *buf++ = 0; ++count; }
+      } else XPUSHs(sv_2mortal(newSVpv(s, eos ? eos-s : 0)));
     }
   } else if (header) {
     char buff[4096];
@@ -452,14 +461,17 @@ return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_3
       for(i = 0; i < count; i++) {
 	int len = print_list_entry(buff, sizeof(buff)-1, list[i], flags ? flags[i] : 0, list_evr ? list_evr[i] : NULL);
 	if (len < 0) continue;
-	XPUSHs(sv_2mortal(newSVpv(buff, len)));
+	if (buf != NULL) {
+	  buflen -= len; if (buflen > 0) { memcpy(buf, buff, len); buf += len; *buf++ = 0; ++count; }
+	} else XPUSHs(sv_2mortal(newSVpv(buff, len)));
       }
 
       free(list);
       free(list_evr);
     }
   }
-  PUTBACK;
+  if (buf == NULL) PUTBACK;
+  return count;
 }
 
 void
@@ -1704,7 +1716,7 @@ Pkg_requires(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION);
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, NULL, 0);
   SPAGAIN;
 
 void
@@ -1712,7 +1724,7 @@ Pkg_requires_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, 0, 0);
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1720,7 +1732,7 @@ Pkg_obsoletes(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION);
+  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION, NULL, 0);
   SPAGAIN;
 
 void
@@ -1728,7 +1740,7 @@ Pkg_obsoletes_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, 0, 0);
+  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1736,7 +1748,7 @@ Pkg_conflicts(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION);
+  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION, NULL, 0);
   SPAGAIN;
 
 void
@@ -1744,7 +1756,7 @@ Pkg_conflicts_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, 0, 0);
+  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1752,7 +1764,7 @@ Pkg_provides(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION);
+  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL, 0);
   SPAGAIN;
 
 void
@@ -1760,7 +1772,7 @@ Pkg_provides_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0);
+  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1768,7 +1780,7 @@ Pkg_buildarchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0, NULL, 0);
   SPAGAIN;
   
 void
@@ -1776,7 +1788,7 @@ Pkg_excludearchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0, NULL, 0);
   SPAGAIN;
   
 void
@@ -1784,7 +1796,7 @@ Pkg_exclusivearchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0, NULL, 0);
   SPAGAIN;
   
 void
@@ -1800,7 +1812,7 @@ Pkg_files_md5sum(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEMD5S, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_FILEMD5S, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1808,7 +1820,7 @@ Pkg_files_owner(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEUSERNAME, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_FILEUSERNAME, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1816,7 +1828,7 @@ Pkg_files_group(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEGROUPNAME, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_FILEGROUPNAME, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1888,7 +1900,7 @@ Pkg_changelog_name(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -1896,7 +1908,7 @@ Pkg_changelog_text(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0);
+  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0, NULL, 0);
   SPAGAIN;
 
 void
@@ -2856,6 +2868,56 @@ Urpm_ranges_overlap(a, b, b_nopromote=0)
   }
   OUTPUT:
   RETVAL
+
+void
+Urpm_unsatisfied_requires2(urpm, db, state, pkg, ...)
+  SV *urpm
+  URPM::DB db
+  SV *state
+  URPM::Package pkg
+  PREINIT:
+  char *option_name = NULL;
+  int option_nopromoteepoch = 0;
+  PPCODE:
+  if (SvROK(urpm) && SvTYPE(SvRV(urpm)) == SVt_PVHV) {
+    SV **fprovides = hv_fetch((HV*)SvRV(urpm), "provides", 8, 0);
+    HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
+
+    /* get options */
+    if (items > 4) {
+      int i;
+      for (i = 4; i < items-1; i+=2) {
+	STRLEN len;
+	char *s = SvPV(ST(i), len);
+
+	if (len == 4 && !memcmp(s, "name", 4)) {
+	  option_name = SvPV(ST(i+1));
+	} else if (len == 14 && !memcmp(s, "nopromoteepoch", 14)) {
+	  option_nopromoteepoch = SvIV(ST(i+1));
+	}
+      }
+    }
+
+    if (provides != NULL) {
+      /* we have to iterate over requires of pkg */
+      char b[65536];
+      char *p = b;
+      int n = return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, b, sizeof(b));
+
+      while (n--) {
+	char *n = p, *s, *eos;
+
+	/* first search for name and sense informations */
+	s = strchr(p, '['); if (s == NULL) s = strchr(p, ' '); *s++ = 0;
+	if ((eos = strchr(s, ']'))) *eos = 0; else eos = s + strlen(s);
+
+	/* if option name is given, it should match the name found in requires on go to next requires */
+	if (option_name != NULL && strcmp(n, option_name)) { p = eos + 1; continue; }
+
+	
+      }
+    }
+  } else croak("first argument should be a reference to HASH");
 
 void
 Urpm_parse_synthesis(urpm, filename, ...)
