@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 8mdk
+%define release 9mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,17 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul  7 2003 François Pons <fpons@mandrakesoft.com> 0.91-9mdk
+- fixed provides from package not examined for looking into
+  unsatisfied requires.
+- fixed handling of promoteepoch (if B requires A and both A and B
+  are new packages, promoteepoch can be activated).
+- updated comments about promoteepoch management (it is touchy
+  enough without adding obfuscation here).
+- fixed (a lot of people should be very happy now) global unsatisfied
+  requires examined, so that it should now be possible to keep a
+  rpmdb with unsatisfied dependencies.
+
 * Fri Jul  4 2003 François Pons <fpons@mandrakesoft.com> 0.91-8mdk
 - removed handling of promoteepoch as it is specifically obscure
   in rpm and make urpmi crazy.

@@ -141,7 +141,8 @@ sub unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, %options) = @_;
     my %properties;
 
-    #- all requires should be satisfied according to selected package, or installed packages.
+    #- all requires should be satisfied according to selected packages or installed packages,
+    #- or the package itself.
   REQUIRES: foreach my $dep ($pkg->requires) {
 	if (my ($n, $s) = $dep =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 	    #- allow filtering on a given name (to speed up some search).
@@ -168,6 +169,11 @@ sub unsatisfied_requires {
 		} else {
 		    next REQUIRES;
 		}
+	    }
+
+	    #- check if the package itself provides what is necessary.
+	    foreach ($pkg->provides) {
+		ranges_overlap($_, $dep) and next REQUIRES;
 	    }
 
 	    #- check on installed system a package which is not obsoleted is satisfying the require.
@@ -512,28 +518,25 @@ sub resolve_requested {
 	    foreach my $n (keys %diff_provides) {
 		$db->traverse_tag('whatrequires', [ $n ], sub {
 				      my ($p) = @_;
-				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 0)) {
-					  #- try if upgrading the package will be satisfying all the requires
-					  #- else it will be necessary to ask the user for removing it.
-					  my $packages = $urpm->find_candidate_packages($p->name,
-											nopromoteepoch => 0,
-											avoided => $state->{rejected});
+				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $n)) {
+					  #- try if upgrading the package will be satisfying all the requires...
+					  #- there is no need to avoid promoting epoch as the package examined is not
+					  #- already installed.
+					  my $packages = $urpm->find_candidate_packages($p->name, avoided => $state->{rejected});
 					  my $best = join '|', map { $_->id }
 					    grep { $_->fullname ne $p->fullname &&
-						     $urpm->unsatisfied_requires($db, $state, $_,
-										 nopromoteepoch => 0,
-										 name => $n) == 0 }
+						     $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
 					      push @properties, { required => $best, promote => $n, psel => $pkg };
 					  } else {
 					      #- no package have been found, we may need to remove the package examined unless
-					      #- there exists a package that provided the unsatisfied requires.
+					      #- there exists enough packages that provided the unsatisfied requires.
 					      my @best;
 					      foreach (@l) {
 						  $packages = $urpm->find_candidate_packages($_,
-											     nopromoteepoch => 0,
+											     nopromoteepoch => 1,
 											     avoided => $state->{rejected});
 						  $best = join('|',
 							       map { $_->id }
