@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.91
-%define release 4mdk
+%define release 5mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jun 19 2003 François Pons <fpons@mandrakesoft.com> 0.91-5mdk
+- added promote to backtrack data for more info.
+- fixed visual glitches when a package has its selection backtracked
+  whereas it is already installed.
+
 * Wed Jun 18 2003 François Pons <fpons@mandrakesoft.com> 0.91-4mdk
 - fixed installation of old package due to missing closure.
 - fixed nodeps option to used for building transaction set.

@@ -218,7 +218,8 @@ sub backtrack_selected {
 			$options{callback_backtrack}->($urpm, $db, $state, $_,
 						       dep => $dep, alternatives => $packages, %options) <= 0) {
 			#- keep in mind a backtrack has happening here...
-			$state->{rejected}{$_->fullname}{backtrack} ||= {};
+			$state->{rejected}{$_->fullname}{backtrack} ||=
+			  { exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]} };
 			#- backtrack callback should return a strictly positive value if the selection of the new
 			#- package is prefered over the currently selected package.
 			next;
@@ -510,9 +511,10 @@ sub resolve_requested {
 											nopromoteepoch => 1,
 											avoided => $state->{rejected});
 					  my $best = join '|', map { $_->id }
-					    grep { $urpm->unsatisfied_requires($db, $state, $_,
-									       nopromoteepoch => 1,
-									       name => $n) == 0 }
+					    grep { $_->fullname ne $p->fullname &&
+						     $urpm->unsatisfied_requires($db, $state, $_,
+										 nopromoteepoch => 1,
+										 name => $n) == 0 }
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
@@ -525,7 +527,10 @@ sub resolve_requested {
 						  $packages = $urpm->find_candidate_packages($_,
 											     nopromoteepoch => 1,
 											     avoided => $state->{rejected});
-						  $best = join('|', map { $_->id } map { @{$_ || []} } values %$packages);
+						  $best = join('|',
+							       map { $_->id }
+							       grep { $_->fullname ne $p->fullname }
+							       map { @{$_ || []} } values %$packages);
 						  $best and push @best, $best;
 					      }
 
