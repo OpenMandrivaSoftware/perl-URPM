@@ -312,8 +312,9 @@ sub resolve_requested {
 			    #- all package with the same name should now be avoided except what is chosen.
 			    $p->fullname eq $pkg->fullname or $avoided{$p->fullname} = $pkg->fullname;
 			} else {
-			    #- in case of obsoletes, keep track of what should be avoided.
-			    !$o || eval($p->compare($v) . $o . 0) or next;
+			    #- in case of obsoletes, keep track of what should be avoided
+			    #- but only if package name equals the obsolete name.
+			    $p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
 			    $avoided{$p->fullname} = $pkg->fullname;
 			}
 		    }
