@@ -65,13 +65,11 @@ sub parse_rpms_build_headers {
 		    }
 		}
 		
-
 		my $pkg = $urpm->{depslist}[$id];
 
 		$filename = $pkg->fullname;
 		"$filename.rpm" eq $pkg->filename or $filename .= ":$key";
 
-		$options{silent} or print STDERR "$dir/$filename\n";
 		unless (-s "$dir/$filename") {
 		    open F, ">$dir/$filename" or die "unable to open $dir/$filename for writing\n";
 		    $pkg->build_header(fileno *F);
@@ -85,6 +83,11 @@ sub parse_rpms_build_headers {
 		} else {
 		    $pkg->pack_header;
 		}
+
+		# Olivier Thauvin <thauvin@aerov.jussieu.fr>
+		# isn't this code better, but maybe it will break some tools:
+		# $options{callback}->($urpm, $id, %options, (file => $_)) if ($options{callback});
+		# $pkg->pack_header;
 	    }
 
 	    #- keep track of header associated (to avoid rereading rpm filename directly
@@ -125,6 +128,47 @@ sub parse_headers {
 	$options{callback} and $options{callback}->($urpm, $id, %options);
     }
     defined $id ? ($start, $id) : @{[]};
+}
+
+# parse_rpms, to same bevaviour than parse_{hdlist, synthesis}
+# ie: ($start, $end) = parse_*(filestoparse, %options);
+
+sub parse_rpms {
+    my ($urpm, $rpms, %options) = @_;
+    my ($start, $end);
+    $urpm->parse_rpms_build_headers(
+        rpms => $rpms, 
+        %options, 
+        callback => sub {
+            my ($urpm, $id) = @_;
+	    $start = $id if($start > $id || ! defined($start));
+	    $end = $id   if($end < $id   || ! defined($end));	
+        }
+    ) ? ($start, $end) : ();
+}
+
+# fuzzy_parse is a simple wrapper for parse_rpm* function
+# It detect if the file passed is a dir, an hdlist, a synthesis or a rpm
+# it call the good function. 
+sub fuzzy_parse {
+    my ($urpm, %options) = @_;
+    my ($start, $end);
+    foreach my $entry (@{$options{paths} || []}) {
+        if (-d $entry) { # it is a dir
+	    ($start, $end) = $urpm->parse_rpms([ glob("$entry/*.rpm") ], %options);
+	    defined ($start) and return ($start .. $end);
+	} else { # we try some methode to load the file
+	    ($start, $end) = $urpm->parse_hdlist($entry);
+	    defined ($start) and return ($start .. $end);
+
+	    ($start, $end) = $urpm->parse_synthesis($entry);
+	    defined ($start) and return ($start .. $end);
+
+	    ($start, $end) = $urpm->parse_rpms([ $entry ], %options);
+	    defined ($start) and return ($start .. $end);
+        }
+    }
+    ()
 }
 
 #- compute dependencies, result in stored in info values of urpm.
