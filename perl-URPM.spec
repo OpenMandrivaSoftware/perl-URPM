@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.93
-%define release 5mdk
+%define release 6mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -18,9 +18,9 @@ URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 Prefix:		%{_prefix}
 BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
-Provides: perl(URPM::Build) = %{version}-%{release}
-Provides: perl(URPM::Resolve) = %{version}-%{release}
-Provides: perl(URPM::Signature) = %{version}-%{release}
+Provides:	perl(URPM::Build) = %{version}-%{release}
+Provides:	perl(URPM::Resolve) = %{version}-%{release}
+Provides:	perl(URPM::Signature) = %{version}-%{release}
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 %description
@@ -52,6 +52,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Aug 19 2003 François Pons <fpons@mandrakesoft.com> 0.93-6mdk
+- make URPM::Signature::import_armored_file independent from rpm.
+- added URPM::import_pubkey in xs directly.
+
 * Mon Aug 18 2003 Pixel <pixel@mandrakesoft.com> 0.93-5mdk
 - perl_checker compliance
 
