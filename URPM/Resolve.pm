@@ -55,7 +55,7 @@ sub find_chosen_packages {
 		$pkg->flag_skip || exists $state->{rejected}{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property (if sense are needed).
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
-		    #- determine if this packages is better than a possibly previously chosen package.
+		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
 		    if (my $p = $packages{$pkg->name}) {
 			$pkg->flag_requested > $p->flag_requested ||
@@ -71,10 +71,11 @@ sub find_chosen_packages {
     if (keys(%packages) > 1) {
 	my ($mode, @chosen, @chosen_good_locales, @chosen_bad_locales, @chosen_other);
 
-	#- package should be prefered if one of their provides is referenced
-	#- in requested hash or package itself is requested (or required).
-	#- if there is no preference choose the first one (higher probability
-	#- of being chosen) by default and ask user.
+	#- packages should be preferred if one of their provides is referenced
+	#- in the "requested" hash, or if the package itself is requested (or
+	#- required).
+	#- If there is no preference, choose the first one by default (higher
+	#- probability of being chosen) and ask the user.
 	foreach my $p (values(%packages)) {
 	    unless ($p->flag_upgrade || $p->flag_installed) {
 		#- assume for this small algorithm package to be upgradable.
@@ -102,8 +103,9 @@ sub find_chosen_packages {
 	    push @chosen, $p;
 	}
 
-	#- packages that requires locales-xxx and the corresponding locales is already installed
-	#- should be prefered over packages that requires locales not installed.
+	#- packages that require locales-xxx when the corresponding locales are
+	#- already installed should be preferred over packages that require locales
+	#- which are not installed.
 	foreach (@chosen) {
 	    if (my ($specific_locales) = grep { /locales-/ && ! /locales-en/ } $_->requires_nosense) {
 		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
@@ -116,7 +118,8 @@ sub find_chosen_packages {
 		push @chosen_other, $_;
 	    }
 	}
-	#- sort package in order to have best ones first (this means good locales, no locales, bad locales).
+	#- sort packages in order to have preferred ones first
+	#- (this means good locales, no locales, bad locales).
 	return (sort { $a->id <=> $b->id } @chosen_good_locales),
 	       (sort { $a->id <=> $b->id } @chosen_other),
 	       (sort { $a->id <=> $b->id } @chosen_bad_locales);
@@ -370,14 +373,20 @@ sub resolve_rejected {
     $options{unsatisfied} and push @{$options{unsatisfied}}, map { { required => $_, rejected => $pkg->fullname, } } @unsatisfied;
 }
 
-#- resolve requested, keep resolution state to speed process.
-#- a requested package is marked to be installed, once done, a upgrade flag or
-#- installed flag is set according to needs of package.
-#- other required package will have required flag set along with upgrade flag or
-#- installed flag.
-#- base flag should always been installed or upgraded.
-#- the following options are recognized :
-#-   check : check requires of installed packages.
+#- Resolve dependencies of requested packages; keep resolution state to
+#- speed up process.
+#- A requested package is marked to be installed; once done, an upgrade flag or
+#- an installed flag is set according to the needs of the installation of this
+#- package.
+#- Other required packages will have a required flag set along with an upgrade
+#- flag or an installed flag.
+#- Base flag should always be "installed" or "upgraded".
+#- The following options are recognized :
+#-   callback_choices : subroutine to be called to ask the user to choose
+#-     between several possible packages.
+#-   keep_requested_flag :
+#-   keep_unrequested_dependencies :
+#-   keep :
 sub resolve_requested {
     my ($urpm, $db, $state, $requested, %options) = @_;
     my ($dep, @diff_provides, @properties, @selected);
@@ -414,22 +423,24 @@ sub resolve_requested {
 	    #- take the best choice possible.
 	    my @chosen = $urpm->find_chosen_packages($db, $state, $dep->{required});
 
-	    #- if no choice are given, this means that nothing possible can be selected
-	    #- according to $dep, we need to retry the selection allowing all packages that
-	    #- conflicts or anything similar to see which strategy can be tried.
-	    #- backtracked is used to avoid trying multiple times the same packages.
-	    #- if multiple packages are possible, simply ask the user which one to choose.
-	    #- else take the first one available.
+	    #- If no choice is found, this means that nothing can be possibly selected
+	    #- according to $dep, so we need to retry the selection, allowing all
+	    #- packages that conflict or anything similar to see which strategy can be
+	    #- tried. Backtracking is used to avoid trying multiple times the same
+	    #- packages. If multiple packages are possible, simply ask the user which
+	    #- one to choose; else take the first one available.
 	    if (!@chosen) {
 		unshift @properties, $urpm->backtrack_selected($db, $state, $dep, %options);
 		next; #- backtrack code choose to continue with same package or completely new strategy.
 	    } elsif ($options{callback_choices} && @chosen > 1) {
-		unshift @properties, map { +{ required => $_->id,
-					      choices => $dep->{required},
-					      exists $dep->{from} ? (from => $dep->{from}) : @{[]},
-					      exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
-					    }
-				       } grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
+		unshift @properties, map {
+		    +{
+			required => $_->id,
+			choices => $dep->{required},
+			exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+			exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+		    }
+		} grep { ref } $options{callback_choices}->($urpm, $db, $state, \@chosen);
 		next; #- always redo according to choices.
 	    }
 
@@ -448,7 +459,8 @@ sub resolve_requested {
 		    $pkg->set_flag_upgrade;
 		    $db->traverse_tag('name', [ $pkg->name ], sub {
 					  my ($p) = @_;
-					  $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+					  #- there is at least one package installed (whatever its version).
+					  $pkg->set_flag_installed;
 					  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 				      });
 		}
@@ -501,49 +513,54 @@ sub resolve_requested {
 			}
 			#- examine rpm db too (but only according to packages name as a fix in rpm itself)
 			$db->traverse_tag('name', [ $n ], sub {
-					      my ($p) = @_;
+				my ($p) = @_;
 
-					      #- without an operator, anything (with the same name) is matched.
-					      #- with an operator, check with package EVR with the obsoletes EVR.
-					      my $satisfied = !$o || eval($p->compare($v) . $o . 0);
-					      $p->name eq $pkg->name || $satisfied or return;
+				#- without an operator, anything (with the same name) is matched.
+				#- with an operator, check package EVR with the obsoletes EVR.
+				#- $satisfied is true if installed package has version newer or equal.
+				my $comparison = $p->compare($v);
+				my $satisfied = !$o || eval($comparison . $o . 0);
+				$p->name eq $pkg->name || $satisfied or return;
 
-					      #- do not propagate now the broken dependencies as they are
-					      #- computed later.
-					      my $rv = $state->{rejected}{$p->fullname} ||= {};
-					      $rv->{closure}{$pkg->fullname} = undef;
-					      $rv->{size} = $p->size;
+				#- do not propagate now the broken dependencies as they are
+				#- computed later.
+				my $rv = $state->{rejected}{$p->fullname} ||= {};
+				$rv->{closure}{$pkg->fullname} = undef;
+				$rv->{size} = $p->size;
 
-					      if ($p->name eq $pkg->name) {
-						  #- all packages older than the current one are obsoleted,
-						  #- the others are simply removed (the result is the same).
-						  if ($satisfied) {
-						      $rv->{obsoleted} = 1;
-						  } else {
-						      $rv->{closure}{$pkg->fullname} = { old_requested => 1 };
-						      $rv->{removed} = 1;
-						      ++$state->{oldpackage};
-						  }
-					      } else {
-						  $rv->{obsoleted} = 1;
-					      }
+				if ($p->name eq $pkg->name) {
+				    #- all packages older than the current one are obsoleted,
+				    #- the others are simply removed (the result is the same).
+				    if ($satisfied || $comparison > 0) {
+					$rv->{obsoleted} = 1;
+				    } else {
+					$rv->{closure}{$pkg->fullname} = { old_requested => 1 };
+					$rv->{removed} = 1;
+					++$state->{oldpackage};
+				    }
+				} else {
+				    $rv->{obsoleted} = 1;
+				}
 
-					      #- diff_provides on obsoleted provides are needed.
-					      foreach ($p->provides) {
-						  #- check differential provides between obsoleted package and newer one.
-						  if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-						      $diff_provides{$pn} = undef;
-						      foreach (grep { exists $state->{selected}{$_} }
-							       keys %{$urpm->{provides}{$pn} || {}}) {
-							  my $pp = $urpm->{depslist}[$_];
-							  foreach ($pp->provides) {
-							      /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/ && $1 eq $pn or next;
-							      $2 eq $ps and delete $diff_provides{$pn};
-							  }
-						      }
-						  }
-					      }
-					  });
+				#- diff_provides on obsoleted provides are needed.
+				foreach ($p->provides) {
+				    #- check differential provides between obsoleted package and newer one.
+				    if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+					$diff_provides{$pn} = undef;
+					foreach (grep { exists $state->{selected}{$_} }
+					    keys %{$urpm->{provides}{$pn} || {}})
+					{
+					    my $pp = $urpm->{depslist}[$_];
+					    foreach ($pp->provides) {
+						/^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/ && $1 eq $pn
+						    or next;
+						$2 eq $ps
+						    and delete $diff_provides{$pn};
+					    }
+					}
+				    }
+				}
+			    });
 		    }
 		}
 
@@ -855,12 +872,15 @@ sub compute_installed_flags {
     \%sizes;
 }
 
-#- compute flags according to hash describing packages to remove
-#- $val is a hash reference described as follow :
-#-   key is package name or regular expression on fullname if /.../
-#-   value is reference to hash indicating sense information ({ '' => undef } if none).
-#- options hash :
-#-   callback : sub to be called for each package with skip flag activated,
+#- compute flags according to a hash describing packages to skip
+#- $val is a hash reference (as returned by get_packages_list) described as follows :
+#-   key is a package name, or a regular expression matching against the
+#-      fullname, if enclosed in slashes
+#-   value is a hashref indicating sense information ({ '' => undef } if none).
+#- %options :
+#-   callback : sub to be called for each package where the flag is set
+#-   skip : if true, set the 'skip' flag
+#-   disable_obsolete : if true, set the 'disable_obsolete' flag
 sub compute_flags {
     my ($urpm, $val, %options) = @_;
     my %regex;
