@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.70
-%define release 7mdk
+%define release 8mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Sep  2 2002 François Pons <fpons@mandrakesoft.com> 0.70-8mdk
+- added start and end options to request_packages_to_upgrade
+  for DrakX to choose updated packages to upgrade.
+
 * Fri Aug 30 2002 François Pons <fpons@mandrakesoft.com> 0.70-7mdk
 - fixed the fix of split of package (5mdk).
 

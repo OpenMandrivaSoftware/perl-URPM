@@ -603,6 +603,9 @@ sub request_packages_to_upgrade {
 
     #- build direct access to best package according to name.
     foreach my $pkg (@{$urpm->{depslist}}) {
+	defined $options{start} && $pkg->id < $options{start} and next;
+	defined $options{end}   && $pkg->id > $options{end}   and next;
+
 	if ($pkg->is_arch_compat) {
 	    foreach ($pkg->provides) {
 		if (my ($n, $evr) = /^([^\s\[]*)(?:\[\*\])?\[?=+\s*([^\s\]]*)/) {
