@@ -505,7 +505,7 @@ callback_list_str_xpush(char *s, int slen, char *name, int_32 flags, char *evr, 
       XPUSHs(sv_2mortal(newSVpv(buff, len)));
   }
   PUTBACK;
-  /* returning zero indicate to continue processing */
+  /* returning zero indicates to continue processing */
   return 0;
 }
 
@@ -548,7 +548,7 @@ callback_list_str_overlap(char *s, int slen, char *name, int_32 flags, char *evr
 
   /* mark end of name */
   if (eon) { eonc = *eon; *eon = 0; }
-  /* name should be equal, else it will not overlap */
+  /* names should be equal, else it will not overlap */
   if (!strcmp(name, os->name)) {
     /* perform overlap according to direction needed, negative for left */
     if (os->direction < 0)
@@ -694,97 +694,92 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
   PUTBACK;
 }
 
-void 
+void
 return_list_tag(URPM__Package pkg, int_32 tag_name) {
   dSP;
   if (pkg->h != NULL) {
     void *list = NULL;
     int_32 count, type;
     headerGetEntry(pkg->h, tag_name, &type, (void **) &list, &count);
-    
+
     if (list) {
-    // avoid arch here (rpm don't return src), it's not beautifull
-    if (tag_name == RPMTAG_ARCH ) {
-        XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : (char *) list, 0)));
-    } else
-    switch (type) {
+      if (tag_name == RPMTAG_ARCH) {
+	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : (char *) list, 0)));
+      } else
+	switch (type) {
 	  case RPM_NULL_TYPE:
 	    break;
 	  case RPM_CHAR_TYPE:
 	  case RPM_INT8_TYPE:
 	  case RPM_INT16_TYPE:
 	  case RPM_INT32_TYPE:
-        {
-        int i;
-        int *r;
-        r = (int *)list;
-        for (i=0; i < count; i++) {
-    	    XPUSHs(sv_2mortal(newSViv(r[i])));
-        }
-        }
+	    {
+	      int i;
+	      int *r;
+	      r = (int *)list;
+	      for (i=0; i < count; i++) {
+		XPUSHs(sv_2mortal(newSViv(r[i])));
+	      }
+	    }
 	    break;
-/*
-  case RPM_INT64_TYPE:
-  break; 
-*/
 	  case RPM_STRING_TYPE:
 	    XPUSHs(sv_2mortal(newSVpv((char *) list, 0)));
 	    break;
 	  case RPM_BIN_TYPE:
 	    break;
 	  case RPM_STRING_ARRAY_TYPE:
-        {
-        int i;
-        char **s;
+	    {
+	      int i;
+	      char **s;
 
-        s = (char **)list;
-        for (i = 0; i < count; i++) {
-    	    XPUSHs(sv_2mortal(newSVpv(s[i], 0)));
-        }
-        }
+	      s = (char **)list;
+	      for (i = 0; i < count; i++) {
+		XPUSHs(sv_2mortal(newSVpv(s[i], 0)));
+	      }
+	    }
 	    break;
 	  case RPM_I18NSTRING_TYPE:
 	    break;
 	}
     }
   } else {
-      char *name;
-      char *version;
-      char *release;
-      char *arch;
-      char *eos;
-      switch (tag_name) {
-          case RPMTAG_NAME:
-              {
-              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
-	      if (version - name < 1) croak("invalid fullname");
-              XPUSHs(sv_2mortal(newSVpv(name, version-name - 1)));
-              }
-              break;
-          case RPMTAG_VERSION:
-              {
-              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
-	      if (release - version < 1) croak("invalid fullname");
-              XPUSHs(sv_2mortal(newSVpv(version, release-version - 1)));
-              }
-              break;
-          case RPMTAG_RELEASE:
-              {
-              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
-	      if (arch - release < 1) croak("invalid fullname");
-              XPUSHs(sv_2mortal(newSVpv(release, arch-release - 1)));
-              }
-              break;
-          case RPMTAG_ARCH:
-              {
-              get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
-              XPUSHs(sv_2mortal(newSVpv(arch, eos-arch)));
-              }
-              break;
-          case RPMTAG_SUMMARY:
-              XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
-              break;
-      }
+    char *name;
+    char *version;
+    char *release;
+    char *arch;
+    char *eos;
+    switch (tag_name) {
+      case RPMTAG_NAME:
+	{
+	  get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+	  if (version - name < 1) croak("invalid fullname");
+	  XPUSHs(sv_2mortal(newSVpv(name, version-name - 1)));
+	}
+	break;
+      case RPMTAG_VERSION:
+	{
+	  get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+	  if (release - version < 1) croak("invalid fullname");
+	  XPUSHs(sv_2mortal(newSVpv(version, release-version - 1)));
+	}
+	break;
+      case RPMTAG_RELEASE:
+	{
+	  get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+	  if (arch - release < 1) croak("invalid fullname");
+	  XPUSHs(sv_2mortal(newSVpv(release, arch-release - 1)));
+	}
+	break;
+      case RPMTAG_ARCH:
+	{
+	  get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
+	  XPUSHs(sv_2mortal(newSVpv(arch, eos-arch)));
+	}
+	break;
+      case RPMTAG_SUMMARY:
+	XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
+	break;
+    }
   }
   PUTBACK;
 }
@@ -4099,3 +4094,5 @@ Urpm_stream2header(fp)
         }
         Fclose(fd);
     }
+
+  /* vim:set ts=8 sts=2 sw=2: */

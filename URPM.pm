@@ -239,8 +239,8 @@ and adds them to the URPM object.
 
 =item $urpm->parse_hdlist($file, %options)
 
-This method load rpm informations from B<headers> contains in hdlist file
-and adds them to the URPM object. Allowed options are 
+This method loads rpm informations from rpm B<headers> contained in an hdlist
+file and adds them to the URPM object. Allowed options are 
 
     packing => 0 / 1
     callback => sub { ... }
@@ -250,8 +250,8 @@ Return value is an array of first and last id parsed.
     
 =item $urpm->parse_rpms($files, %options)
 
-This method load rpm informations from rpms B<headers> and adds them to
-the URPM object. Allowed options are 
+This method loads rpm informations from rpm B<headers> and adds them to
+the URPM object.
 
 Return value is an array of first and last id parsed.
 
@@ -451,8 +451,8 @@ rpm tags. See rpmlib.h.
 
 Querying the package like rpm --queryformat do. 
 
-The function call directlly the rpmlib, then use headers informations, so it 
-silently failed if you use synthesis instead hdlist/rpms/headers files or rpmdb.
+The function calls directly the rpmlib, then use header informations, so it 
+silently failed if you use synthesis instead of hdlist/rpm/header files or rpmdb.
 
 =item $package->get_tag_modifiers($tagid)
 
