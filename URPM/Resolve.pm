@@ -811,35 +811,46 @@ sub compute_installed_flags {
 #-   callback : sub to be called for each package with skip flag activated,
 sub compute_flags {
     my ($urpm, $val, %options) = @_;
+    my %regex;
 
-    #- avoid losing our time.
-    %$val or return;
-
-    foreach my $pkg (@{$urpm->{depslist}}) {
-	#- check if fullname is matching a regexp.
-	if (grep { exists($val->{$_}{''}) && /^\/(.*)\/$/ && $pkg->fullname =~ /$1/ } keys %$val) {
-	    #- a single selection on fullname using a regular expression.
-	    foreach (qw(skip disable_obsolete)) {
-		if ($options{$_} && !$pkg->flag($_)) {
-		    $pkg->set_flag($_, 1);
-		    $options{callback} and $options{callback}->($urpm, $pkg, %options);
+    #- perform the fastest possible, unless a regular expression is given,
+    #- the operation matches only according to provides.
+    while (my ($name, $sense) = each %$val) {
+	if ($name =~ /^\/(.*)\/$/) {
+	    $regex{$1} = $sense;
+	} else {
+	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
+		my $pkg = $urpm->{depslist}[$_];
+		my $satisfied = exists($sense->{''}) || !$urpm->{provides}{$name}{$_};
+		unless ($satisfied) {
+		    foreach my $s (keys %$sense) {
+			foreach ($pkg->provides) {
+			    ranges_overlap($_, $name.$s) and ++$satisfied, last;
+			}
+		    }
+		}
+		if ($satisfied) {
+		    foreach (qw(skip disable_obsolete)) {
+			if ($options{$_} && !$pkg->flag($_)) {
+			    $pkg->set_flag($_, 1);
+			    $options{callback} and $options{callback}->($urpm, $pkg, %options);
+			}
+		    }
 		}
 	    }
-	} else {
-	    #- check if a provides match at least one package.
-	    foreach ($pkg->provides) {
-		if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-		    foreach my $sn ($n, grep { /^\/(.*)\/$/ && $n =~ /$1/ } keys %$val) {
-			foreach (keys %{$val->{$sn} || {}}) {
-			    if (URPM::ranges_overlap($_, $s)) {
-				foreach (qw(skip disable_obsolete)) {
-				    if ($options{$_} && !$pkg->flag($_)) {
-					$pkg->set_flag($_, 1);
-					$options{callback} and $options{callback}->($urpm, $pkg, %options);
-				    }
-				}
-			    }
-			}
+	}
+    }
+
+    #- now perform regular matches but only on fullname.
+    if (%regex) {
+	foreach my $pkg (@{$urpm->{depslist}}) {
+	    #- check if fullname is matching a regexp.
+	    if (grep { exists($regex{$_}{''}) && $pkg->fullname =~ /$1/ } keys %regex) {
+		#- a single selection on fullname using a regular expression.
+		foreach (qw(skip disable_obsolete)) {
+		    if ($options{$_} && !$pkg->flag($_)) {
+			$pkg->set_flag($_, 1);
+			$options{callback} and $options{callback}->($urpm, $pkg, %options);
 		    }
 		}
 	    }
