@@ -540,7 +540,7 @@ sub compute_installed_flags {
     $db->traverse(sub {
 		      my ($p) = @_;
 		      #- keep mind of sizes of each packages.
-		      $sizes{join '-', ($p->fullname)[0..2]} = $p->size;
+		      $sizes{$p->name} += $p->size;
 		      #- compute flags.
 		      foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
 			  my $pkg = $urpm->{depslist}[$_];

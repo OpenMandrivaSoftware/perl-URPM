@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.60
-%define release 5mdk
+%define release 6mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug 12 2002 François Pons <fpons@mandrakesoft.com> 0.60-6mdk
+- simplified compute_installed_flags return value (used by DrakX).
+
 * Fri Aug  9 2002 François Pons <fpons@mandrakesoft.com> 0.60-5mdk
 - fixed package not selected to be upgraded (--auto-select of
   urpmi) when there are sense conflicts (initscripts).
