@@ -2400,7 +2400,8 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
     }
     size = snprintf(buff, sizeof(buff), "@info@%s\n", pkg->info);
     write(fileno, buff, size);
-  } else croak("no info available for package");
+  } else croak("no info available for package %s",
+	  pkg->h ? get_name(pkg->h, RPMTAG_NAME) : "-");
 
 void
 Pkg_build_header(pkg, fileno)
