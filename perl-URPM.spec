@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.07
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jul  5 2002 François Pons <fpons@mandrakesoft.com> 0.07-2mdk
+- fixed transaction methods so that install works.
+
 * Thu Jul  4 2002 François Pons <fpons@mandrakesoft.com> 0.07-1mdk
 - added transaction methods and URPM::Transaction type (for DrakX).
 - obsoleted URPM::DB::open_rw and removed it.

@@ -40,6 +40,16 @@ struct s_Transaction {
   rpmTransactionSet ts;
 };
 
+struct s_TransactionData {
+  SV* callback_open;
+  SV* callback_close;
+  SV* callback_trans;
+  SV* callback_uninst;
+  SV* callback_inst;
+  long min_delta;
+  SV *data; /* chain with another data user provided */
+};
+
 typedef rpmdb URPM__DB;
 typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
@@ -675,6 +685,103 @@ read_config_files() {
 }
 
 static void callback_empty(void) {}
+
+static void *rpmRunTransactions_callback(const void *h,
+					 const rpmCallbackType what,
+					 const unsigned long amount,
+					 const unsigned long total,
+					 const void * pkgKey,
+					 void * data) {
+  static int last_amount;
+  static FD_t fd = NULL;
+  static struct timeval tprev;
+  static struct timeval tcurr;
+  long delta;
+  int i;
+  struct s_TransactionData *td = data;
+  SV *callback = NULL;
+  char *callback_type = NULL;
+  char *callback_subtype = NULL;
+
+  switch (what) {
+  case RPMCALLBACK_INST_OPEN_FILE:
+    callback = td->callback_open; callback_type = "open"; break;
+
+  case RPMCALLBACK_INST_CLOSE_FILE:
+    callback = td->callback_close; callback_type = "close"; break;
+
+  case RPMCALLBACK_TRANS_START:
+  case RPMCALLBACK_TRANS_PROGRESS:
+  case RPMCALLBACK_TRANS_STOP:
+    callback = td->callback_trans; callback_type = "trans"; break;
+
+  case RPMCALLBACK_UNINST_START:
+  case RPMCALLBACK_UNINST_PROGRESS:
+  case RPMCALLBACK_UNINST_STOP:
+    callback = td->callback_uninst; callback_type = "uninst"; break;
+
+  case RPMCALLBACK_INST_START:
+  case RPMCALLBACK_INST_PROGRESS:
+    callback = td->callback_inst; callback_type = "inst"; break;
+  }
+
+  if (callback != NULL) {
+    switch (what) {
+    case RPMCALLBACK_TRANS_START:
+    case RPMCALLBACK_UNINST_START:
+    case RPMCALLBACK_INST_START:
+      callback_subtype = "start"; break;
+      gettimeofday(&tprev, NULL);
+
+    case RPMCALLBACK_TRANS_PROGRESS:
+    case RPMCALLBACK_UNINST_PROGRESS:
+    case RPMCALLBACK_INST_PROGRESS:
+      callback_subtype = "progress";
+      gettimeofday(&tcurr, NULL);
+      delta = 1000000 * (tcurr.tv_sec - tprev.tv_sec) + (tcurr.tv_usec - tprev.tv_usec);
+      if (delta < td->min_delta && amount < total - 1)
+	callback = NULL; /* avoid calling too often a given callback */
+      else
+	tprev = tcurr;
+      break;
+
+    case RPMCALLBACK_TRANS_STOP:
+    case RPMCALLBACK_UNINST_STOP:
+      callback_subtype = "stop"; break;
+    }
+
+    if (callback != NULL) {
+      /* now, a callback will be called for sure */
+      dSP;
+      PUSHMARK(sp);
+      XPUSHs(td->data);
+      XPUSHs(sv_2mortal(newSVpv(callback_type, 0)));
+      XPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((int)pkgKey - 1)) : &PL_sv_undef);
+      if (callback_subtype != NULL) {
+	XPUSHs(sv_2mortal(newSVpv(callback_subtype, 0)));
+	XPUSHs(sv_2mortal(newSViv(amount)));
+	XPUSHs(sv_2mortal(newSViv(total)));
+      }
+      PUTBACK;
+      i = call_sv(callback, callback == td->callback_open ? G_SCALAR : G_DISCARD);
+      SPAGAIN;
+      if (i != 1 && callback == td->callback_open) croak("callback_open should return a file handle");
+      if (i == 1) {
+	i = POPi;
+	fd = fdDup(i);
+	fd = fdLink(fd, "persist perl-URPM");
+	PUTBACK;
+      } else if (callback == td->callback_close) {
+	fd = fdFree(fd, "persist perl-URPM");
+	if (fd) {
+	  fdClose(fd);
+	  fd = NULL;
+	}
+      }
+    }
+  }
+  return fd;
+}
 
 MODULE = URPM            PACKAGE = URPM::Package       PREFIX = Pkg_
 
@@ -1712,16 +1819,10 @@ Trans_DESTROY(trans)
 int
 Trans_add_package(trans, pkg, update)
   URPM::Transaction trans
-  SV* pkg
+  URPM::Package pkg
   int update
-  PREINIT:
-  URPM__Package _pkg;
   CODE:
-  if (sv_derived_from(ST(0), "URPM::Package")) {
-    IV tmp = SvIV((SV*)SvRV(ST(0)));
-    _pkg = INT2PTR(URPM__Package,tmp);
-  } else croak("pkg is not of type URPM::Package");
-  RETVAL = _pkg->h && rpmtransAddPackage(trans->ts, _pkg->h, NULL, /* SvREFCNT_inc(pkg) */ pkg, update, NULL) == 0;
+  RETVAL = (pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL && rpmtransAddPackage(trans->ts, pkg->h, NULL, (void *)(1+(pkg->flag & FLAG_ID)), update, NULL) == 0;
   OUTPUT:
   RETVAL
 
@@ -1818,113 +1919,12 @@ Trans_run(trans, data, ...)
   SV *data
   PREINIT:
   /* available callback:
-       callback(data, 'open'|'close', pkg)
-       callback(data, 'trans'|'uninst'|'inst', pkg, 'start'|'progress'|'stop', amount, total)
+       callback(data, 'open'|'close', id|undef)
+       callback(data, 'trans'|'uninst'|'inst', id|undef, 'start'|'progress'|'stop', amount, total)
   */
-  SV* callback_open = NULL;
-  SV* callback_close = NULL;
-  SV* callback_trans = NULL;
-  SV* callback_uninst = NULL;
-  SV* callback_inst = NULL;
-  int min_delta = 200000;
+  struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, 100000, data };
   rpmProblemSet probs;
   int i;
-  void *rpmRunTransactions_callback(const void *h,
-				    const rpmCallbackType what,
-				    const unsigned long amount,
-				    const unsigned long total,
-				    const void * pkgKey,
-				    void * data) {
-    static int last_amount;
-    static FD_t fd = NULL;
-    static struct timeval tprev;
-    static struct timeval tcurr;
-    long delta;
-    int i;
-    SV *callback = NULL;
-    char *callback_type = NULL;
-    char *callback_subtype = NULL;
-
-    switch (what) {
-    case RPMCALLBACK_INST_OPEN_FILE:
-      callback = callback_open; callback_type = "open"; break;
-
-    case RPMCALLBACK_INST_CLOSE_FILE:
-      callback = callback_close; callback_type = "close"; break;
-
-    case RPMCALLBACK_TRANS_START:
-    case RPMCALLBACK_TRANS_PROGRESS:
-    case RPMCALLBACK_TRANS_STOP:
-      callback = callback_trans; callback_type = "trans"; break;
-
-    case RPMCALLBACK_UNINST_START:
-    case RPMCALLBACK_UNINST_PROGRESS:
-    case RPMCALLBACK_UNINST_STOP:
-      callback = callback_uninst; callback_type = "uninst"; break;
-
-    case RPMCALLBACK_INST_START:
-    case RPMCALLBACK_INST_PROGRESS:
-      callback = callback_inst; callback_type = "inst"; break;
-    }
-
-    if (callback != NULL) {
-      switch (what) {
-      case RPMCALLBACK_TRANS_START:
-      case RPMCALLBACK_UNINST_START:
-      case RPMCALLBACK_INST_START:
-	callback_subtype = "start"; break;
-
-      case RPMCALLBACK_TRANS_PROGRESS:
-      case RPMCALLBACK_UNINST_PROGRESS:
-      case RPMCALLBACK_INST_PROGRESS:
-	gettimeofday(&tcurr, NULL);
-	delta = 1000000 * (tcurr.tv_sec - tprev.tv_sec) + (tcurr.tv_usec - tprev.tv_usec);
-	if (delta > 200000 || amount >= total - 1)
-	  callback_subtype = "progress";
-	else
-	  callback = NULL; /* avoid calling too often a given callback */
-	break;
-
-      case RPMCALLBACK_TRANS_STOP:
-      case RPMCALLBACK_UNINST_STOP:
-	callback_subtype = "stop"; break;
-      }
-
-      if (callback != NULL) {
-	/* now, a callback will be called for sure */
-	dSP;
-	PUSHMARK(sp);
-	XPUSHs(data);
-	XPUSHs(sv_2mortal(newSVpv(callback_type, 0)));
-	XPUSHs((SV *)pkgKey);
-	if (callback_subtype != NULL) {
-	  XPUSHs(sv_2mortal(newSVpv(callback_subtype, 0)));
-	  XPUSHs(sv_2mortal(newSViv(amount)));
-	  XPUSHs(sv_2mortal(newSViv(total)));
-	}
-	PUTBACK;
-	i = perl_call_sv(callback, callback == callback_open ? G_SCALAR : G_DISCARD);
-	SPAGAIN;
-	if (i != 1 && callback == callback_open) croak("callback_open should return a file handle");
-	if (i == 1) {
-	  i = POPi;
-	  fd = fdDup(i);
-	  fd = fdLink(fd, "persist perl-URPM");
-	  PUTBACK;
-	  return fd;
-	}
-	if (callback == callback_close) {
-	  /* REFDEC on pkgKey */
-	  fd = fdFree(fd, "persist perl-URPM");
-	  if (fd) {
-	    fdClose(fd);
-	    fd = NULL;
-	  }
-	}
-      }
-    }
-    return NULL;
-  }
   PPCODE:
   for (i = 2; i < items-1; i+=2) {
     STRLEN len;
@@ -1932,19 +1932,19 @@ Trans_run(trans, data, ...)
 
     if (len >= 9 && !memcmp(s, "callback_", 9)) {
       if (len == 9+4 && !memcmp(s+9, "open", 4))
-	callback_open = ST(i+1);
+	td.callback_open = ST(i+1);
       else if (len == 9+5 && !memcmp(s+9, "close", 5))
-	callback_close = ST(i+1);
+	td.callback_close = ST(i+1);
       else if (len == 9+5 && !memcmp(s+9, "trans", 5))
-	callback_trans = ST(i+1);
+	td.callback_trans = ST(i+1);
       else if (len == 9+6 && !memcmp(s+9, "uninst", 6))
-	callback_uninst = ST(i+1);
-      else if (len == 9+6 && !memcmp(s+9, "inst", 4))
-	callback_inst = ST(i+1);
+	td.callback_uninst = ST(i+1);
+      else if (len == 9+4 && !memcmp(s+9, "inst", 4))
+	td.callback_inst = ST(i+1);
     } else if (len == 5 && !memcmp(s, "delta", 5))
-      min_delta = SvIV(ST(i+1));
+      td.min_delta = SvIV(ST(i+1));
   }
-  if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, NULL, NULL, &probs, 0, 0)) {
+  if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, &td, NULL, &probs, 0, 0)) {
     EXTEND(SP, probs->numProblems);
     for (i = 0; i < probs->numProblems; i++) {
       const char *pkgNEVR = (probs->probs[i].pkgNEVR ? probs->probs[i].pkgNEVR : "");
