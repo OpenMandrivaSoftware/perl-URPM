@@ -26,8 +26,12 @@ sub parse_rpms_build_headers {
 	unless ($options{clean}) {
 	    opendir DIR, $dir;
 	    while (my $file = readdir DIR) {
-		$file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
-		$cache{$2 || $1} = $file;
+		my ($fullname, $filename) = $file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
+		my @stat = stat "$dir/$_";
+		$cache{$filename || $fullname} = { file => $file,
+						   size => $stat[7],
+						   time => $stat[9],
+						 };
 	    }
 	    closedir DIR;
 	}
@@ -36,12 +40,12 @@ sub parse_rpms_build_headers {
 	    my ($key) = m!([^/]*)\.rpm$! or next; #- get rpm filename.
 	    my ($id, $filename);
 
-	    if ($cache{$key} && -s "$dir/$cache{$key}") {
-		($id, undef) = $urpm->parse_hdlist("$dir/$cache{$key}", !$options{callback});
-		defined $id or die "bad header $dir/$cache{$key}\n";
+	    if ($cache{$key} && $cache{$key}{time} > 0 && $cache{$key}{time} >= (stat $_)[9]) {
+		($id, undef) = $urpm->parse_hdlist("$dir/$cache{$key}{file}", !$options{callback});
+		defined $id or die "bad header $dir/$cache{$key}{file}\n";
 		$options{callback} and $options{callback}->($urpm, $id, %options);
 
-		$filename = $cache{$key};
+		$filename = $cache{$key}{file};
 	    } else {
 		($id, undef) = $urpm->parse_rpm($_);
 		defined $id or die "bad rpm $_\n";

@@ -383,7 +383,7 @@ sub resolve_requested {
 	    next; #- always redo according to choices.
 	}
 
-	#- now do the realy work, select the package.
+	#- now do the real work, select the package.
 	my ($pkg) = @chosen;
 	!$pkg || $pkg->flag_selected || exists $state->{selected}{$pkg->id} and next;
 
@@ -427,7 +427,7 @@ sub resolve_requested {
 					 exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 				       };
 
-	$options{no_flag_update} or $pkg->set_flag_required;
+	$pkg->set_flag_required;
 
 	#- check if package is not already installed before trying to use it, compute
 	#- obsoleted package too. this is valable only for non source package.
