@@ -11,12 +11,14 @@ sub find_candidate_packages {
     foreach (split '\|', $dep) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
+	    $pkg->flag_skip and next;
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
 	    $avoided && exists $avoided->{$pkg->fullname} and next;
 	    push @{$packages{$pkg->name}}, $pkg;
 	} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
+		$pkg->flag_skip and next;
 		$pkg->is_arch_compat or next;
 		$avoided && exists $avoided->{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
@@ -639,6 +641,44 @@ sub compute_installed_flags {
 		  });
 
     \%sizes;
+}
+
+#- compute skip flag according to hash describing package to remove
+#- $skip is a hash reference described as follow :
+#-   key is package name or regular expression on fullname if /.../
+#-   value is reference to hash indicating sense information ({ '' => undef } if none).
+#- options hash :
+#-   callback : sub to be called for each package with skip flag activated,
+sub compute_skip_flags {
+    my ($urpm, $skip, %options) = @_;
+
+    #- avoid losing our time.
+    %$skip or return;
+
+    foreach my $pkg (@{$urpm->{depslist}[$_]}) {
+	#- check if fullname is matching a regexp.
+	if (grep { exists($skip->{$_}{''}) && /^\/(.*)\/$/ && $pkg->fullname =~ /$1/ } keys %$skip) {
+	    #- a single selection on fullname using a regular expression.
+	    unless ($pkg->flag_skip) {
+		$pkg->set_flag_skip;
+		$options{callback} and $options{callback}->($urpm, $pkg, %options);
+	    }
+	} else {
+	    #- check if a provides match at least one package.
+	    foreach ($pkg->provides) {
+		if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+		    foreach my $sn ($n, grep { /^\/(.*)\/$/ && $n =~ /$1/ } keys %$skip) {
+			foreach (keys %{$skip->{$sn} || {}}) {
+			    if (URPM::ranges_overlap($_, $s) && !$pkg->flag_skip) {
+				$pkg->set_flag_skip;
+				$options{callback} and $options{callback}->($urpm, $pkg, %options);
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    }
 }
 
 #- select packages to upgrade, according to package already registered.

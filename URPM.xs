@@ -56,8 +56,9 @@ typedef rpmdb URPM__DB;
 typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
-#define FLAG_ID             0x001fffffU
-#define FLAG_RATE           0x00e00000U
+#define FLAG_ID             0x000fffffU
+#define FLAG_RATE           0x00700000U
+#define FLAG_SKIP           0x00800000U
 #define FLAG_BASE           0x01000000U
 #define FLAG_FORCE          0x02000000U
 #define FLAG_INSTALLED      0x04000000U
@@ -67,10 +68,10 @@ typedef struct s_Package* URPM__Package;
 #define FLAG_OBSOLETE       0x40000000U
 #define FLAG_NO_HEADER_FREE 0x80000000U
 
-#define FLAG_ID_MAX         0x001ffffe
-#define FLAG_ID_INVALID     0x001fffff
+#define FLAG_ID_MAX         0x000ffffe
+#define FLAG_ID_INVALID     0x000fffff
 
-#define FLAG_RATE_POS       21
+#define FLAG_RATE_POS       20
 #define FLAG_RATE_MAX       5
 #define FLAG_RATE_INVALID   0
 
@@ -118,7 +119,7 @@ get_name(Header header, int_32 tag) {
   char *name;
 
   headerGetEntry(header, tag, &type, (void **) &name, &count);
-  return name;
+  return name ? name : "";
 }
 
 static int
@@ -1519,6 +1520,25 @@ Pkg_build_header(pkg, fileno)
   } else croak("no header available for package");
 
 int
+Pkg_flag_skip(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_SKIP;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag_skip(pkg, value=1)
+  URPM::Package pkg
+  int value
+  CODE:
+  RETVAL = pkg->flag & FLAG_SKIP;
+  if (value) pkg->flag |= FLAG_SKIP;
+  else       pkg->flag &= ~FLAG_SKIP;
+  OUTPUT:
+  RETVAL
+
+int
 Pkg_flag_base(pkg)
   URPM::Package pkg
   CODE:
@@ -2061,6 +2081,8 @@ Trans_run(trans, data, ...)
 
     if (len == 4 && !memcmp(s, "test", 4)) {
       if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_TEST;
+    } else if (len == 11 && !memcmp(s, "excludedocs", 11)) {
+      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_NODOCS;
     } else if (len == 5) {
       if (!memcmp(s, "force", 5)) {
 	if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_REPLACEPKG | 
