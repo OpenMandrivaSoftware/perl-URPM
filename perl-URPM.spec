@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 0.99
+%define version 1.00
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,11 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Mon Aug 02 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.00-1mdk
+- Protection against packages that obsolete themselves.
+- Backwards compatibility with perl 5.6.
+- Cleanups.
+
 * Fri Jul 30 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.99-1mdk
 - A small modification in the algorithm that searches for virtual provides:
   don't give a choice between several packages that are already installed.

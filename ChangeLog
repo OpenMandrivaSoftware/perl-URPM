@@ -1,8 +1,36 @@
-2004-07-30 08:10  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+2004-08-02 11:01  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
-	* URPM/Resolve.pm: Resolution of requested packages: by default,
-	  don't propose a choice when multiple found packages are already
-	  installed.
+	* URPM/Resolve.pm: Protection against packages that obsolete
+	  themselves.
+
+2004-08-02 10:42  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs, t/parse.t: - remove test that can't works
+
+2004-08-02 09:22  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs: - backward compatibility with perl 5.6
+
+2004-08-02 09:14  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* Makefile.PL: - don't check rpm rpm version but rpm binary version
+
+2004-08-02 02:27  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Build.pm: Silence a compilation warning
+
+2004-08-02 02:03  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/: Build.pm, Query.pm, Resolve.pm: Make perl_checker a bit
+	  more happy
+
+2004-07-30 11:03  Thierry Vignaud <tvignaud@mandrakesoft.com>
+
+	* perl-URPM.spec: put back lost 0.98-2mdk's changelog
+
+2004-07-30 09:48  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 0.99-1mdk
 
 2004-07-28 10:47  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
