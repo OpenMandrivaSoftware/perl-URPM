@@ -489,7 +489,7 @@ sub build_base_files {
     my ($urpm, %options) = @_;
 
     if ($options{depslist}) {
-	open my $fh, ">$options{depslist}";
+	open my $fh, ">", $options{depslist} or die "Can't write to $options{depslist}: $!\n";;
 	foreach (0 .. $#{$urpm->{depslist}}) {
 	    my $pkg = $urpm->{depslist}[$_];
 
@@ -500,7 +500,7 @@ sub build_base_files {
     }
 
     if ($options{provides}) {
-	open my $fh, ">$options{provides}";
+	open my $fh, ">", $options{provides} or die "Can't write to $options{provides}: $!\n";
 	while (my ($k, $v) = each %{$urpm->{provides}}) {
 	    printf $fh "%s\n", join '@', $k, map { scalar $urpm->{depslist}[$_]->fullname } keys %{$v || {}};
 	}
@@ -510,7 +510,7 @@ sub build_base_files {
     if ($options{compss}) {
 	my %p;
 
-	open my $fh, ">$options{compss}";
+	open my $fh, ">", $options{compss} or die "Can't write to $options{compss}: $!\n";
 	foreach (@{$urpm->{depslist}}) {
 	    $_->group or next;
 	    push @{$p{$_->group} ||= []}, $_->name;
