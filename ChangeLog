@@ -1,3 +1,107 @@
+2004-04-23 10:01  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs: - urpm optional arg to Urpm_list_rpm_tag function
+
+2004-04-22 16:14  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.xs: Better diagnostics in $package->build_info()
+
+2004-04-22 11:54  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* t/parse.t: - test rpm parsing and hdlist generation
+
+2004-04-22 11:28  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* MANIFEST: Add missing files in the MANIFEST
+
+2004-04-22 11:28  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: Remove hardcoded packager
+
+2004-04-22 08:40  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM/Build.pm: - Don't pass whole %options to parse_rpm in
+	  parse_rpms_build_headers
+
+2004-04-22 08:34  Thierry Vignaud <tvignaud@mandrakesoft.com>
+
+	* URPM.xs: (return_list_tag) factorize common local variables
+	  declaration (though it wastes 4 pointer slots on stack in
+	  RPMTAG_SUMMARY case)
+
+2004-04-22 07:43  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* test-rpm-1.0-1mdk.noarch.rpm, test-rpm.spec, URPM/Query.pm,
+	  t/parse.t: - remove unusefull function - start to add parsing
+	  test
+
+2004-04-22 07:33  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM/Build.pm: - export keep_all_tags trought function in
+	  parse_rpm_build_headers
+
+2004-04-22 07:32  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs: - return_list_tag is able to return some basic tags from
+	  synthesis
+
+2004-04-21 15:13  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs: - cleaning return_list_tag
+
+2004-04-21 11:25  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.pm, URPM.xs, URPM/Query.pm: - add list_rpm_tag function
+
+2004-04-21 11:17  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: 0.94-12mdk
+
+2004-04-21 11:16  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Signature.pm: More cleanup.
+
+2004-04-21 11:15  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* Makefile.PL: Don't install manpages.
+
+2004-04-21 10:08  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Signature.pm: Minor cleanup
+
+2004-04-19 01:15  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM/: Build.pm, Query.pm: - add query_pkg function - transmit
+	  %options to parse_rpm in parse_rpms_build_headers
+
+2004-04-18 01:31  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM/: Build.pm, Query.pm: - add Query.pm (starting to code) -
+	  add fuzzy_parse function, transparency parse hdlist, synthesis,
+	  rpms or dir (dir/*.rpm) - add parse_rpms function to have same
+	  behaviours than parse_{hdlists,synthesis}
+
+2004-04-15 11:34  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.xs: Improve some diagnostics
+
+2004-04-09 17:51  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* Makefile.PL: Force INSTALLDIRS=vendor in the Makefile.PL, for
+	  local testing
+
+2004-04-06 16:41  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, t/rpmdb.t, t/synthesis.t: Deprecate the pseudo-packages
+	  URPM::Build, URPM::Resolve and URPM::Signature.  Documentation
+	  fixes. Tidy up the tests (and add a few ones.)
+
+2004-04-02 16:02  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* MANIFEST, Makefile.PL, URPM.pm, t/synthesis.t: Add some API
+	  documentation for the URPM module.  Plus, some minor nits in
+	  auxiliary files.
+
 2004-02-25 23:35  Olivier Thauvin <thauvin@aerov.jussieu.fr>
 
 	* perl-URPM.spec: 0.94-11mdk
