@@ -688,6 +688,7 @@ sub resolve_requested {
 						      push @keep, scalar $p->fullname;
 						  } else {
 						      #- no package has been found, we need to remove the package examined.
+						      delete $state->{rejected}{$p->fullname}; #- force resolution
 						      $urpm->resolve_rejected($db, $state, $p,
 									      removed => 1, unsatisfied => \@properties,
 									      from => scalar $pkg->fullname,
