@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.90
-%define release 7mdk
+%define release 8mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jun  5 2003 François Pons <fpons@mandrakesoft.com> 0.90-8mdk
+- cleaned code to be more perl portable.
+- fixed severe bug on perl stack manipulation when using callback.
+- fixed order return value.
+
 * Thu Jun  5 2003 François Pons <fpons@mandrakesoft.com> 0.90-7mdk
 - no_flag_update is no more used.
 - added clever cache management when building headers.

@@ -411,10 +411,9 @@ print_list_entry(char *buff, int sz, char *name, int_32 flags, char *evr) {
   return p - buff;
 }
 
-/* hacked to allow function outside XS code part to return object on perl stack,
-   the function return SP which must be set to caller SP */
-static SV **
-xreturn_list_str(register SV **sp, char *s, Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version) {
+void
+return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version) {
+  dSP;
   if (s != NULL) {
     char *ps = strchr(s, '@');
     if (tag_flags && tag_version) {
@@ -456,11 +455,12 @@ xreturn_list_str(register SV **sp, char *s, Header header, int_32 tag_name, int_
       free(list_evr);
     }
   }
-  return sp;
+  PUTBACK;
 }
 
-static SV **
-xreturn_list_int_32(register SV **sp, Header header, int_32 tag_name) {
+void
+return_list_int_32(Header header, int_32 tag_name) {
+  dSP;
   if (header) {
     int_32 type, count;
     int_32 *list = NULL;
@@ -473,11 +473,12 @@ xreturn_list_int_32(register SV **sp, Header header, int_32 tag_name) {
       }
     }
   }
-  return sp;
+  PUTBACK;
 }
 
-static SV **
-xreturn_list_uint_16(register SV **sp, Header header, int_32 tag_name) {
+void
+return_list_uint_16(Header header, int_32 tag_name) {
+  dSP;
   if (header) {
     int_32 type, count;
     uint_16 *list = NULL;
@@ -490,11 +491,12 @@ xreturn_list_uint_16(register SV **sp, Header header, int_32 tag_name) {
       }
     }
   }
-  return sp;
+  PUTBACK;
 }
 
-static SV **
-xreturn_files(register SV **sp, Header header, int filter_mode) {
+void
+return_files(Header header, int filter_mode) {
+  dSP;
   if (header) {
     char buff[4096];
     char *p, *s;
@@ -518,7 +520,7 @@ xreturn_files(register SV **sp, Header header, int filter_mode) {
     headerGetEntry(header, RPMTAG_DIRNAMES, &type, (void **) &dirNames, NULL);
     if (!baseNames || !dirNames || !dirIndexes) {
       headerGetEntry(header, RPMTAG_OLDFILENAMES, &type, (void **) &list, &count);
-      if (!list) return sp;
+      if (!list) return;
     }
 
     for(i = 0; i < count; i++) {
@@ -551,11 +553,12 @@ xreturn_files(register SV **sp, Header header, int filter_mode) {
     free(dirNames);
     free(list);
   }
-  return sp;
+  PUTBACK;
 }
 
-static SV **
-xreturn_problems(register SV **sp, rpmps ps, int translate_message) {
+void
+return_problems(rpmps ps, int translate_message) {
+  dSP;
   if (ps && ps->probs && ps->numProblems > 0) {
     int i;
 
@@ -618,7 +621,7 @@ xreturn_problems(register SV **sp, rpmps ps, int translate_message) {
       }
     }
   }
-  return sp;
+  PUTBACK;
 }
 
 static char *
@@ -907,9 +910,7 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
 
     /* now, a callback will be called for sure */
     dSP;
-    ENTER;
-    SAVETMPS;
-    PUSHMARK(sp);
+    PUSHMARK(SP);
     XPUSHs(urpm);
     XPUSHs(sv_pkg);
     PUTBACK;
@@ -921,8 +922,6 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
       sv_pkg = NULL;
     }
     PUTBACK;
-    FREETMPS;
-    LEAVE;
   }
 
   return sv_pkg != NULL;
@@ -1137,7 +1136,7 @@ static void *rpmRunTransactions_callback(const void *h,
       dSP;
       ENTER;
       SAVETMPS;
-      PUSHMARK(sp);
+      PUSHMARK(SP);
       XPUSHs(td->data);
       XPUSHs(sv_2mortal(newSVpv(callback_type, 0)));
       XPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((int)pkgKey - 1)) : &PL_sv_undef);
@@ -1696,151 +1695,201 @@ void
 Pkg_requires(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION);
+  PUTBACK;
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION);
+  SPAGAIN;
 
 void
 Pkg_requires_nosense(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->requires, pkg->h, RPMTAG_REQUIRENAME, 0, 0);
+  PUTBACK;
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_obsoletes(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION);
+  PUTBACK;
+  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION);
+  SPAGAIN;
 
 void
 Pkg_obsoletes_nosense(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, 0, 0);
+  PUTBACK;
+  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_conflicts(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION);
+  PUTBACK;
+  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION);
+  SPAGAIN;
 
 void
 Pkg_conflicts_nosense(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, 0, 0);
+  PUTBACK;
+  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_provides(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION);
+  PUTBACK;
+  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION);
+  SPAGAIN;
 
 void
 Pkg_provides_nosense(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0);
+  PUTBACK;
+  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_buildarchs(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0);
+  SPAGAIN;
   
 void
 Pkg_excludearchs(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0);
+  SPAGAIN;
   
 void
 Pkg_exclusivearchs(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0);
+  SPAGAIN;
   
 void
 Pkg_files(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_files(SP, pkg->h, 0);
+  PUTBACK;
+  return_files(pkg->h, 0);
+  SPAGAIN;
 
 void
 Pkg_files_md5sum(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_FILEMD5S, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_FILEMD5S, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_files_owner(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_FILEUSERNAME, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_FILEUSERNAME, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_files_group(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_FILEGROUPNAME, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_FILEGROUPNAME, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_files_mtime(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_int_32(SP, pkg->h, RPMTAG_FILEMTIMES);
+  PUTBACK;
+  return_list_int_32(pkg->h, RPMTAG_FILEMTIMES);
+  SPAGAIN;
 
 void
 Pkg_files_size(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_int_32(SP, pkg->h, RPMTAG_FILESIZES);
+  PUTBACK;
+  return_list_int_32(pkg->h, RPMTAG_FILESIZES);
+  SPAGAIN;
 
 void
 Pkg_files_uid(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_int_32(SP, pkg->h, RPMTAG_FILEUIDS);
+  PUTBACK;
+  return_list_int_32(pkg->h, RPMTAG_FILEUIDS);
+  SPAGAIN;
 
 void
 Pkg_files_gid(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_int_32(SP, pkg->h, RPMTAG_FILEGIDS);
+  PUTBACK;
+  return_list_int_32(pkg->h, RPMTAG_FILEGIDS);
+  SPAGAIN;
 
 void
 Pkg_files_mode(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_uint_16(SP, pkg->h, RPMTAG_FILEMODES);
+  PUTBACK;
+  return_list_uint_16(pkg->h, RPMTAG_FILEMODES);
+  SPAGAIN;
 
 void
 Pkg_conf_files(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_files(SP, pkg->h, FILTER_MODE_CONF_FILES);
+  PUTBACK;
+  return_files(pkg->h, FILTER_MODE_CONF_FILES);
+  SPAGAIN;
 
 void
 Pkg_upgrade_files(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_files(SP, pkg->h, FILTER_MODE_UPGRADE_FILES);
+  PUTBACK;
+  return_files(pkg->h, FILTER_MODE_UPGRADE_FILES);
+  SPAGAIN;
 
 void
 Pkg_changelog_time(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_int_32(SP, pkg->h, RPMTAG_CHANGELOGTIME);
+  PUTBACK;
+  return_list_int_32(pkg->h, RPMTAG_CHANGELOGTIME);
+  SPAGAIN;
 
 void
 Pkg_changelog_name(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_changelog_text(pkg)
   URPM::Package pkg
   PPCODE:
-  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0);
+  PUTBACK;
+  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0);
+  SPAGAIN;
 
 void
 Pkg_pack_header(pkg)
@@ -2276,6 +2325,8 @@ Db_traverse(db,callback)
       PUTBACK;
 
       call_sv(callback, G_DISCARD | G_SCALAR);
+
+      SPAGAIN;
       pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
     }
     ++count;
@@ -2339,6 +2390,8 @@ Db_traverse_tag(db,tag,names,callback)
 	  PUTBACK;
 
 	  call_sv(callback, G_DISCARD | G_SCALAR);
+
+	  SPAGAIN;
 	  pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
 	}
 	++count;
@@ -2529,7 +2582,9 @@ Trans_check(trans, ...)
 	XPUSHs(sv_2mortal(newSViv(0)));
       } else if (gimme == G_ARRAY) {
 	/* now translation is handled by rpmlib, but only for version 4.2 and above */
-	SP = xreturn_problems(SP, ps, 1);
+	PUTBACK;
+	return_problems(ps, 1);
+	SPAGAIN;
       }
     } else if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSViv(1)));
@@ -2570,7 +2625,7 @@ Trans_check(trans, ...)
 #endif
   }
 
-int
+void
 Trans_order(trans)
   URPM::Transaction trans
   PREINIT:
@@ -2650,13 +2705,17 @@ Trans_run(trans, data, ...)
   rpmtsSetNotifyCallback(trans->ts, rpmRunTransactions_callback, &td);
   if (rpmtsRun(trans->ts, NULL, probFilter) > 0) {
     rpmps ps = rpmtsProblems(trans->ts);
-    SP = xreturn_problems(SP, ps, translate_message);
+    PUTBACK;
+    return_problems(ps, translate_message);
+    SPAGAIN;
     ps = rpmpsFree(ps);
   }
   rpmtsEmpty(trans->ts);
 #else
   if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, &td, NULL, &probs, transFlags, probFilter)) {
-    SP = xreturn_problems(SP, probs, translate_message);
+    PUTBACK;
+    return_problems(probs, translate_message);
+    SPAGAIN;
   }
 #endif
 
@@ -2800,6 +2859,7 @@ Urpm_parse_synthesis(urpm, filename, ...)
 	}
       }
 
+      PUTBACK;
       if ((f = gzopen(filename, "rb")) != NULL) {
 	memset(&pkg, 0, sizeof(struct s_Package));
 	buff[sizeof(buff)-1] = 0;
@@ -2825,6 +2885,7 @@ Urpm_parse_synthesis(urpm, filename, ...)
 	  }
 	}
 	gzclose(f);
+	SPAGAIN;
 	if (av_len(depslist) >= start_id) {
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
@@ -2876,6 +2937,7 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	  }
 	}
 
+	PUTBACK;
 	do {
 	  int count = 4;
 	  header=headerRead(fd, HEADER_MAGIC_YES);
@@ -2917,6 +2979,7 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	  waitpid(pid, NULL, 0);
 	  pid = 0;
 	}
+	SPAGAIN;
 	if (av_len(depslist) >= start_id) {
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
@@ -2961,6 +3024,7 @@ Urpm_parse_rpm(urpm, filename, ...)
 	  }
 	}
       }
+      PUTBACK;
       memset(&pkg, 0, sizeof(struct s_Package));
       pkg.flag = 1 + av_len(depslist);
       sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
@@ -2974,7 +3038,7 @@ Urpm_parse_rpm(urpm, filename, ...)
 	  if (packing) pack_header(_pkg);
 	  av_push(depslist, sv_pkg);
 	}
-
+	SPAGAIN;
 	/* only one element read */
 	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
