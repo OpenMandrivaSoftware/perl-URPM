@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.11
-%define release 2mdk
+%define version 0.20
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Jul 22 2002 François Pons <fpons@mandrakesoft.com> 0.20-1mdk
+- added remove new package if an older package is requested.
+- fixed incomplete closure on ask_remove.
+- added unrequested code resolution.
+
 * Mon Jul 22 2002 François Pons <fpons@mandrakesoft.com> 0.11-2mdk
 - added option translate_message to URPM::Transaction::run.
 - fixed missing by package reference on transaction check error.

@@ -88,18 +88,26 @@ sub resolve_closure_ask_remove {
     unless ($state->{ask_remove}{$name}) {
 	my @removes = ($pkg);
 
+#TODO	print STDERR "resolving closure to remove $name\n";
 	while ($pkg = shift @removes) {
-	    foreach ($pkg->provides_nosense) {
-		$db->traverse_tag('whatrequires', [ $_ ], sub {
-				      my ($p) = @_;
-				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, $_)) {
-					  push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
-					    { unsatisfied => \@l, closure => $name };
+	    foreach ($pkg->provides) {
+		#- clean state according to provided properties.
+		delete $state->{installed}{$_}{$pkg->fullname};
+		%{$state->{installed}{$_} || {}} or delete $state->{installed}{$_};
 
-					  $p->pack_header; #- need to pack else package is no more visible...
-					  push @removes, $p;
-				      }
-				  });
+		#- close what requires this property.
+		if (my ($n) = /^([^\s\[]*)/) {
+		    $db->traverse_tag('whatrequires', [ $n ], sub {
+					  my ($p) = @_;
+					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, $n)) {
+					      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
+						{ unsatisfied => \@l, closure => $name };
+
+					      $p->pack_header; #- need to pack else package is no more visible...
+					      push @removes, $p;
+					  }
+				      });
+		}
 	    }
 	}
     }
@@ -186,7 +194,25 @@ sub resolve_requested {
 				      $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 				  });
 	    }
-	    $pkg->flag_installed && !$pkg->flag_upgrade and next;
+	    if ($pkg->flag_installed && !$pkg->flag_upgrade) {
+#TODO		print STDERR "found installed package ".$pkg->fullname." (currently examining $dep)\n";
+		#- the same or a more recent package is installed,
+		#- but this package may be required explicitely, in such
+		#- case we can ask to remove all the previous one and
+		#- choose this one to install.
+		my $allow = 0;
+		$db->traverse_tag('name', [ $pkg->name ], sub {
+				      my ($p) = @_;
+				      if ($pkg->compare_pkg($p) < 0) {
+					  $allow = 1;
+					  $options{keep_state} or
+					    $urpm->resolve_closure_ask_remove($db, $state, $p,
+									      { old_requested => 1, pkg => $pkg });
+				      }
+				  });
+		#- if nothing has been removed, just ignore it.
+		$allow or next;
+	    }
 	}
 
 	#- keep in mind the package has be selected, remove the entry in requested input hasj,
@@ -207,7 +233,7 @@ sub resolve_requested {
 		}
 	    }
 
-	    foreach ($pkg->name, $pkg->obsoletes) {
+	    foreach ($pkg->name."< ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
 		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*)\s*([^\s\]]*)/) {
 		    $db->traverse_tag('name', [ $n ], sub {
 					  my ($p) = @_;
@@ -356,7 +382,87 @@ sub resolve_requested {
 	}
     } else {
 	#- obsoleted packages are no longer marked as being asked to be removed.
+#TODO	print STDERR "removing ask_remove: ". join(", ", keys %{$state->{obsoleted}}) . "\n";
 	delete @{$state->{ask_remove}}{map { /(.*)\.[^\.]*$/ && $1 } keys %{$state->{obsoleted}}};
+    }
+}
+
+#- do the opposite of the above, unselect a package and extend
+#- to any package not requested that is no more needed by
+#- any other package.
+sub resolve_unrequested {
+    my ($urpm, $db, $state, $unrequested, %options) = @_;
+    my (%unrequested, $id);
+
+    #- keep in mind unrequested package in order to allow unselection
+    #- of requested package.
+    @unrequested{@$unrequested} = ();
+
+    #- iterate over package needing unrequested one.
+    while (defined($id = shift @$unrequested)) {
+	my (%diff_provides);
+
+	my $pkg = $urpm->{depslist}[$id];
+	$pkg->flag_selected or next;
+
+	#- the package being examined has to be unselected.
+	$pkg->set_flag_requested(0);
+	$pkg->set_flag_required(0);
+	$state->{unselect}{$pkg->id} = undef;
+
+	#- state should be cleaned by any reference to it.
+	foreach ($pkg->provides) {
+	    $diff_provides{$_} = undef;
+	    if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+		delete $state->{provided}{$n}{$s}{$pkg->id};
+		%{$state->{provided}{$n}{$s}} or delete $state->{provided}{$n}{$s};
+	    }
+	}
+	foreach ($pkg->name, $pkg->obsoletes_nosense) {
+	    $db->traverse_tag('name', [ $_ ], sub {
+				  my ($p) = @_;
+				  if ($state->{obsoleted}{$p->fullname} && exists $state->{obsoleted}{$p->fullname}{$pkg->id}) {
+				      #- found an obsoleted package, clean state.
+				      delete $state->{obsoleted}{$p->fullname}{$pkg->id};
+				      #- if this package has been obsoleted only by this one being unselected
+				      #- compute diff_provides to found potentially requiring packages.
+				      unless (%{$state->{obsoleted}{$p->fullname}}) {
+					  delete $state->{obsoleted}{$p->fullname};
+					  delete @diff_provides{$p->provides};
+				      }
+				  }
+			      });
+	}
+
+	#- determine package that requires properties no more available, so that they need to be
+	#- unselected too.
+	foreach (keys %diff_provides) {
+	    if (my ($n) =~ /^([^\s\[]*)/) {
+		$db->traverse_tag('whatrequires', [ $n ], sub {
+				      my ($p) = @_;
+				      if ($urpm->unsatisfied_requires($db, $state, $p, $n) == 0) {
+					  #- the package has broken dependencies, but it is already installed.
+					  #- we can remove it (well this is problably not normal).
+					  #TODO
+					  print STDERR "strange broken ".$p->fullname."\n";
+				      }
+				  });
+		#- check a whatrequires on selected packages directly.
+		foreach (keys %{$state->{whatrequires}{$n} || {}}) {
+		    my $p = $urpm->{depslist}[$_];
+		    $p->flag_selected or next;
+		    if ($urpm->unsatisfied_requires($db, $state, $p, $n) == 0) {
+			#- this package has broken dependencies, but it is installed.
+			#- just add it to unrequested.
+			push @$unrequested, $_;
+		    }
+		}
+	    }
+	}
+
+	#- determine among requires of this package if there is a package not requested but
+	#- no more required.
+	#TODO
     }
 }
 

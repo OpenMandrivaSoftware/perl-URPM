@@ -1826,6 +1826,7 @@ Db_create_transaction(db, prefix="/")
   char *prefix
   CODE:
   if ((RETVAL = calloc(1, sizeof(struct s_Transaction))) != NULL) {
+    /* rpmSetVerbosity(RPMMESS_DEBUG); TODO check remove and add in same transaction */
     RETVAL->db = db;
     RETVAL->ts = rpmtransCreateSet(db, prefix);
   }
@@ -1875,10 +1876,7 @@ Trans_remove(trans, name)
   mi = rpmdbInitIterator(trans->db, RPMDBI_LABEL, name, 0);
   while (h = rpmdbNextIterator(mi)) {
     unsigned int recOffset = rpmdbGetIteratorOffset(mi);
-    if (recOffset) {
-      rpmtransRemovePackage(trans->ts, recOffset);
-      ++count;
-    }
+    count += recOffset != 0 && rpmtransRemovePackage(trans->ts, recOffset) == 0;
   }
   rpmdbFreeIterator(mi);
   RETVAL=count;
