@@ -67,6 +67,9 @@ hdlist files and manage them in memory.
 - A small modification in the algorithm that searches for virtual provides:
   don't give a choice between several packages that are already installed.
 
+* Wed Jul 28 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.98-2mdk
+- Rebuild for new perl
+
 * Thu Jul 22 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.98-1mdk
 - Add a function URPM::stream2header()
 
