@@ -1,3 +1,11 @@
+2005-03-03 10:37  Rafael Garcia-Suarez <rgarciasuarez at mandrakesoft.com>
+
+	* URPM/Build.pm: Speed optimisation for updating media
+
+2005-03-02 16:13  Rafael Garcia-Suarez <rgarciasuarez at mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 1.10-1mdk
+
 2005-03-02 15:38  Rafael Garcia-Suarez <rgarciasuarez at mandrakesoft.com>
 
 	* URPM.xs: Prepare for obsolescence of PREREQ, introduce equivalent

@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.10
+%define version 1.11
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -66,6 +66,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Mon Mar 07 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.11-1mdk
+- Speed optimisation for updating media
+
 * Wed Mar 02 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.10-1mdk
 - Prepare for obsolescence of PreReq rpm tag, introduce equivalent
   RPMSENSE_SCRIPT_* tags
