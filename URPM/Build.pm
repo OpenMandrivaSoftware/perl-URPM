@@ -27,7 +27,7 @@ sub parse_rpms_build_headers {
 	    opendir DIR, $dir;
 	    while (my $file = readdir DIR) {
 		my ($fullname, $filename) = $file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
-		my @stat = stat "$dir/$_";
+		my @stat = stat "$dir/$file";
 		$cache{$filename || $fullname} = { file => $file,
 						   size => $stat[7],
 						   time => $stat[9],
