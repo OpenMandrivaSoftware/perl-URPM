@@ -41,7 +41,7 @@ sub parse_rpms_build_headers {
 	    my ($id, $filename);
 
 	    if ($cache{$key} && $cache{$key}{time} > 0 && $cache{$key}{time} >= (stat $_)[9]) {
-		($id, undef) = $urpm->parse_hdlist("$dir/$cache{$key}{file}", !$options{callback});
+		($id, undef) = $urpm->parse_hdlist("$dir/$cache{$key}{file}", keep_all_tags => $options{keep_all_tags});
 		unless (defined $id) {
 		  if ($options{dontdie}) {
 		    print STDERR "bad header $dir/$cache{$key}{file}\n";
@@ -81,7 +81,7 @@ sub parse_rpms_build_headers {
 		if ($options{callback}) {
 		    $options{callback}->($urpm, $id, %options, (file => $_));
 		} else {
-		    $pkg->pack_header;
+			$pkg->pack_header;
 		}
 
 		# Olivier Thauvin <thauvin@aerov.jussieu.fr>
