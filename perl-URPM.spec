@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.92
-%define release 4mdk
+%define version 0.93
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Aug  6 2003 François Pons <fpons@mandrakesoft.com> 0.93-1mdk
+- added URPM::Signature for handling armored gpg file and
+  internal rpm pubkey.
+- take care of PreReq when building hdlist or synthesis files.
+- removed id log during hdlist or synthesis creation.
+
 * Mon Aug  4 2003 François Pons <fpons@mandrakesoft.com> 0.92-4mdk
 - sanity check on transaction set (should be the same as
   normal selection, else something wrong has occured).

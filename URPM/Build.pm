@@ -132,6 +132,9 @@ sub compute_deps {
     #- check if something has to be done.
     $start > $end and return;
 
+    #- keep track of prereqs.
+    my %prereqs;
+
     #- take into account in which hdlist a package has been found.
     #- this can be done by an incremental take into account generation
     #- of depslist.ordered part corresponding to the hdlist.
@@ -141,29 +144,32 @@ sub compute_deps {
 
 	my %required_packages;
 	my @required_packages;
-	my %requires; @requires{$pkg->requires_nosense} = ();
+	my %requires;
+
+	foreach ($pkg->requires) {
+	    my ($n, $prereq) = /^([^\s\[]*)(\[\*\])?/;
+	    $requires{$n} = $prereq && 1;
+	}
 	my @requires = keys %requires;
 
 	while (my $req = shift @requires) {
 	    $req =~ /^basesystem/ and next; #- never need to requires basesystem directly as always required! what a speed up!
-	    $req = ($req =~ /^\d+$/ && [ $req ] ||
-		    $urpm->{provides}{$req} && [ keys %{$urpm->{provides}{$req}} ] ||
-		    [ ($req !~ /NOTFOUND_/ && "NOTFOUND_") . $req ]);
-	    if (@$req > 1) {
+	    my $treq = ($req =~ /^\d+$/ && [ $req ] ||
+			$urpm->{provides}{$req} && [ keys %{$urpm->{provides}{$req}} ] ||
+			[ ($req !~ /NOTFOUND_/ && "NOTFOUND_") . $req ]);
+	    if (@$treq > 1) {
 		#- this is a choice, no closure need to be done here.
-		push @required_packages, $req;
+		push @required_packages, $treq;
 	    } else {
 		#- this could be nothing if the provides is a file not found.
 		#- and this has been fixed above.
-		foreach (@$req) {
+		foreach (@$treq) {
 		    my $pkg_ = /^\d+$/ && $urpm->{depslist}[$_];
-		    exists $required_packages{$_} and next;
-		    $required_packages{$_} = undef; $pkg_ or next;
+		    exists $required_packages{$_} and $pkg_ = undef;
+		    $required_packages{$_} ||= $requires{$req}; $pkg_ or next;
 		    foreach ($pkg_->requires_nosense) {
-			unless (exists $requires{$_}) {
-			    $requires{$_} = undef;
-			    push @requires, $_;
-			}
+			exists $requires{$_} or push @requires, $_;
+			$requires{$_} ||= $requires{$req};
 		    }
 		}
 	    }
@@ -177,6 +183,10 @@ sub compute_deps {
 
 	#- store a short representation of requires.
 	$urpm->{requires}[$_] = join ' ', keys %required_packages;
+	foreach my $d (keys %required_packages) {
+	    $required_packages{$d} or next;
+	    $prereqs{$d}{$_} = undef;
+	}
     }
 
     #- expand choices and closure again.
@@ -230,11 +240,15 @@ sub compute_deps {
     #- give an id to each packages, start from number of package already
     #- registered in depslist.
     my %remap_ids; @remap_ids{sort {
-	$ordered{$b} <=> $ordered{$a} or do {
-	    my ($na, $nb) = map { $urpm->{depslist}[$_]->name } ($a, $b);
-	    my ($sa, $sb) = map { /^lib(.*)/ and $1 } ($na, $nb);
-	    $sa && $sb ? $sa cmp $sb : $sa ? -1 : $sb ? 1 : $na cmp $nb;
-	} } ($start .. $end)} = ($start .. $end);
+	exists $prereqs{$b}{$a} && ! exists $prereqs{$a}{$b} ? 1 :
+	  $ordered{$b} <=> $ordered{$a} or do {
+	      my ($na, $nb) = map { $urpm->{depslist}[$_]->name } ($a, $b);
+	      my ($sa, $sb) = map { /^lib(.*)/ and $1 } ($na, $nb);
+	      $sa && $sb ? $sa cmp $sb : $sa ? -1 : $sb ? 1 : $na cmp $nb;
+	  } } ($start .. $end)} = ($start .. $end);
+
+    #- now it is possible to clean ordered and prereqs.
+    %ordered = %prereqs = ();
 
     #- recompute requires to use packages id, drop any base packages or
     #- reference of a package to itself.
@@ -244,7 +258,6 @@ sub compute_deps {
 
 	#- set new id.
 	$pkg->set_id($remap_ids{$_});
-	print STDERR "setting id of ".$pkg->name.":$remap_ids{$_}\n";
 
 	my ($id, $base, %requires_id, %not_founds);
 	foreach (split ' ', $urpm->{requires}[$_]) {
