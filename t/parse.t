@@ -33,12 +33,11 @@ $a->build_hdlist(start  => 0,
 ok(-f 'hdlist.cz');
 
 my $b = new URPM;
-my ($start, $end) = $b->parse_hdlist('hdlist.cz', keep_all_tags => 1);
+($start, $end) = $b->parse_hdlist('hdlist.cz', keep_all_tags => 1);
 ok(@{$b->{depslist}} == 1);
-my $pkg = $b->{depslist}[0];
+$pkg = $b->{depslist}[0];
 ok($pkg);
 ok($pkg->get_tag(1000) eq 'test-rpm');
 ok($pkg->get_tag(1001) eq '1.0');
 ok($pkg->get_tag(1002) eq '1mdk');
 ok($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}") eq "test-rpm-1.0-1mdk.noarch");
-
