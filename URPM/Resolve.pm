@@ -4,6 +4,18 @@ use strict;
 
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 
+#- $state fields :
+#- * ask_remove: deprecated
+#- * backtrack
+#- * cached_installed
+#- * oldpackage
+#- * rejected
+#- * selected
+#- * transaction
+#- * transaction_state
+#- * unselected: deprecated
+#- * whatrequires
+
 #- Find candidates packages from a require string (or id).
 #- Takes care of direct choices using the '|' separator.
 sub find_candidate_packages {
@@ -32,9 +44,18 @@ sub find_candidate_packages {
     \%packages;
 }
 
+sub get_installed_arch {
+    my ($db, $n) = @_;
+    my $arch;
+    $db->traverse_tag('name', [ $n ], sub { $arch = $_[0]->arch });
+    $arch;
+}
+
 sub find_chosen_packages {
     my ($urpm, $db, $state, $dep) = @_;
     my %packages;
+    my %installed_arch;
+    my $strict_arch = $urpm->{options}{'strict-arch'};
 
     #- search for possible packages, try to be as fast as possible, backtrack can be longer.
     foreach (split /\|/, $dep) {
@@ -44,6 +65,11 @@ sub find_chosen_packages {
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this package is better than a possibly previously chosen package.
 	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
+	    if ($strict_arch) {
+		my $n = $pkg->name;
+		defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
+		$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
+	    }
 	    if (my $p = $packages{$pkg->name}) {
 		$pkg->flag_requested > $p->flag_requested ||
 		  $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
@@ -59,6 +85,11 @@ sub find_chosen_packages {
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
+		    if ($strict_arch) {
+			my $n = $pkg->name;
+			defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
+			$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
+		    }
 		    if (my $p = $packages{$pkg->name}) {
 			$pkg->flag_requested > $p->flag_requested ||
 			  $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
@@ -974,9 +1005,9 @@ sub request_packages_to_upgrade {
 	}
     }
 
-    #- clean direct access, a package in names should have 
-    #- check consistency with obsoletes of eligible package.
-    #- it is important not to select a package wich obsolete
+    #- cleans up direct access, a package in names should have
+    #- checked consistency with obsoletes of eligible package.
+    #- It is important not to select a package which obsoletes
     #- an old one.
     foreach my $pkg (values %names) {
 	foreach ($pkg->obsoletes) {
@@ -1052,7 +1083,7 @@ sub request_packages_to_upgrade {
 	}
     }
 
-    #- examine all packages which may be conflicting, it a package conflicts, it should not be requested.
+    #- examine all packages which may be conflicting. If a package conflicts, it should not be requested.
     my @names = map { $_->name . " == " . $_->epoch . ":" . $_->version . "-" . $_->release } values %names;
     my @pkgs = values %names;
     foreach my $pkg (@pkgs) {
@@ -1144,7 +1175,7 @@ sub build_transaction_set {
 	}
 
 	#- check transaction set has been correctly created,
-	#- possible error are other package removed which should not be the case.
+	#- possible error is other package removed which should not be the case.
 	if (keys(%{$state->{selected}}) == keys(%{$state->{transaction_state}{selected}}) &&
 	    (grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} } keys %{$state->{rejected}}) ==
 	    (grep { $state->{transaction_state}{rejected}{$_}{removed} && !$state->{transaction_state}{rejected}{$_}{obsoleted} }
