@@ -697,7 +697,7 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
 void 
 return_list_tag(URPM__Package pkg, int_32 tag_name) {
   dSP;
-  if (pkg->h) {
+  if (pkg->h != NULL) {
     void *list = NULL;
     int_32 count, type;
     headerGetEntry(pkg->h, tag_name, &type, (void **) &list, &count);
@@ -757,19 +757,19 @@ return_list_tag(URPM__Package pkg, int_32 tag_name) {
           case RPMTAG_NAME:
               {
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
-              XPUSHs(sv_2mortal(newSVpv(name, version-name)));
+              XPUSHs(sv_2mortal(newSVpv(name, version-name - 1)));
               }
               break;
           case RPMTAG_VERSION:
               {
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
-              XPUSHs(sv_2mortal(newSVpv(version, release-version)));
+              XPUSHs(sv_2mortal(newSVpv(version, release-version - 1)));
               }
               break;
           case RPMTAG_RELEASE:
               {
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
-              XPUSHs(sv_2mortal(newSVpv(release, arch-release)));
+              XPUSHs(sv_2mortal(newSVpv(release, arch-release - 1)));
               }
               break;
           case RPMTAG_ARCH:

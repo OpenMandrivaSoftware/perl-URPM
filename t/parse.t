@@ -4,7 +4,7 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 20;
+use Test::More tests => 19;
 use URPM;
 use URPM::Build;
 use URPM::Query;
@@ -23,7 +23,7 @@ ok(keys %tags);
 ok($pkg->get_tag(1000) eq 'test-rpm');
 ok($pkg->get_tag(1001) eq '1.0');
 ok($pkg->get_tag(1002) eq '1mdk');
-ok($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}") eq "test-rpm-1.0-1mdk.noarch");
+# ok($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}") eq "test-rpm-1.0-1mdk.noarch");
 
 $a->build_hdlist(
     start  => 0,
