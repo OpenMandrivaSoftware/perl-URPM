@@ -745,47 +745,32 @@ return_list_tag(URPM__Package pkg, int_32 tag_name) {
 	}
     }
   } else {
+      char *name;
+      char *version;
+      char *release;
+      char *arch;
+      char *eos;
       switch (tag_name) {
           case RPMTAG_NAME:
               {
-              char *name;
-              char *version;
-              char *release;
-              char *arch;
-              char *eos;
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
               XPUSHs(sv_2mortal(newSVpv(name, version-name)));
               }
               break;
           case RPMTAG_VERSION:
               {
-              char *name;
-              char *version;
-              char *release;
-              char *arch;
-              char *eos;
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
               XPUSHs(sv_2mortal(newSVpv(version, release-version)));
               }
               break;
           case RPMTAG_RELEASE:
               {
-              char *name;
-              char *version;
-              char *release;
-              char *arch;
-              char *eos;
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
               XPUSHs(sv_2mortal(newSVpv(release, arch-release)));
               }
               break;
           case RPMTAG_ARCH:
               {
-              char *name;
-              char *version;
-              char *release;
-              char *arch;
-              char *eos;
               get_fullname_parts(pkg, &name, &version, &release, &arch, &eos);
               XPUSHs(sv_2mortal(newSVpv(arch, eos-arch)));
               }
