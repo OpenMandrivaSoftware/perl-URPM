@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.70
-%define release 6mdk
+%define release 7mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Aug 30 2002 François Pons <fpons@mandrakesoft.com> 0.70-7mdk
+- fixed the fix of split of package (5mdk).
+
 * Fri Aug 30 2002 François Pons <fpons@mandrakesoft.com> 0.70-6mdk
 - improved URPM::resolve_closure_ask_remove to keep track of
   removal path and size of package being removed.

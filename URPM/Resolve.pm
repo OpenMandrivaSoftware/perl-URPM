@@ -348,7 +348,8 @@ sub resolve_requested {
 					      my @best;
 					      foreach (@l) {
 						  $packages = $urpm->find_candidate_packages($_);
-						  push @best, join('|', map { $_->id } map { @{$_ || []} } values %$packages);
+						  $best = join('|', map { $_->id } map { @{$_ || []} } values %$packages);
+						  $best and push @best, $best;
 					      }
 
 					      if (@best == @l) {
