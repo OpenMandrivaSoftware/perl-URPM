@@ -219,6 +219,7 @@ sub resolve_requested {
 	#- should be prefered over packages that requires locales not installed.
 	my (@chosen_good_locales, @chosen_bad_locales, @chosen_other);
 	foreach (@chosen) {
+	    $_ or next;
 	    my $good_locales;
 	    if (my ($specific_locales) = grep { /locales-/ && ! /locales-en/ } $_->requires_nosense) {
 		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
