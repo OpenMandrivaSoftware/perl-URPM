@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.83
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -51,6 +51,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed May 14 2003 François Pons <fpons@mandrakesoft.com> 0.83-4mdk
+- completed URPM::Transaction::verify_rpm for signature checking
+  and added a lot of more options (including db to avoid openning
+  new transaction and new database (rpm 4.2 behaviour)).
+
 * Tue May 13 2003 Pons François <fpons@mandrakesoft.com> 0.83-3mdk
 - fixed URPM::Transaction::check and URPM::Transaction::run
   when returning error list.

@@ -24,9 +24,11 @@
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
 #ifdef RPM_42
+#include <rpm/rpmio.h>
 #include <rpm/rpmdb.h>
 #include <rpm/rpmts.h>
 #include <rpm/rpmps.h>
+#include <rpm/rpmpgp.h>
 #endif
 
 struct s_Package {
@@ -99,7 +101,240 @@ typedef struct s_Package* URPM__Package;
 
 /* these are in rpmlib but not in rpmlib.h */
 int readLead(FD_t fd, struct rpmlead *lead);
+#ifdef RPM_42
+/* Importing rpm hidden functions,
+     Does RedHat try to force using their fucking functions using char **
+     as direct mapping of rpm command line options ? */
+
+/* almost direct importation of rpmio_internal.h */
+
+/** \ingroup rpmio
+ * Values parsed from OpenPGP signature/pubkey packet(s).
+ */
+struct pgpDigParams_s {
+/*@only@*/ /*@null@*/
+    const char * userid;
+/*@only@*/ /*@null@*/
+    const byte * hash;
+    const char * params[4];
+    byte tag;
+
+    byte version;		/*!< version number. */
+    byte time[4];		/*!< time that the key was created. */
+    byte pubkey_algo;		/*!< public key algorithm. */
+
+    byte hash_algo;
+    byte sigtype;
+    byte hashlen;
+    byte signhash16[2];
+    byte signid[8];
+    byte saved;
+#define	PGPDIG_SAVED_TIME	(1 << 0)
+#define	PGPDIG_SAVED_ID		(1 << 1)
+
+};
+
+/** \ingroup rpmio
+ * Container for values parsed from an OpenPGP signature and public key.
+ */
+struct pgpDig_s {
+    struct pgpDigParams_s signature;
+    struct pgpDigParams_s pubkey;
+
+    size_t nbytes;		/*!< No. bytes of plain text. */
+
+/*@only@*/ /*@null@*/
+    DIGEST_CTX sha1ctx;		/*!< (dsa) sha1 hash context. */
+/*@only@*/ /*@null@*/
+    DIGEST_CTX hdrsha1ctx;	/*!< (dsa) header sha1 hash context. */
+/*@only@*/ /*@null@*/
+    void * sha1;		/*!< (dsa) V3 signature hash. */
+    size_t sha1len;		/*!< (dsa) V3 signature hash length. */
+
+/*@only@*/ /*@null@*/
+    DIGEST_CTX md5ctx;		/*!< (rsa) md5 hash context. */
+#ifdef	NOTYET
+/*@only@*/ /*@null@*/
+    DIGEST_CTX hdrmd5ctx;	/*!< (rsa) header md5 hash context. */
+#endif
+/*@only@*/ /*@null@*/
+    void * md5;			/*!< (rsa) V3 signature hash. */
+    size_t md5len;		/*!< (rsa) V3 signature hash length. */
+
+    /* WARNING INCOMPLETE TYPE */
+};
+
+/** \ingroup rpmio
+ */
+typedef struct _FDSTACK_s {
+    FDIO_t		io;
+/*@dependent@*/ void *	fp;
+    int			fdno;
+} FDSTACK_t;
+
+/** \ingroup rpmio
+ * Cumulative statistics for an I/O operation.
+ */
+typedef struct {
+    int			count;	/*!< Number of operations. */
+    off_t		bytes;	/*!< Number of bytes transferred. */
+    time_t		msecs;	/*!< Number of milli-seconds. */
+} OPSTAT_t;
+
+/** \ingroup rpmio
+ * Identify per-desciptor I/O operation statistics.
+ */
+enum FDSTAT_e {
+    FDSTAT_READ		= 0,	/*!< Read statistics index. */
+    FDSTAT_WRITE	= 1,	/*!< Write statistics index. */
+    FDSTAT_SEEK		= 2,	/*!< Seek statistics index. */
+    FDSTAT_CLOSE	= 3	/*!< Close statistics index */
+};
+
+/** \ingroup rpmio
+ * Cumulative statistics for a descriptor.
+ */
+typedef	/*@abstract@*/ struct {
+    struct timeval	create;	/*!< Structure creation time. */
+    struct timeval	begin;	/*!< Operation start time. */
+    OPSTAT_t		ops[4];	/*!< Cumulative statistics. */
+} * FDSTAT_t;
+
+/** \ingroup rpmio
+ */
+typedef struct _FDDIGEST_s {
+    pgpHashAlgo		hashalgo;
+    DIGEST_CTX		hashctx;
+} * FDDIGEST_t;
+
+/** \ingroup rpmio
+ * The FD_t File Handle data structure.
+ */
+struct _FD_s {
+/*@refs@*/ int	nrefs;
+    int		flags;
+#define	RPMIO_DEBUG_IO		0x40000000
+#define	RPMIO_DEBUG_REFS	0x20000000
+    int		magic;
+#define	FDMAGIC			0x04463138
+    int		nfps;
+    FDSTACK_t	fps[8];
+    int		urlType;	/* ufdio: */
+
+/*@dependent@*/ void *	url;	/* ufdio: URL info */
+    int		rd_timeoutsecs;	/* ufdRead: per FD_t timer */
+    ssize_t	bytesRemain;	/* ufdio: */
+    ssize_t	contentLength;	/* ufdio: */
+    int		persist;	/* ufdio: */
+    int		wr_chunked;	/* ufdio: */
+
+    int		syserrno;	/* last system errno encountered */
+/*@observer@*/ const void *errcookie;	/* gzdio/bzdio/ufdio: */
+
+    FDSTAT_t	stats;		/* I/O statistics */
+
+    int		ndigests;
+#define	FDDIGEST_MAX	4
+    struct _FDDIGEST_s	digests[FDDIGEST_MAX];
+
+    int		ftpFileDoneNeeded; /* ufdio: (FTP) */
+    unsigned int firstFree;	/* fadio: */
+    long int	fileSize;	/* fadio: */
+    long int	fd_cpioPos;	/* cpio: */
+};
+/*@access FD_t@*/
+
+static inline
+void fdInitDigest(FD_t fd, pgpHashAlgo hashalgo, int flags)
+	/*@modifies fd @*/
+{
+    FDDIGEST_t fddig = fd->digests + fd->ndigests;
+    if (fddig != (fd->digests + FDDIGEST_MAX)) {
+	fd->ndigests++;
+	fddig->hashalgo = hashalgo;
+	fddig->hashctx = rpmDigestInit(hashalgo, flags);
+    }
+}
+
+/* end of incoporated rpmio_internal.h */
+
+static unsigned char header_magic[8] = {
+        0x8e, 0xad, 0xe8, 0x01, 0x00, 0x00, 0x00, 0x00
+};
+static int readFile(FD_t fd, const char * fn, pgpDig dig)
+{
+    unsigned char buf[4*BUFSIZ];
+    ssize_t count;
+    int rc = 1;
+    int i;
+
+    dig->nbytes = 0;
+
+    /* Read the header from the package. */
+    {	Header h = headerRead(fd, HEADER_MAGIC_YES);
+	if (h == NULL) {
+	    rpmError(RPMERR_FREAD, _("%s: headerRead failed\n"), fn);
+	    goto exit;
+	}
+
+	dig->nbytes += headerSizeof(h, HEADER_MAGIC_YES);
+
+	if (headerIsEntry(h, RPMTAG_HEADERIMMUTABLE)) {
+	    void * uh;
+	    int_32 uht, uhc;
+	
+	    if (!headerGetEntry(h, RPMTAG_HEADERIMMUTABLE, &uht, &uh, &uhc)
+	    ||   uh == NULL)
+	    {
+		h = headerFree(h);
+		rpmError(RPMERR_FREAD, _("%s: headerGetEntry failed\n"), fn);
+		goto exit;
+	    }
+	    dig->hdrsha1ctx = rpmDigestInit(PGPHASHALGO_SHA1, RPMDIGEST_NONE);
+	    (void) rpmDigestUpdate(dig->hdrsha1ctx, header_magic, sizeof(header_magic));
+	    (void) rpmDigestUpdate(dig->hdrsha1ctx, uh, uhc);
+	    uh = headerFreeData(uh, uht);
+	}
+	h = headerFree(h);
+    }
+
+    /* Read the payload from the package. */
+    while ((count = Fread(buf, sizeof(buf[0]), sizeof(buf), fd)) > 0)
+	dig->nbytes += count;
+    if (count < 0) {
+	rpmError(RPMERR_FREAD, _("%s: Fread failed: %s\n"), fn, Fstrerror(fd));
+	goto exit;
+    }
+
+    /* XXX Steal the digest-in-progress from the file handle. */
+    for (i = fd->ndigests - 1; i >= 0; i--) {
+	FDDIGEST_t fddig = fd->digests + i;
+	if (fddig->hashctx == NULL)
+	    continue;
+	if (fddig->hashalgo == PGPHASHALGO_MD5) {
+assert(dig->md5ctx == NULL);
+	    dig->md5ctx = fddig->hashctx;
+	    fddig->hashctx = NULL;
+	    continue;
+	}
+	if (fddig->hashalgo == PGPHASHALGO_SHA1) {
+assert(dig->sha1ctx == NULL);
+	    dig->sha1ctx = fddig->hashctx;
+	    fddig->hashctx = NULL;
+	    continue;
+	}
+    }
+
+    rc = 0;
+
+exit:
+    return rc;
+}
+
+int rpmReadSignature(FD_t fd, Header *header, short sig_type, const char **msg);
+#else
 int rpmReadSignature(FD_t fd, Header *header, short sig_type);
+#endif
 
 
 static void
@@ -2070,7 +2305,7 @@ Db_create_transaction(db, prefix="/")
   char *prefix
   CODE:
 #ifdef RPM_42
-  /* this *REALLY* dangerous to create a new transaction while another is open,
+  /* this is *REALLY* dangerous to create a new transaction while another is open,
      so use the db transaction instead. */
   RETVAL = db;
   ++RETVAL->count;
@@ -2698,37 +2933,72 @@ char *
 Urpm_verify_rpm(filename, ...)
   char *filename
   PREINIT:
-  int nopgp = 0, nogpg = 0, nomd5 = 0;
+  URPM__DB db = NULL;
+  int nopgp = 0, nogpg = 0, nomd5 = 0, norsa = 0, nodsa = 0, nosha1 = 0;
   struct rpmlead lead;
-  Header sig;
+  Header sigh;
   HeaderIterator sigIter;
   const void *ptr;
   int_32 tag, type, count;
-  FD_t fd, ofd;
+  FD_t fd;
   const char *tmpfile = NULL;
   int i;
   char result[8*BUFSIZ];
   unsigned char buffer[8192];
+#ifdef RPM_42
+  unsigned char *b = buffer;
+  rpmts ts;
+  pgpDig dig;
+  pgpDigParams sigp;
+#else
+  FD_t ofd;
+#endif
   CODE:
   for (i = 1; i < items-1; i+=2) {
     STRLEN len;
     char *s = SvPV(ST(i), len);
 
-    if (len == 5) {
+    if (len == 2 && !memcmp(s, "db", 2)) {
+      if (sv_derived_from(ST(i+1), "URPM::DB")) {
+	IV tmp = SvIV((SV*)SvRV(ST(i+1)));
+	db = INT2PTR(URPM__DB, tmp);
+      } else
+	croak("db is not of type URPM::DB");
+    } else if (len == 5) {
       if (!memcmp(s, "nopgp", 5))
 	nopgp = SvIV(ST(i+1));
       else if (!memcmp(s, "nogpg", 5))
 	nogpg = SvIV(ST(i+1));
       else if (!memcmp(s, "nomd5", 5))
 	nomd5 = SvIV(ST(i+1));
-    } else if (len == 12 && !memcmp(s, "tmp_filename", 12))
-      tmpfile = SvPV_nolen(ST(i+1));
+      else if (!memcmp(s, "norsa", 5))
+	norsa = SvIV(ST(i+1));
+      else if (!memcmp(s, "nodsa", 5))
+	nodsa = SvIV(ST(i+1));
+    } else if (len == 9 && !memcmp(s, "nodigests", 9))
+      nomd5 = nosha1 = SvIV(ST(i+1));
+    else if (len == 12) {
+      if (!memcmp(s, "tmp_filename", 12))
+	tmpfile = SvPV_nolen(ST(i+1));
+      else if (!memcmp(s, "nosignatures", 12))
+	nopgp = nogpg = norsa = nodsa = 1;
+    }
   }
   RETVAL = NULL;
   fd = fdOpen(filename, O_RDONLY, 0);
   if (fdFileno(fd) < 0) {
     RETVAL = "Couldn't open file";
   } else {
+    if (db) {
+      ts = db->ts;
+    } else {
+      /* compabilty mode to use rpmdb installed on / */
+      ts = rpmtsCreate();
+      read_config_files(0);
+      rpmtsSetRootDir(ts, "/");
+      rpmtsOpenDB(ts, O_RDONLY);
+    }
+
     memset(&lead, 0, sizeof(lead));
     if (readLead(fd, &lead)) {
       RETVAL = "Could not read lead bytes";
@@ -2736,13 +3006,50 @@ Urpm_verify_rpm(filename, ...)
       RETVAL = "RPM version of package doesn't support signatures";
     } else {
 #ifdef RPM_42
-      RETVAL = "md5 OK"; /* TODO */
+      i = rpmReadSignature(fd, &sigh, lead.signature_type, NULL);
 #else
-      i = rpmReadSignature(fd, &sig, lead.signature_type);
-      if (i != RPMRC_OK && i != RPMRC_BADSIZE) {
+      i = rpmReadSignature(fd, &sigh, lead.signature_type);
+#endif
+      if (i != RPMRC_OK) {
 	RETVAL = "Could not read signature block (`rpmReadSignature' failed)";
-      } else if (!sig) {
+      } else if (!sigh) {
 	RETVAL = "No signatures";
+#ifdef RPM_42
+      }
+      /* Grab a hint of what needs doing to avoid duplication. */
+      tag = 0;
+      if (tag == 0) {
+	if (!nodsa && headerIsEntry(sigh, RPMSIGTAG_DSA))
+	  tag = RPMSIGTAG_DSA;
+	else if (!norsa && headerIsEntry(sigh, RPMSIGTAG_RSA))
+	  tag = RPMSIGTAG_RSA;
+	else if (!nogpg && headerIsEntry(sigh, RPMSIGTAG_GPG))
+	  tag = RPMSIGTAG_GPG;
+	else if (!nopgp && headerIsEntry(sigh, RPMSIGTAG_PGP))
+	  tag = RPMSIGTAG_PGP;
+      }
+      if (tag == 0) {
+	if (!nomd5 && headerIsEntry(sigh, RPMSIGTAG_MD5))
+	  tag = RPMSIGTAG_MD5;
+	else if (!nosha1 && headerIsEntry(sigh, RPMSIGTAG_SHA1))
+	  tag = RPMSIGTAG_SHA1;	/* XXX never happens */
+      }
+
+      if (headerIsEntry(sigh, RPMSIGTAG_PGP)
+	  ||  headerIsEntry(sigh, RPMSIGTAG_PGP5)
+	  ||  headerIsEntry(sigh, RPMSIGTAG_MD5))
+	fdInitDigest(fd, PGPHASHALGO_MD5, 0);
+      if (headerIsEntry(sigh, RPMSIGTAG_GPG))
+	fdInitDigest(fd, PGPHASHALGO_SHA1, 0);
+
+      dig = rpmtsDig(ts);
+      sigp = rpmtsSignature(ts);
+
+      /* Read the file, generating digest(s) on the fly. */
+      if (dig == NULL || sigp == NULL || readFile(fd, filename, dig)) {
+	RETVAL = "Unable to read rpm file";
+      } else {
+#else
       } else if (makeTempFile(NULL, &tmpfile, &ofd)) {
 	if (tmpfile) {
 	  unlink(tmpfile);
@@ -2764,16 +3071,28 @@ Urpm_verify_rpm(filename, ...)
 	    break;
 	  }
 	}
+#endif
 	if (!RETVAL) {
 	  int res2 = 0;
 	  int res3;
 	  unsigned char missingKeys[7164] = { 0 };
+	  unsigned char *m = missingKeys;
 	  unsigned char untrustedKeys[7164] = { 0 };
+	  unsigned char *u = untrustedKeys;
 
 	  buffer[0] = 0; /* reset buffer as it is used again */
-	  for (sigIter = headerInitIterator(sig);
+	  for (sigIter = headerInitIterator(sigh);
 	       headerNextIterator(sigIter, &tag, &type, &ptr, &count);
+#ifdef RPM_42
+	       (void) rpmtsSetSig(ts, tag, type, NULL, count)) {
+#else
 	       ptr = headerFreeData(ptr, type)) {
+#endif
+	    if (ptr == NULL) continue;
+#ifdef RPM_42
+	    (void) rpmtsSetSig(ts, tag, type, ptr, count);
+	    pgpCleanDig(dig);
+#endif
 	    switch (tag) {
 	    case RPMSIGTAG_PGP5:
 	    case RPMSIGTAG_PGP:
@@ -2783,19 +3102,168 @@ Urpm_verify_rpm(filename, ...)
 	    case RPMSIGTAG_GPG:
 	      if (nogpg) continue;
 	      break;
+#ifdef RPM_42
+	    case RPMSIGTAG_RSA:
+	      if (norsa) continue;
+	      break;
 
+	    case RPMSIGTAG_DSA:
+	      if (nodsa) continue;
+	      break;
+#endif
 	    case RPMSIGTAG_LEMD5_2:
 	    case RPMSIGTAG_LEMD5_1:
 	    case RPMSIGTAG_MD5:
 	      if (nomd5) continue;
 	      break;
+#ifdef RPM_42
+	    case RPMSIGTAG_SHA1:
+	      if (nosha1) continue;
+	      break;
+#endif
 
 	    default:
 	      continue;
 	    }
-	    if (ptr == NULL) continue;
+#ifdef RPM_42
+	    switch (tag) {
+	    case RPMSIGTAG_PGP5:
+	    case RPMSIGTAG_PGP:
+	    case RPMSIGTAG_GPG:
+	    case RPMSIGTAG_RSA:
+	    case RPMSIGTAG_DSA:
+	      pgpPrtPkts(ptr, count, dig, 0); if (sigp->version != 3) continue;
+	      break;
 
-	    if ((res3 = rpmVerifySignature(tmpfile, tag, ptr, count, result)) != RPMSIG_OK) {
+	    default:
+	      break;
+	    }
+	    if ((res3 = rpmVerifySignature(ts, result))) {
+	      /* all the following code directly taken from lib/rpmchecksig.c */
+		if (rpmIsVerbose()) {
+		    b = stpcpy(b, "    ");
+		    b = stpcpy(b, result);
+		    res2 = 1;
+		} else {
+		    char *tempKey;
+		    switch (tag) {
+		    case RPMSIGTAG_SIZE:
+			b = stpcpy(b, "SIZE ");
+			res2 = 1;
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_SHA1:
+			b = stpcpy(b, "SHA1 ");
+			res2 = 1;
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_LEMD5_2:
+		    case RPMSIGTAG_LEMD5_1:
+		    case RPMSIGTAG_MD5:
+			b = stpcpy(b, "MD5 ");
+			res2 = 1;
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_RSA:
+			b = stpcpy(b, "RSA ");
+			res2 = 1;
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_PGP5:	/* XXX legacy */
+		    case RPMSIGTAG_PGP:
+			switch (res3) {
+			case RPMRC_NOKEY:
+			    res2 = 1;
+			    /*@fallthrough@*/
+			case RPMRC_NOTTRUSTED:
+			{   int offset = 6;
+			    b = stpcpy(b, "(MD5) (PGP) ");
+			    tempKey = strstr(result, "ey ID");
+			    if (tempKey == NULL) {
+			        tempKey = strstr(result, "keyid:");
+				offset = 9;
+			    }
+			    if (tempKey) {
+			      if (res3 == RPMRC_NOKEY) {
+				m = stpcpy(m, " PGP#");
+				m = stpncpy(m, tempKey + offset, 8);
+				*m = '\0';
+			      } else {
+			        u = stpcpy(u, " PGP#");
+				u = stpncpy(u, tempKey + offset, 8);
+				*u = '\0';
+			      }
+			    }
+			}   /*@innerbreak@*/ break;
+			default:
+			    b = stpcpy(b, "MD5 PGP ");
+			    res2 = 1;
+			    /*@innerbreak@*/ break;
+			}
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_DSA:
+			b = stpcpy(b, "(SHA1) DSA ");
+			res2 = 1;
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_GPG:
+			/* Do not consider this a failure */
+			switch (res3) {
+			case RPMRC_NOKEY:
+			    b = stpcpy(b, "(GPG) ");
+			    m = stpcpy(m, " GPG#");
+			    tempKey = strstr(result, "ey ID");
+			    if (tempKey) {
+				m = stpncpy(m, tempKey+6, 8);
+				*m = '\0';
+			    }
+			    res2 = 1;
+			    /*@innerbreak@*/ break;
+			default:
+			    b = stpcpy(b, "GPG ");
+			    res2 = 1;
+			    /*@innerbreak@*/ break;
+			}
+			/*@switchbreak@*/ break;
+		    default:
+			b = stpcpy(b, "?UnknownSignatureType? ");
+			res2 = 1;
+			/*@switchbreak@*/ break;
+		    }
+		}
+	    } else {
+		if (rpmIsVerbose()) {
+		    b = stpcpy(b, "    ");
+		    b = stpcpy(b, result);
+		} else {
+		    switch (tag) {
+		    case RPMSIGTAG_SIZE:
+			b = stpcpy(b, "size ");
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_SHA1:
+			b = stpcpy(b, "sha1 ");
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_LEMD5_2:
+		    case RPMSIGTAG_LEMD5_1:
+		    case RPMSIGTAG_MD5:
+			b = stpcpy(b, "md5 ");
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_RSA:
+			b = stpcpy(b, "rsa ");
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_PGP5:	/* XXX legacy */
+		    case RPMSIGTAG_PGP:
+			b = stpcpy(b, "(md5) pgp ");
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_DSA:
+			b = stpcpy(b, "(sha1) dsa ");
+			/*@switchbreak@*/ break;
+		    case RPMSIGTAG_GPG:
+			b = stpcpy(b, "gpg ");
+			/*@switchbreak@*/ break;
+		    default:
+			b = stpcpy(b, "??? ");
+			/*@switchbreak@*/ break;
+		    }
+		}
+	    }
+#else
+	    if ((res3 = rpmVerifySignature(tmpfile, tag, ptr, count, result))) {
 	      /* all the following code directly taken from lib/rpmchecksig.c */
 	      if (rpmIsVerbose()) {
 		strcat(buffer, result);
@@ -2898,6 +3366,7 @@ Urpm_verify_rpm(filename, ...)
 		}
 	      }
 	    }
+#endif
 	  }
 	  sigIter = headerFreeIterator(sigIter);
 
@@ -2926,9 +3395,13 @@ Urpm_verify_rpm(filename, ...)
 	  RETVAL = buffer;
 	}
       }
+#ifndef RPM_42
       fdClose(ofd);
       unlink(tmpfile);
 #endif
+      sigh = rpmFreeSignature(sigh);
+      rpmtsCleanDig(ts);
+      if (!db) rpmtsFree(ts);
     }
     fdClose(fd);
   }
