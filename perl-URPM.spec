@@ -50,7 +50,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Tue Dec 17 2002 François Pons <fpons@mandrakesoft.com> 0.81-1mdk
-- little improve on traverse_tag with tag name when env.
+- little improve on traverse_tag with tag name whit --env.
+- big improve on traverse_tag with tag whatrequires and
+  whatconflicts with --env.
 - fixed dependencies resolution when various different version
   of a package are available.
 

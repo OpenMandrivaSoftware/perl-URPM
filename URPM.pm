@@ -100,14 +100,14 @@ sub traverse_tag {
 	    @names{@$names} = ();
 	    if ($tag eq 'whatrequires') {
 		foreach (@{$urpm->{depslist} || []}) {
-		    if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->requires) {
+		    if (grep { exists $names{$_} } $_->requires_nosense) {
 			$callback and $callback->($_);
 			++$count;
 		    }
 		}
 	    } elsif ($tag eq 'whatconflicts') {
 		foreach (@{$urpm->{depslist} || []}) {
-		    if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->conflicts) {
+		    if (grep { exists $names{$_} } $_->conflicts_nosense) {
 			$callback and $callback->($_);
 			++$count;
 		    }
