@@ -29,6 +29,7 @@
 #include <rpm/rpmts.h>
 #include <rpm/rpmps.h>
 #include <rpm/rpmpgp.h>
+#include <rpm/rpmcli.h>
 #endif
 
 struct s_Package {
@@ -336,6 +337,10 @@ exit:
 }
 
 int rpmReadSignature(FD_t fd, Header *header, short sig_type, const char **msg);
+
+/* needed for importing keys (from rpmio) */
+int rpmioSlurp(const char * fn, const byte ** bp, ssize_t * blenp);
+int b64decode (const char * s, void ** datap, size_t *lenp);
 #else
 int rpmReadSignature(FD_t fd, Header *header, short sig_type);
 #endif
@@ -1218,7 +1223,9 @@ read_config_files(int force) {
   }
 }
 
+#ifndef RPM_42
 static void callback_empty(void) {}
+#endif
 
 static void *rpmRunTransactions_callback(const void *h,
 					 const rpmCallbackType what,
@@ -3623,5 +3630,197 @@ Urpm_verify_rpm(filename, ...)
     fdClose(fd);
   }
   if (!RETVAL) RETVAL = "";
+  OUTPUT:
+  RETVAL
+
+int
+Urpm_import_pubkey(...)
+  PREINIT:
+  int i;
+  URPM__DB db = NULL;
+  char *root = "/";
+  STRLEN block_len = 0;
+  char *block = NULL;
+  STRLEN filename_len = 0;
+  char *filename = NULL;
+#ifdef RPM_42
+  rpmts ts;
+  const unsigned char *pkt = NULL;
+  ssize_t pktlen = 0;
+  const byte * b = NULL;
+  ssize_t blen;
+  int rc;
+#endif
+  CODE:
+  for (i = 0; i < items-1; i+=2) {
+    STRLEN len;
+    char *s = SvPV(ST(i), len);
+
+    if (len == 2 && !memcmp(s, "db", 2)) {
+      if (sv_derived_from(ST(i+1), "URPM::DB")) {
+	IV tmp = SvIV((SV*)SvRV(ST(i+1)));
+	db = INT2PTR(URPM__DB, tmp);
+      }
+    } else if (len == 4) {
+      if (!memcmp(s, "root", 4))
+	root = SvPV_nolen(ST(i+1));
+    } else if (len == 5) {
+      if (!memcmp(s, "block", 5))
+	block = SvPV(ST(i+1), block_len);
+    } else if (len == 8) {
+      if (!memcmp(s, "filename", 8))
+	filename = SvPV(ST(i+1), filename_len);
+    }
+  }
+  RETVAL = 1;
+#ifdef RPM_42
+  /* get transaction for importing keys, open rpmdb in write mode */
+  if (db) {
+    ts = db->ts;
+  } else {
+    /* compabilty mode to use rpmdb installed on / */
+    ts = rpmtsCreate();
+    read_config_files(0);
+    rpmtsSetRootDir(ts, root);
+    rpmtsOpenDB(ts, O_RDWR | O_CREAT);
+  }
+  rpmtsClean(ts);
+  /* from pgpReadPkts the filename should be slurped directly in memory */
+  if (filename) {
+    rc = rpmioSlurp(filename, &b, &blen);
+  } else if (block) {
+    blen = block_len;
+    b = memcpy(malloc(blen+1), block, blen+1); /* XXX should use xmalloc instead */
+    rc = 0;
+  }
+  if (rc || b == NULL || blen <= 0) {
+    /* error reading file, or no file or block */
+    RETVAL = 0;
+  } else {
+    /* from pgpReadPkts the remaining of method */
+    const char * enc = NULL;
+    const char * crcenc = NULL;
+    byte * dec;
+    byte * crcdec;
+    size_t declen;
+    size_t crclen;
+    u_int32_t crcpkt, crc;
+    const char * armortype = NULL;
+    char * t, * te;
+    int pstate = 0;
+    int _rc;
+
+    rc = PGPARMOR_ERROR;	/* XXX assume failure */
+
+    if (pgpIsPkt(b)) {
+#ifdef NOTYET	/* XXX ASCII Pubkeys only, please. */
+	rc = 0;	/* XXX fish out pkt type. */
+#endif
+	goto exit;
+    }
+#define	TOKEQ(_s, _tok)	(!strncmp((_s), (_tok), sizeof(_tok)-1))
+    for (t = (char *)b; t && *t; t = te) {
+	if ((te = strchr(t, '\n')) == NULL)
+	    te = t + strlen(t);
+	else
+	    te++;
+
+	switch (pstate) {
+	case 0:
+	    armortype = NULL;
+	    if (!TOKEQ(t, "-----BEGIN PGP "))
+		continue;
+	    t += sizeof("-----BEGIN PGP ")-1;
+
+	    _rc = pgpValTok(pgpArmorTbl, t, te);
+	    if (_rc < 0)
+		goto exit;
+	    if (_rc != PGPARMOR_PUBKEY)	/* XXX ASCII Pubkeys only, please. */
+		continue;
+	    armortype = t;
+
+	    t = te - (sizeof("-----\n")-1);
+	    if (!TOKEQ(t, "-----\n"))
+		continue;
+	    *t = '\0';
+	    pstate++;
+	    /*@switchbreak@*/ break;
+	case 1:
+	    enc = NULL;
+	    _rc = pgpValTok(pgpArmorKeyTbl, t, te);
+	    if (_rc >= 0)
+		continue;
+	    if (*t != '\n') {
+		pstate = 0;
+		continue;
+	    }
+	    enc = te;		/* Start of encoded packets */
+	    pstate++;
+	    /*@switchbreak@*/ break;
+	case 2:
+	    crcenc = NULL;
+	    if (*t != '=')
+		continue;
+	    *t++ = '\0';	/* Terminate encoded packets */
+	    crcenc = t;		/* Start of encoded crc */
+	    pstate++;
+	    /*@switchbreak@*/ break;
+	case 3:
+	    pstate = 0;
+	    if (!TOKEQ(t, "-----END PGP "))
+		goto exit;
+	    *t = '\0';		/* Terminate encoded crc */
+	    t += sizeof("-----END PGP ")-1;
+
+	    if (armortype == NULL) /* XXX can't happen */
+		continue;
+	    _rc = strncmp(t, armortype, strlen(armortype));
+	    if (_rc)
+		continue;
+
+	    t = te - (sizeof("-----\n")-1);
+	    if (!TOKEQ(t, "-----\n"))
+		goto exit;
+
+	    if (b64decode(crcenc, (void **)&crcdec, &crclen) != 0)
+		continue;
+	    crcpkt = pgpGrab(crcdec, crclen);
+	    crcdec = _free(crcdec);
+	    if (b64decode(enc, (void **)&dec, &declen) != 0)
+		goto exit;
+	    crc = pgpCRC(dec, declen);
+	    if (crcpkt != crc)
+		goto exit;
+	    b = _free(b);
+	    b = dec;
+	    blen = declen;
+	    rc = PGPARMOR_PUBKEY;	/* XXX ASCII Pubkeys only, please. */
+	    goto exit;
+	    /*@notreached@*/ /*@switchbreak@*/ break;
+	}
+    }
+    rc = PGPARMOR_NONE;
+
+    exit:
+    if (rc > PGPARMOR_NONE)
+	pkt = b;
+    else if (b != NULL)
+	b = _free(b);
+    pktlen = blen;
+  }
+  if (rc < 0) {
+    /* import read failed */
+    RETVAL = 0;
+  } else if (rc != PGPARMOR_PUBKEY) {
+    /* not armored public key */
+    RETVAL = 0;
+  } else if ((rc = rpmcliImportPubkey(ts, pkt, pktlen)) != 0) {
+    /* import failed */
+    RETVAL = 0;
+  }
+  rpmtsClean(ts);
+  _free(pkt);
+  if (!db) rpmtsFree(ts);
+#endif
   OUTPUT:
   RETVAL
