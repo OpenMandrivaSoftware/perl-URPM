@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.93
-%define release 4mdk
+%define release 5mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug 18 2003 Pixel <pixel@mandrakesoft.com> 0.93-5mdk
+- perl_checker compliance
+
 * Wed Aug 13 2003 Guillaume Cottenceau <gc@mandrakesoft.com> 0.93-4mdk
 - provide URPM::Signature as well
 

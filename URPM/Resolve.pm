@@ -117,9 +117,9 @@ sub find_chosen_packages {
 	    }
 	}
 	#- sort package in order to have best ones first (this means good locales, no locales, bad locales).
-	return ((sort { $a->id <=> $b->id } @chosen_good_locales),
-		(sort { $a->id <=> $b->id } @chosen_other),
-		(sort { $a->id <=> $b->id } @chosen_bad_locales));
+	return (sort { $a->id <=> $b->id } @chosen_good_locales),
+	       (sort { $a->id <=> $b->id } @chosen_other),
+	       (sort { $a->id <=> $b->id } @chosen_bad_locales);
     }
 
     return values(%packages);
@@ -158,7 +158,7 @@ sub unsatisfied_requires {
 
 	    #- check on installed system a package which is not obsoleted is satisfying the require.
 	    my $satisfied = 0;
-	    if ($n =~ /^\//) {
+	    if ($n =~ m!^/!) {
 		$db->traverse_tag('path', [ $n ], sub {
 				      my ($p) = @_;
 				      exists $state->{rejected}{$p->fullname} and return;
@@ -303,7 +303,7 @@ sub resolve_rejected {
 
     #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
-    unless ($state->{rejected}{$pkg->fullname}) {
+    if (! $state->{rejected}{$pkg->fullname}) {
 	my @closure = $pkg;
 
 	#- keep track of size of package which are finally removed.
@@ -619,7 +619,7 @@ sub resolve_requested {
 		    $state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
 		}
 	    }
-	    if (my ($file) = /^(\/[^\s\[]*)/) {
+	    if (my ($file) = m!^(/[^\s\[]*)!) {
 		$db->traverse_tag('path', [ $file ], sub {
 				      @keep and return;
 				      my ($p) = @_;
@@ -858,7 +858,7 @@ sub compute_flags {
     #- perform the fastest possible, unless a regular expression is given,
     #- the operation matches only according to provides.
     while (my ($name, $sense) = each %$val) {
-	if ($name =~ /^\/(.*)\/$/) {
+	if ($name =~ m!^/(.*)/$!) {
 	    $regex{$1} = $sense;
 	} else {
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
@@ -1075,10 +1075,10 @@ sub build_transaction_set {
 
     if ($options{split_length}) {
 	#- first step consists of sorting packages according to dependencies.
-	my @sorted = sort { ($a <=> $b, -1, +1, 0)[($urpm->has_dependence($state, $a, $b) && 1) +
-						   ($urpm->has_dependence($state, $b, $a) && 2)] }
+	my @sorted = sort { ($a <=> $b, -1, 1, 0)[($urpm->has_dependence($state, $a, $b) && 1) +
+						  ($urpm->has_dependence($state, $b, $a) && 2)] }
 	  grep { (! defined $options{start} || $_ >= $options{start}) &&
-		   (! defined $options{end} || $_ <= $options{end})} keys %{$state->{selected}};
+		   (! defined $options{end} || $_ <= $options{end}) } keys %{$state->{selected}};
 
 	#- second step consists of re-applying resolve_requested in the same
 	#- order computed in first step and to update a list of package to
@@ -1164,7 +1164,7 @@ sub resolve_closure_ask_remove {
     @unsatisfied;
 }
 sub resolve_unrequested {
-    my ($urpm, $db, $state, $unrequested, %options) = @_;
+    my ($urpm, $db, $state, $unrequested, %_options) = @_;
 
     print STDERR "calling obsoleted method URPM::resolve_unrequested\n";
 
