@@ -649,11 +649,11 @@ sub request_packages_to_upgrade {
     }
 
     #- examine all packages which may be conflicting, it a package conflicts, it should not be requested.
-    my @names = keys %names;
+    my @names = map { $_->name." == ".$_->epoch.":".$_->version."-".$_->release } values %names;
     my @pkgs = values %names;
     foreach my $pkg (@pkgs) {
 	foreach my $conflict ($pkg->conflicts) {
-	    delete @names{grep { ranges_overlap($conflict, $_) } @names};
+	    delete @names{map { /(\S*)/ && $1 } grep { ranges_overlap($conflict, $_) } @names};
 	}
     }
 
