@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.02
+%define version 1.03
 %define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Sun Aug 29 2004 Olivier Thauvin <thauvin@aerov.jussieu.fr> 1.03-1mdk
+- add rpmvercmp binding (from perl-Hdlist)
+
 * Tue Aug 24 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.02-1mdk
 - From now, never promote epochs in comparing versions.
 
