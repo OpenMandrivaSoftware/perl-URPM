@@ -4,7 +4,7 @@ use strict;
 use DynaLoader;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '0.84';
+our $VERSION = '0.90';
 
 URPM->bootstrap($VERSION);
 
@@ -21,41 +21,45 @@ sub search {
     my $best;
 
     #- tries other alternative if no strict searching.
-    unless ($options{strict}) {
+    unless ($options{strict_name}) {
 	if ($name =~ /^(.*)-([^\-]*)-([^\-]*)\.([^\.\-]*)$/) {
 	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->fullname eq $name and return $pkg;
 	    }
 	}
-	if ($name =~ /^(.*)-([^\-]*)-([^\-]*)$/) {
-	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
-		my $pkg = $urpm->{depslist}[$_];
-		my ($n, $v, $r, $a) = $pkg->fullname;
-		$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
-		"$n-$v-$r" eq $name or next;
-		!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+	unless ($options{strict_fullname}) {
+	    if ($name =~ /^(.*)-([^\-]*)-([^\-]*)$/) {
+		foreach (keys %{$urpm->{provides}{$1} || {}}) {
+		    my $pkg = $urpm->{depslist}[$_];
+		    my ($n, $v, $r, $a) = $pkg->fullname;
+		    $options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
+		    "$n-$v-$r" eq $name or next;
+		    !$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+		}
+		$best and return $best;
 	    }
-	    $best and return $best;
-	}
-	if ($name =~ /^(.*)-([^\-]*)$/) {
-	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
-		my $pkg = $urpm->{depslist}[$_];
-		my ($n, $v, undef, $a) = $pkg->fullname;
-		$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
-		"$n-$v" eq $name or next;
-		!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+	    if ($name =~ /^(.*)-([^\-]*)$/) {
+		foreach (keys %{$urpm->{provides}{$1} || {}}) {
+		    my $pkg = $urpm->{depslist}[$_];
+		    my ($n, $v, undef, $a) = $pkg->fullname;
+		    $options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
+		    "$n-$v" eq $name or next;
+		    !$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+		}
+		$best and return $best;
 	    }
-	    $best and return $best;
 	}
     }
 
-    foreach (keys %{$urpm->{provides}{$name} || {}}) {
-	my $pkg = $urpm->{depslist}[$_];
-	my ($n, undef, undef, $a) = $pkg->fullname;
-	$options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
-	$n eq $name or next;
-	!$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+    unless ($options{strict_fullname}) {
+	foreach (keys %{$urpm->{provides}{$name} || {}}) {
+	    my $pkg = $urpm->{depslist}[$_];
+	    my ($n, undef, undef, $a) = $pkg->fullname;
+	    $options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
+	    $n eq $name or next;
+	    !$best || $pkg->compare_pkg($best) > 0 and $best = $pkg;
+	}
     }
 
     return $best;

@@ -1,6 +1,6 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.84
+%define version 0.90
 %define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
@@ -51,6 +51,25 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri May 23 2003 François Pons <fpons@mandrakesoft.com> 0.90-1mdk
+- extended URPM::search with newer/modified options.
+- fixed URPM::Package::compare_pkg to work with identical
+  arguments.
+- modified requested flag sense (now indicates a wish for
+  a requested package but not necessary required or selected).
+- obsoleted URPM::resolve_closure_ask_remove by
+  URPM::resolve_rejected which compute closures on installed
+  packages (used for obsoleted and removed resolution).
+- obsoleted URPM::resolve_unrequested by URPM::disable_selected
+  which is faster and simpler to invoke.
+- newer method have been defined, much notably handle backtrack.
+- keep_state is no more used for URPM::resolve_requested.
+- obsoleted, ask_remove, ask_unselect have been obsoleted by
+  rejected and backtrack facility in state.
+- avoid returning number of transaction run problems.
+- added compatiblity method to avoid breaking urpmi, rpmdrake and
+  DrakX completely (though there could be some strange results).
+
 * Fri May 16 2003 François Pons <fpons@mandrakesoft.com> 0.84-1mdk
 - removed provided hash from state and added use_sense value to
   provides hash values when using sense.

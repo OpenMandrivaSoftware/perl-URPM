@@ -22,15 +22,118 @@ sub find_candidate_packages {
 		$pkg->is_arch_compat or next;
 		$avoided && exists $avoided->{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
-		my $satisfied = 0;
-		foreach ($pkg->provides) {
-		    ranges_overlap($_, $property) and ++$satisfied, last;
+		my $satisfied = !$urpm->{provides}{$name}{$_};
+		unless ($satisfied) {
+		    foreach ($pkg->provides) {
+			ranges_overlap($_, $property) and ++$satisfied, last;
+		    }
 		}
 		$satisfied and push @{$packages{$pkg->name}}, $pkg;
 	    }
 	}
     }
     \%packages;
+}
+
+sub find_chosen_packages {
+    my ($urpm, $db, $state, $dep) = @_;
+    my %packages;
+
+    #- search for possible packages, try to be as fast as possible, backtrack can be longer.
+    foreach (split '\|', $dep) {
+	if (/^\d+$/) {
+	    my $pkg = $urpm->{depslist}[$_];
+	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
+	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
+	    #- determine if this packages is better than a possibly previously chosen package.
+	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
+	    if (my $p = $packages{$pkg->name}) {
+		$pkg->flag_requested > $p->flag_requested ||
+		  $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
+	    } else {
+		$packages{$pkg->name} = $pkg;
+	    }
+	} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
+	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
+		my $pkg = $urpm->{depslist}[$_];
+		$pkg->flag_skip || exists $state->{rejected}{$pkg->fullname} and next;
+		$pkg->is_arch_compat or next;
+		#- check if at least one provide of the package overlap the property (if sense are needed).
+		my $satisfied = !$urpm->{provides}{$name}{$_};
+		unless ($satisfied) {
+		    foreach ($pkg->provides) {
+			ranges_overlap($_, $property) and ++$satisfied, last;
+		    }
+		}
+		if ($satisfied) {
+		    #- determine if this packages is better than a possibly previously chosen package.
+		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
+		    if (my $p = $packages{$pkg->name}) {
+			$pkg->flag_requested > $p->flag_requested ||
+			  $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
+		    } else {
+			$packages{$pkg->name} = $pkg;
+		    }
+		}
+	    }
+	}
+    }
+
+    if (keys(%packages) > 1) {
+	my ($mode, @chosen, @chosen_good_locales, @chosen_bad_locales, @chosen_other);
+
+	#- package should be prefered if one of their provides is referenced
+	#- in requested hash or package itself is requested (or required).
+	#- if there is no preference choose the first one (higher probability
+	#- of being chosen) by default and ask user.
+	foreach my $p (values(%packages)) {
+	    unless ($p->flag_upgrade || $p->flag_installed) {
+		#- assume for this small algorithm package to be upgradable.
+		$p->set_flag_upgrade;
+		$db->traverse_tag('name', [ $p->name ], sub {
+				      my ($pp) = @_;
+				      $p->set_flag_installed;
+				      $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
+				  });
+	    }
+	    if ($p->flag_requested && $p->flag_installed) {
+		$mode < 3 and @chosen = ();
+		$mode = 3;
+	    } elsif ($p->flag_requested) {
+		$mode < 2 and @chosen = ();
+		$mode > 2 and next;
+		$mode = 2;
+	    } elsif ($p->flag_installed) {
+		$mode < 1 and @chosen = ();
+		$mode > 1 and next;
+		$mode = 1;
+	    } else {
+		$mode and next;
+	    }
+	    push @chosen, $p;
+	}
+
+	#- packages that requires locales-xxx and the corresponding locales is already installed
+	#- should be prefered over packages that requires locales not installed.
+	foreach (@chosen) {
+	    if (my ($specific_locales) = grep { /locales-/ && ! /locales-en/ } $_->requires_nosense) {
+		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
+		    $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
+		    push @chosen_good_locales, $_;
+		} else {
+		    push @chosen_bad_locales, $_;
+		}
+	    } else {
+		push @chosen_other, $_;
+	    }
+	}
+	#- sort package in order to have best ones first (this means good locales, no locales, bad locales).
+	return ((sort { $a->id <=> $b->id } @chosen_good_locales),
+		(sort { $a->id <=> $b->id } @chosen_other),
+		(sort { $a->id <=> $b->id } @chosen_bad_locales));
+    }
+
+    return values(%packages);
 }
 
 #- return unresolved requires of a package (a new one or a existing one).
@@ -49,8 +152,7 @@ sub unsatisfied_requires {
 
 	    #- check for installed package in the cache (only without sense to speed up)
 	    foreach (keys %{$state->{cached_installed}{$n} || {}}) {
-		exists $state->{obsoleted}{$_} and next;
-		exists $state->{ask_remove}{$_} and next;
+		exists $state->{rejected}{$_} and next;
 		next REQUIRES;
 	    }
 
@@ -73,16 +175,14 @@ sub unsatisfied_requires {
 	    if ($n =~ /^\//) {
 		$db->traverse_tag('path', [ $n ], sub {
 				      my ($p) = @_;
-				      exists $state->{obsoleted}{$p->fullname} and return;
-				      exists $state->{ask_remove}{$p->fullname} and return;
+				      exists $state->{rejected}{$p->fullname} and return;
 				      $state->{cached_installed}{$n}{$p->fullname} = undef;
 				      ++$satisfied;
 				  });
 	    } else {
 		$db->traverse_tag('whatprovides', [ $n ], sub {
 				      my ($p) = @_;
-				      exists $state->{obsoleted}{$p->fullname} and return;
-				      exists $state->{ask_remove}{$p->fullname} and return;
+				      exists $state->{rejected}{$p->fullname} and return;
 				      foreach ($p->provides) {
 					  if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 					      $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
@@ -99,62 +199,122 @@ sub unsatisfied_requires {
     keys %properties;
 }
 
-#- close ask_remove (as urpme previously) for package to be removable without error.
-sub resolve_closure_ask_remove {
-    my ($urpm, $db, $state, $pkg, $from, $why, $avoided) = @_;
+sub backtrack_selected {
+    my ($urpm, $db, $state, $dep, %options) = @_;
+
+    if (defined $dep->{required} && $options{callback_backtrack}) {
+	#- search for all possible packages, first is to try the selection, then if it is
+	#- impossible, backtrack the origin.
+	my $packages = $urpm->find_candidate_packages($dep->{required});
+
+	foreach (values %$packages) {
+	    foreach (@$_) {
+		#- avoid dead loop.
+		exists $state->{backtrack}{selected}{$_->id} and next;
+		#- a package if found is problably rejected or there is a problem.
+		if ($state->{rejected}{$_->fullname}) {
+		    if ($options{callback_backtrack}->($urpm, $db, $state, $_,
+						       dep => $dep, alternatives => $packages, %options) <= 0) {
+			#- backtrack callback should return a strictly positive value if the selection of the new
+			#- package is prefered over the currently selected package.
+			next;
+		    }
+		}
+		$state->{backtrack}{selected}{$_->id} = undef;
+		#- in such case, we need to drop the problem caused so that rejected condition is removed.
+		#- if this is not possible, the next backtrack on the same package will be refused above.
+		$urpm->disable_selected($db, $state,
+					map { $urpm->search($_, strict_fullname => 1) }
+					keys %{($state->{rejected}{$_->fullname} || {})->{closure}});
+		return { required => $_->id,
+			 exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+			 exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+		       };
+	    }
+	}
+    }
+
+    #- at this point, dep cannot be resolved, this means we need to disable
+    #- all selection tree, re-enabling removed and obsoleted packages as well.
+    if (defined $dep->{from}) {
+	print STDERR "backtracking from ".$dep->{from}->fullname."\n";
+	my @l = $urpm->disable_selected($db, $state, $dep->{from});
+	foreach (@l) {
+	    #- disable all these packages in order to avoid selecting them again.
+	    $state->{rejected}{$_->fullname}{backtrack} = 1;
+	}
+    }
+
+    #- it could happen if removed is used, in such case, the remove should be canceled.
+    #TODO
+    ();
+}
+
+#- close rejected (as urpme previously) for package to be removable without error.
+sub resolve_rejected {
+    my ($urpm, $db, $state, $pkg, %options) = @_;
     my @unsatisfied;
 
-    #- allow default value for 'from' to be taken.
-    $from ||= $pkg->fullname;
-
-    #- keep track to avoided removed package.
-    $avoided and $avoided->{$pkg->fullname} = undef;
-
-    #- check if the package has already been asked to be removed,
+    #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
-    unless ($state->{ask_remove}{$pkg->fullname}) {
-	$state->{ask_remove}{$pkg->fullname} = { size    => $pkg->size,
-						 closure => { $from => $why },
-					       };
+    unless ($state->{rejected}{$pkg->fullname}) {
+	my @closure = $pkg;
 
-	my @removes = $pkg;
-	while ($pkg = shift @removes) {
+	#- keep track of size of package which are finally removed.
+	$state->{rejected}{$pkg->fullname}{size} = $pkg->size;
+	foreach (qw(removed obsoleted)) {
+	    $options{$_} and $state->{rejected}{$pkg->fullname}{$_} = $options{$_};
+	}
+	$options{closure_as_removed} and $options{removed} ||= delete $options{obsoleted};
+
+	while (my $cp = shift @closure) {
 	    #- close what requires this property, but check with selected package requiring old properties.
-	    foreach ($pkg->provides) {
+	    foreach ($cp->provides) {
 		if (my ($n) = /^([^\s\[]*)/) {
 		    foreach (keys %{$state->{whatrequires}{$n} || {}}) {
 			my $pkg = $urpm->{depslist}[$_] or next;
-			if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg, name => $n, keep_state => 1)) {
+			if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg, name => $n)) {
 			    #- a selected package requires something that is no more available
-			    #- and should be tried to be re-selected.
+			    #- and should be tried to be re-selected if possible.
 			    push @unsatisfied, @l;
 			}
 		    }
 		    $db->traverse_tag('whatrequires', [ $n ], sub {
 					  my ($p) = @_;
-					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n, keep_state => 1)) {
-					      my $v = $state->{ask_remove}{$p->fullname} ||= {};
-
-					      #- keep track to avoided removed package.
-					      $avoided and $avoided->{$p->fullname} = undef;
+					  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
+					      my $v = $state->{rejected}{$p->fullname} ||= {};
 
 					      #- keep track of what cause closure.
 					      $v->{closure}{$pkg->fullname} = { unsatisfied => \@l };
+
+					      #- set removed and obsoleted level.
+					      foreach (qw(removed obsoleted)) {
+						  $options{$_} && (! exists $v->{$_} || $options{$_} <= $v->{$_}) and
+						    $v->{$_} = $options{$_};
+					      }
+
+					      #- continue the closure unless already examined.
 					      exists $v->{size} and return;
 					      $v->{size} = $p->size;
 
 					      $p->pack_header; #- need to pack else package is no more visible...
-					      push @removes, $p;
+					      push @closure, $p;
 					  }
 				      });
 		}
 	    }
 	}
     } else {
-	$state->{ask_remove}{$pkg->fullname}{closure}{$from} = $why;
+	#- the package has already been rejected.
+	$options{from} and $state->{rejected}{$pkg->fullname}{closure}{$options{from}} = $options{why};
+	foreach (qw(removed obsoleted)) {
+	    $options{$_} && (! exists $state->{rejected}{$pkg->fullname}{$_} ||
+			     $options{$_} <= $state->{rejected}{$pkg->fullname}{$_})
+	      and $state->{rejected}{$pkg->fullname}{$_} = $options{$_};
+	}
     }
 
-    @unsatisfied;
+    $options{unsatisfied} and push @{$options{unsatisfied}}, map { { required => $_, rejected => $pkg->fullname, } } @unsatisfied;
 }
 
 #- resolve requested, keep resolution state to speed process.
@@ -167,15 +327,21 @@ sub resolve_closure_ask_remove {
 #-   check : check requires of installed packages.
 sub resolve_requested {
     my ($urpm, $db, $state, $requested, %options) = @_;
-    my (@properties, @obsoleted, %requested, %avoided, $dep);
+    my (@properties, $dep);
 
-    #- keep in mind the requested id (if given) in order to prefer these packages
-    #- on choices instead of anything other one.
-    @properties = keys %$requested;
-    foreach my $dep (@properties) {
-	foreach (split '\|', $dep) {
-	    $requested{$_} = $requested->{$dep};
+    #- populate properties with backtrack informations.
+    while (my ($r, $v) = each %$requested) {
+	#- keep track of requested packages by propating the flag.
+	my $packages = $urpm->find_candidate_packages($r);
+	foreach (values %$packages) {
+	    foreach (@$_) {
+		$_->set_flag_requested;
+	    }
 	}
+	#- keep value to be available from selected hash.
+	push @properties, { required => $r,
+			    requested => $v,
+			  };
     }
 
     #- for each dep property evaluated, examine which package will be obsoleted on $db,
@@ -183,95 +349,32 @@ sub resolve_requested {
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     while (defined ($dep = shift @properties)) {
-	my (@chosen, %diff_provides, $pkg, $allow);
-	#- take the best package for each choices of same name.
-	my $packages = $urpm->find_candidate_packages($dep);
-	foreach (values %$packages) {
-	    my ($best_requested, $best);
-	    foreach (@$_) {
-		exists $state->{selected}{$_->id} and $best_requested = $_, last;
-		exists $avoided{$_->fullname} and next;
-		if ($best_requested || exists $requested{$_->id}) {
-		    if ($best_requested && $best_requested != $_) {
-			$_->compare_pkg($best_requested) > 0 and $best_requested = $_;
-		    } else {
-			$best_requested = $_;
-		    }
-		} elsif ($best && $best != $_) {
-		    $_->compare_pkg($best) > 0 and $best = $_;
-		} else {
-		    $best = $_;
-		}
-	    }
-	    $_ = $best_requested || $best;
-	}
-	if (keys(%$packages) > 1) {
-	    my (@chosen_requested_upgrade, @chosen_requested, @chosen_upgrade);
-	    #- package should be prefered if one of their provides is referenced
-	    #- in requested hash or package itself is requested (or required).
-	    #- if there is no preference choose the first one (higher probability
-	    #- of being chosen) by default and ask user.
-	    foreach my $p (values %$packages) {
-		$p or next; #- this could happen if no package are suitable for this arch.
-		exists $state->{obsoleted}{$p->fullname} and next; #- avoid taking what is removed (incomplete).
-		exists $state->{selected}{$p->id} and $pkg = $p, last; #- already selected package is taken.
-		unless ($p->flag_upgrade || $p->flag_installed) {
-		    #- assume for this small algorithm package to be upgradable.
-		    $p->set_flag_upgrade;
-		    $db->traverse_tag('name', [ $p->name ], sub {
-					  my ($pp) = @_;
-					  $p->set_flag_installed;
-					  $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
-				      });
-		}
-		if ($p->flag_installed) {
-		    $p->flag_upgrade or $pkg = $p, last; #- already installed package is taken.
-		    if (exists $requested{$p->id}) {
-			push @chosen_requested_upgrade, $p;
-		    } else {
-			push @chosen_upgrade, $p;
-		    }
-		} else {
-		    if (exists $requested{$p->id}) {
-			push @chosen_requested, $p;
-		    } else {
-			push @chosen, $p;
-		    }
-		}
-	    }
-	    if (@chosen_requested_upgrade > 0 || @chosen_requested > 0) {
-		@chosen = @chosen_requested_upgrade > 0 ? @chosen_requested_upgrade : @chosen_requested;
-	    } else {
-		@chosen_upgrade > 0 and @chosen = @chosen_upgrade;
-	    }
-	} else {
-	    @chosen = values %$packages;
-	}
-	#- packages that requires locales-xxx and the corresponding locales is already installed
-	#- should be prefered over packages that requires locales not installed.
-	my (@chosen_good_locales, @chosen_bad_locales, @chosen_other);
-	foreach (@chosen) {
-	    $_ or next;
-	    if (my ($specific_locales) = grep { /locales-/ && ! /locales-en/ } $_->requires_nosense) {
-		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
-		    $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
-		    push @chosen_good_locales, $_;
-		} else {
-		    push @chosen_bad_locales, $_;
-		}
-	    } else {
-		push @chosen_other, $_;
-	    }
-	}
-	#- sort package in order to have best ones first (this means good locales, no locales, bad locales).
-	@chosen = ((sort { $a->id <=> $b->id } @chosen_good_locales),
-		   (sort { $a->id <=> $b->id } @chosen_other),
-		   (sort { $a->id <=> $b->id } @chosen_bad_locales));
-	if (!$pkg && $options{callback_choices} && @chosen > 1) {
-	    unshift @properties, map { $_->id } grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
+	my (%diff_provides);
+
+	#- take the best choice possible.
+	my @chosen = $urpm->find_chosen_packages($db, $state, $dep->{required});
+
+	#- if no choice are given, this means that nothing possible can be selected
+	#- according to $dep, we need to retry the selection allowing all packages that
+	#- conflicts or anything similar to see which strategy can be tried.
+	#- backtracked is used to avoid trying multiple times the same packages.
+	#- if multiple packages are possible, simply ask the user which one to choose.
+	#- else take the first one available.
+	if (!@chosen) {
+	    unshift @properties, $urpm->backtrack_selected($db, $state, $dep);
+	    next; #- backtrack code choose to continue with same package or completely new strategy.
+	} elsif ($options{callback_choices} && @chosen > 1) {
+	    unshift @properties, map { +{ required => $_->id,
+					  choices => $dep->{required},
+					  exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+					  exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+					}
+				   } grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
 	    next; #- always redo according to choices.
 	}
-	$pkg ||= $chosen[0];
+
+	#- now do the realy work, select the package.
+	my ($pkg) = @chosen;
 	!$pkg || $pkg->flag_selected || exists $state->{selected}{$pkg->id} and next;
 
 	if ($pkg->arch eq 'src') {
@@ -287,6 +390,7 @@ sub resolve_requested {
 				  });
 	    }
 	    if ($pkg->flag_installed && !$pkg->flag_upgrade) {
+		my $allow;
 		#- the same or a more recent package is installed,
 		#- but this package may be required explicitely, in such
 		#- case we can ask to remove all the previous one and
@@ -295,10 +399,9 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      if ($pkg->compare_pkg($p) < 0) {
 					  $allow = ++$state->{oldpackage};
-					  $options{keep_state} or
-					    push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-												{ old_requested => 1 },
-												\%avoided);
+					  $urpm->resolve_rejected($db, $state, $p,
+								  removed => 1, unsatisfied => \@properties,
+								  from => scalar $pkg->fullname, why => { old_requested => 1 });
 				      }
 				  });
 		#- if nothing has been removed, just ignore it.
@@ -306,13 +409,14 @@ sub resolve_requested {
 	    }
 	}
 
-	#- keep in mind the package has be selected, remove the entry in requested input hasj,
+	#- keep in mind the package has be selected, remove the entry in requested input hash,
 	#- this means required dependencies have undef value in selected hash.
 	#- requested flag is set only for requested package where value is not false.
-	$state->{selected}{$pkg->id} = delete $requested->{$dep};
+	$state->{selected}{$pkg->id} = { exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+					 exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+				       };
 
-	$options{no_flag_update} or
-	  ($state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required);
+	$options{no_flag_update} or $pkg->set_flag_required;
 
 	#- check if package is not already installed before trying to use it, compute
 	#- obsoleted package too. this is valable only for non source package.
@@ -324,24 +428,27 @@ sub resolve_requested {
 			my $p = $urpm->{depslist}[$_];
 			if ($p->name eq $pkg->name) {
 			    #- all package with the same name should now be avoided except what is chosen.
-			    $p->fullname eq $pkg->fullname or $avoided{$p->fullname} = $pkg->fullname;
+			    $p->fullname eq $pkg->fullname and next;
 			} else {
 			    #- in case of obsoletes, keep track of what should be avoided
 			    #- but only if package name equals the obsolete name.
 			    $p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
-			    $avoided{$p->fullname} = $pkg->fullname;
 			}
+			#- these packages are not yet selected, if they happens to be selected,
+			#- they must first be unselected. TODO
+			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
 		    }
 		    #- examine rpm db too.
 		    $db->traverse_tag('name', [ $n ], sub {
 					  my ($p) = @_;
 					  !$o || eval($p->compare($v) . $o . 0) or return;
 
-					  if ($options{keep_state}) {
-					      push @obsoleted, exists $state->{obsoleted}{$p->fullname} ?
-						[ $p->fullname, $pkg->id ] : $p->fullname;
-					  }
-					  $state->{obsoleted}{$p->fullname}{$pkg->id} = undef;
+					  #- do not propagate now the broken dependencies as they are
+					  #- computed later.
+					  my $v = $state->{rejected}{$p->fullname} ||= {};
+					  $v->{closure}{$pkg->fullname} = undef;
+					  $v->{obsoleted} = 1;
+					  $v->{size} = $p->size;
 
 					  foreach ($p->provides) {
 					      #- check differential provides between obsoleted package and newer one.
@@ -367,30 +474,29 @@ sub resolve_requested {
 				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p)) {
 					  #- try if upgrading the package will be satisfying all the requires
 					  #- else it will be necessary to ask the user for removing it.
-					  my $packages = $urpm->find_candidate_packages($p->name, \%avoided);
+					  my $packages = $urpm->find_candidate_packages($p->name, $state->{rejected});
 					  my $best = join '|', map { $_->id }
 					    grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
-					      push @properties, $best;
+					      push @properties, { required => $best, promote => $n };
 					  } else {
 					      #- no package have been found, we may need to remove the package examined unless
 					      #- there exists a package that provided the unsatisfied requires.
 					      my @best;
 					      foreach (@l) {
-						  $packages = $urpm->find_candidate_packages($_, \%avoided);
+						  $packages = $urpm->find_candidate_packages($_, $state->{rejected});
 						  $best = join('|', map { $_->id } map { @{$_ || []} } values %$packages);
 						  $best and push @best, $best;
 					      }
 
 					      if (@best == @l) {
-						  push @properties, @best;
+						  push @properties, map { +{ required => $_, promote => $n } } @best;
 					      } else {
-						  $options{keep_state} or
-						    push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-													{ unsatisfied => \@l },
-													\%avoided);
+						  $urpm->resolve_rejected($db, $state, $p,
+									  removed => 1, unsatisfied => \@properties,
+									  from => scalar $pkg->fullname, why => { unsatisfied => \@l });
 					      }
 					  }
 				      }
@@ -399,7 +505,7 @@ sub resolve_requested {
 	}
 
 	#- all requires should be satisfied according to selected package, or installed packages.
-	push @properties, $urpm->unsatisfied_requires($db, $state, $pkg);
+	push @properties, map { +{ required => $_, from => $pkg } } $urpm->unsatisfied_requires($db, $state, $pkg);
 
 	#- keep in mind what is requiring each item (for unselect to work).
 	foreach ($pkg->requires_nosense) {
@@ -414,17 +520,16 @@ sub resolve_requested {
 		foreach (keys %{$urpm->{provides}{$n} || {}}) {
 		    my $p = $urpm->{depslist}[$_];
 		    $p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
-		    $avoided{$p->fullname} = $pkg->fullname;
+		    $state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
 		}
 	    }
 	    if (my ($file) = /^(\/[^\s\[]*)/) {
 		$db->traverse_tag('path', [ $file ], sub {
 				      my ($p) = @_;
 				      #- all these packages should be removed.
-				      $options{keep_state} or
-					push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-											    { conflicts => $file },
-											    \%avoided);
+				      $urpm->resolve_rejected($db, $state, $p,
+							      removed => 1, unsatisfied => \@properties,
+							      from => scalar $pkg->fullname, why => { conflicts => $file });
 				  });
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
@@ -434,32 +539,21 @@ sub resolve_requested {
 					  #- version will be ok, else ask to remove the old.
 					  my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
 					                                     $p->version . "-" . $p->release;
-					  my $packages = $urpm->find_candidate_packages($need_deps, \%avoided);
+					  my $packages = $urpm->find_candidate_packages($need_deps, $state->{rejected});
 					  my $best = join '|', map { $_->id }
 					    grep { ! grep { ranges_overlap($_, $property) } $_->provides }
 					      @{$packages->{$p->name}};
 
 					  if (length $best) {
-					      push @properties, $best;
+					      push @properties, { required => $best, promote_conflicts => $name };
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
-					      $options{keep_state} or
-						push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-												    { conflicts => $property },
-												    \%avoided);
+					      $urpm->resolve_rejected($db, $state, $p,
+								      removed => 1, unsatisfied => \@properties,
+								      from => scalar $pkg->fullname, why => { conflicts => $property });
 					  }
 				      }
 				  });
-	    }
-	}
-
-	#- we need to check a selected package is not selected.
-	#- if true, it should be unselected.
-	unless ($options{keep_state}) {
-	    foreach (keys %{$urpm->{provides}{$pkg->name} || {}}) {
-		my $p = $urpm->{depslist}[$_];
-		$p != $pkg && $p->name eq $pkg->name && ($p->flag_selected || exists $state->{selected}{$p->id}) or next;
-		$state->{ask_unselect}{$pkg->id}{$p->id} = undef;
 	    }
 	}
 
@@ -469,131 +563,74 @@ sub resolve_requested {
 			      foreach my $property ($p->conflicts) {
 				  if (grep { ranges_overlap($_, $property) } $pkg->provides) {
 				      #- all these packages should be removed.
-				      $options{keep_state} or
-					push @properties, $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-											    { conflicts => $property },
-											    \%avoided);
+				      $urpm->resolve_rejected($db, $state, $p,
+							      removed => 1, unsatisfied => \@properties,
+							      from => scalar $pkg->fullname, why => { conflicts => $property });
 				  }
 			      }
 			  });
     }
 
-    if ($options{keep_state}) {
-	#- clear state obsoleted according to saved obsoleted.
-	foreach (@obsoleted) {
-	    if (ref $_) {
-		exists $state->{obsoleted}{$_->[0]} and delete $state->{obsoleted}{$_->[0]}{$_->[1]};
-	    } else {
-		delete $state->{obsoleted}{$_};
-	    }
-	}
-    } else {
-	#- obsoleted packages are no longer marked as being asked to be removed.
-	delete @{$state->{ask_remove}}{map { /(.*)\.[^\.]*$/ && $1 } keys %{$state->{obsoleted}}};
-    }
-
-    #- return requested if not empty.
-    %$requested && $requested;
+    #- return what has been selected by this call (not all selected hash).
+    #TODO
 }
 
 #- do the opposite of the above, unselect a package and extend
 #- to any package not requested that is no more needed by
 #- any other package.
-sub resolve_unrequested {
-    my ($urpm, $db, $state, $unrequested, %options) = @_;
-    my (@unrequested, %unrequested, $id);
-
-    #- keep in mind unrequested package in order to allow unselection
-    #- of requested package.
-    @unrequested = keys %$unrequested;
-    @unrequested{@unrequested} = ();
+#- return the packages that have been deselected.
+sub disable_selected {
+    my ($urpm, $db, $state, @closure) = @_;
+    my @unselected;
 
     #- iterate over package needing unrequested one.
-    while (defined($id = shift @unrequested)) {
-	my (%diff_provides, @clean_closure_ask_remove, $name);
+    while (my $pkg = shift @closure) {
+	$pkg->flag_selected || exists $state->{selected}{$pkg->id} or next;
 
-	my $pkg = $urpm->{depslist}[$id];
-	$pkg->flag_selected || exists $state->{unselected}{$pkg->id} or next;
+	#- keep a trace of what is deselected.
+	push @unselected, $pkg;
 
-	#- the package being examined has to be unselected.
-	$options{no_flag_update} or
-	  $pkg->set_flag_requested(0), $pkg->set_flag_required(0);
-	$state->{unselected}{$pkg->id} = undef;
-
-	#- state should be cleaned by any reference to it.
-	foreach ($pkg->provides) {
-	    $diff_provides{$_} = undef;
-	}
-	foreach ($pkg->name, $pkg->obsoletes_nosense) {
-	    $db->traverse_tag('name', [ $_ ], sub {
-				  my ($p) = @_;
-				  if ($state->{obsoleted}{$p->fullname} && exists $state->{obsoleted}{$p->fullname}{$pkg->id}) {
-				      #- found an obsoleted package, clean state.
-				      delete $state->{obsoleted}{$p->fullname}{$pkg->id};
-				      #- if this package has been obsoleted only by this one being unselected
-				      #- compute diff_provides to found potentially requiring packages.
-				      unless (%{$state->{obsoleted}{$p->fullname}}) {
-					  delete $state->{obsoleted}{$p->fullname};
-					  delete @diff_provides{$p->provides};
-				      }
-				  }
-			      });
-	}
-	foreach (keys %{$state->{ask_remove}}) {
-	    exists $state->{ask_remove}{$_}{closure}{$pkg->id} or next;
-	    delete $state->{ask_remove}{$_}{closure}{$pkg->id};
-	    unless (%{$state->{ask_remove}{$_}{closure}}) {
-		delete $state->{ask_remove}{$_};
-		push @clean_closure_ask_remove, $_;
-	    }
-	}
-	while ($name = shift @clean_closure_ask_remove) {
-	    foreach (keys %{$state->{ask_remove}}) {
-		exists $state->{ask_remove}{$_}{closure}{$name} or next;
-		delete $state->{ask_remove}{$_}{closure}{$name};
-		unless (%{$state->{ask_remove}{$_}{closure}}) {
-		    delete $state->{ask_remove}{$_};
-		    push @clean_closure_ask_remove, $_;
+	#- do a closure on rejected packages (removed, obsoleted or avoided).
+	my @closure_rejected = $pkg->fullname;
+	while (my $fullname = shift @closure_rejected) {
+	    my @rejecteds = keys %{$state->{rejected}};
+	    foreach (@rejecteds) {
+		exists $state->{rejected}{$_} && exists $state->{rejected}{$_}{closure}{$fullname} or next;
+		delete $state->{rejected}{$_}{closure}{$fullname};
+		unless (%{$state->{rejected}{$_}{closure}}) {
+		    delete $state->{rejected}{$_};
+		    push @closure_rejected, $_;
 		}
 	    }
 	}
-	delete $state->{ask_unselect}{$pkg->id};
 
 	#- determine package that requires properties no more available, so that they need to be
 	#- unselected too.
-	foreach (keys %diff_provides) {
-	    if (my ($n) = /^([^\s\[]*)/) {
-		$db->traverse_tag('whatrequires', [ $n ], sub {
-				      my ($p) = @_;
-				      if ($urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
-					  #- the package has broken dependencies, but it is already installed.
-					  #- we can remove it (well this is problably not normal).
-					  #TODO
-					  $urpm->resolve_closure_ask_remove($db, $state, $p, $pkg->id,
-									    { unrequested => 1 });
-				      }
-				  });
-		#- check a whatrequires on selected packages directly.
-		foreach (keys %{$state->{whatrequires}{$n} || {}}) {
-		    my $p = $urpm->{depslist}[$_];
-		    $p->flag_selected || exists $state->{unselected}{$p->id} or next;
-		    if ($urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
-			#- this package has broken dependencies, but it is installed.
-			#- just add it to unrequested.
-			exists $unrequested{$p->id} or push @unrequested, $p->id;
-			$unrequested{$p->id} = undef;
-		    }
+	foreach my $n ($pkg->provides_nosense) {
+	    foreach (keys %{$state->{whatrequires}{$n} || {}}) {
+		my $p = $urpm->{depslist}[$_];
+		$p->flag_selected || exists $state->{selected}{$p->id} or next;
+		if ($urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
+		    #- this package has broken dependencies and is selected.
+		    push @closure, $p;
 		}
 	    }
 	}
 
-	#- determine among requires of this package if there is a package not requested but
-	#- no more required.
-	#TODO
+	#- the package being examined has to be unselected.
+	$pkg->set_flag_requested(0);
+	$pkg->set_flag_required(0);
+	delete $state->{selected}{$pkg->id};
+
+	#- clean whatrequires hash.
+	foreach ($pkg->requires_nosense) {
+	    delete $state->{whatrequires}{$_}{$pkg->id};
+	    %{$state->{whatrequires}{$_}} or delete $state->{whatrequires}{$_};
+	}
     }
 
-    #- return unrequested if not empty.
-    %$unrequested && $unrequested;
+    #- return all unselected packages.
+    @unselected;
 }
 
 #- compute installed flags for all package in depslist.
@@ -803,6 +840,45 @@ sub request_packages_to_upgrade {
     }
 
     $requested;
+}
+
+#- compatiblity method which are going to be removed.
+sub resolve_closure_ask_remove {
+    my ($urpm, $db, $state, $pkg, $from, $why, $avoided) = @_;
+
+    print STDERR "calling obsoleted method URPM::resolve_closure_ask_remove\n";
+
+    my @unsatisfied;
+    $urpm->resolve_rejected($db, $state, $pkg, from => $from, why => $why, removed => 1, unsatisfied => \@unsatisfied);
+
+    #- rebuild correctly ask_remove hash.
+    delete $state->{ask_remove};
+    foreach (keys %{$state->{rejected}}) {
+	$state->{rejected}{$_}{obsoleted} and next;
+	$state->{rejected}{$_}{removed} or next;
+
+	$state->{ask_remove}{$_}{closure} = $state->{rejected}{$_}{closure}; # fullname are not converted back to id as expected.
+	$state->{ask_remove}{$_}{size} = $state->{rejected}{$_}{size};
+    }
+
+    @unsatisfied;
+}
+sub resolve_unrequested {
+    my ($urpm, $db, $state, $unrequested, %options) = @_;
+
+    print STDERR "calling obsoleted method URPM::resolve_unrequested\n";
+
+    my @l = $urpm->disable_selected($db, $state, map { $urpm->{depslist}[$_] } keys %$unrequested);
+
+    #- build unselected accordingly.
+    delete $state->{unselected};
+    foreach (@l) {
+	delete $unrequested->{$_->id};
+	$state->{unselected}{$_->id} = undef;
+    }
+
+    #- use return value of old method.
+    %$unrequested && $unrequested;
 }
 
 1;

@@ -1383,92 +1383,95 @@ Pkg_compare_pkg(lpkg, rpkg)
   char *rarch;
   char *reos;
   CODE:
-  if (lpkg->info) {
-    char *s;
+  if (lpkg == rpkg) RETVAL = 0;
+  else {
+    if (lpkg->info) {
+      char *s;
 
-    if ((s = strchr(lpkg->info, '@')) != NULL) {
-      if ((leos = strchr(s+1, '@')) != NULL) *leos = 0; /* mark end of string to enable searching backwards */
-      lepoch = atoi(s+1);
-      if (leos != NULL) *leos = '@';
-    } else {
-      lepoch = 0;
-    }
-    get_fullname_parts(lpkg, NULL, &lversion, &lrelease, &larch, &leos);
-    /* temporaly mark end of each substring */
-    lrelease[-1] = 0;
-    larch[-1] = 0;
-  } else if (lpkg->h) {
-    lepoch = get_int(lpkg->h, RPMTAG_EPOCH);
-    lversion = get_name(lpkg->h, RPMTAG_VERSION);
-    lrelease = get_name(lpkg->h, RPMTAG_RELEASE);
-    larch = headerIsEntry(lpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(lpkg->h, RPMTAG_ARCH);
-  } else croak("undefined package");
-  if (rpkg->info) {
-    char *s;
+      if ((s = strchr(lpkg->info, '@')) != NULL) {
+	if ((leos = strchr(s+1, '@')) != NULL) *leos = 0; /* mark end of string to enable searching backwards */
+	lepoch = atoi(s+1);
+	if (leos != NULL) *leos = '@';
+      } else {
+	lepoch = 0;
+      }
+      get_fullname_parts(lpkg, NULL, &lversion, &lrelease, &larch, &leos);
+      /* temporaly mark end of each substring */
+      lrelease[-1] = 0;
+      larch[-1] = 0;
+    } else if (lpkg->h) {
+      lepoch = get_int(lpkg->h, RPMTAG_EPOCH);
+      lversion = get_name(lpkg->h, RPMTAG_VERSION);
+      lrelease = get_name(lpkg->h, RPMTAG_RELEASE);
+      larch = headerIsEntry(lpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(lpkg->h, RPMTAG_ARCH);
+    } else croak("undefined package");
+    if (rpkg->info) {
+      char *s;
 
-    if ((s = strchr(rpkg->info, '@')) != NULL) {
-      if ((reos = strchr(s+1, '@')) != NULL) *reos = 0; /* mark end of string to enable searching backwards */
-      repoch = atoi(s+1);
-      if (reos != NULL) *reos = '@';
+      if ((s = strchr(rpkg->info, '@')) != NULL) {
+	if ((reos = strchr(s+1, '@')) != NULL) *reos = 0; /* mark end of string to enable searching backwards */
+	repoch = atoi(s+1);
+	if (reos != NULL) *reos = '@';
+      } else {
+	repoch = 0;
+      }
+      get_fullname_parts(rpkg, NULL, &rversion, &rrelease, &rarch, &reos);
+      /* temporaly mark end of each substring */
+      rrelease[-1] = 0;
+      rarch[-1] = 0;
+    } else if (rpkg->h) {
+      repoch = get_int(rpkg->h, RPMTAG_EPOCH);
+      rversion = get_name(rpkg->h, RPMTAG_VERSION);
+      rrelease = get_name(rpkg->h, RPMTAG_RELEASE);
+      rarch = headerIsEntry(rpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(rpkg->h, RPMTAG_ARCH);
     } else {
-      repoch = 0;
+      /* restore info string modified */
+      if (lpkg->info) {
+	lrelease[-1] = '-';
+	larch[-1] = '.';
+      }
+      croak("undefined package");
     }
-    get_fullname_parts(rpkg, NULL, &rversion, &rrelease, &rarch, &reos);
-    /* temporaly mark end of each substring */
-    rrelease[-1] = 0;
-    rarch[-1] = 0;
-  } else if (rpkg->h) {
-    repoch = get_int(rpkg->h, RPMTAG_EPOCH);
-    rversion = get_name(rpkg->h, RPMTAG_VERSION);
-    rrelease = get_name(rpkg->h, RPMTAG_RELEASE);
-    rarch = headerIsEntry(rpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(rpkg->h, RPMTAG_ARCH);
-  } else {
+    compare = lepoch - repoch;
+    if (!compare) {
+      compare = rpmvercmp(lversion, rversion);
+      if (!compare) {
+	compare = rpmvercmp(lrelease, rrelease);
+	if (!compare) {
+	  int lscore, rscore;
+	  char *eolarch = strchr(larch, '@');
+	  char *eorarch = strchr(rarch, '@');
+
+	  read_config_files(0);
+	  if (eolarch) *eolarch = 0; lscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, larch);
+	  if (eorarch) *eorarch = 0; rscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, rarch);
+	  if (lscore == 0) {
+	    if (rscore == 0)
+	      compare = strcmp(larch, rarch);
+	    else
+	      compare = -1;
+	  } else {
+	    if (rscore == 0)
+	      compare = 1;
+	    else
+	      compare = rscore - lscore; /* score are lower for better */
+	  }
+	  if (eolarch) *eolarch = '@';
+	  if (eorarch) *eorarch = '@';
+	}
+      }
+    }
     /* restore info string modified */
     if (lpkg->info) {
       lrelease[-1] = '-';
       larch[-1] = '.';
     }
-    croak("undefined package");
-  }
-  compare = lepoch - repoch;
-  if (!compare) {
-    compare = rpmvercmp(lversion, rversion);
-    if (!compare) {
-      compare = rpmvercmp(lrelease, rrelease);
-      if (!compare) {
-	int lscore, rscore;
-	char *eolarch = strchr(larch, '@');
-	char *eorarch = strchr(rarch, '@');
-
-	read_config_files(0);
-	if (eolarch) *eolarch = 0; lscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, larch);
-	if (eorarch) *eorarch = 0; rscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, rarch);
-	if (lscore == 0) {
-	  if (rscore == 0)
-	    compare = strcmp(larch, rarch);
-	  else
-	    compare = -1;
-	} else {
-	  if (rscore == 0)
-	    compare = 1;
-	  else
-	    compare = rscore - lscore; /* score are lower for better */
-	}
-	if (eolarch) *eolarch = '@';
-	if (eorarch) *eorarch = '@';
-      }
+    if (rpkg->info) {
+      rrelease[-1] = '-';
+      rarch[-1] = '.';
     }
+    RETVAL = compare;
   }
-  /* restore info string modified */
-  if (lpkg->info) {
-    lrelease[-1] = '-';
-    larch[-1] = '.';
-  }
-  if (rpkg->info) {
-    rrelease[-1] = '-';
-    rarch[-1] = '.';
-  }
-  RETVAL = compare;
   OUTPUT:
   RETVAL
 
@@ -2048,7 +2051,7 @@ int
 Pkg_flag_selected(pkg)
   URPM::Package pkg
   CODE:
-  RETVAL = pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUESTED | FLAG_REQUIRED) : 0;
+  RETVAL = pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUIRED) : 0;
   OUTPUT:
   RETVAL
 
@@ -2057,7 +2060,7 @@ Pkg_flag_available(pkg)
   URPM::Package pkg
   CODE:
   RETVAL = (pkg->flag & FLAG_INSTALLED && !(pkg->flag & FLAG_UPGRADE)) ||
-           (pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUESTED | FLAG_REQUIRED) : 0);
+           (pkg->flag & FLAG_UPGRADE ? pkg->flag & (FLAG_BASE | FLAG_REQUIRED) : 0);
   OUTPUT:
   RETVAL
 
@@ -2603,7 +2606,6 @@ Trans_run(trans, data, ...)
   rpmtsSetNotifyCallback(trans->ts, rpmRunTransactions_callback, &td);
   if (rpmtsRun(trans->ts, NULL, probFilter) > 0) {
     rpmps ps = rpmtsProblems(trans->ts);
-    XPUSHs(sv_2mortal(newSViv(rpmpsNumProblems(ps))));
     SP = xreturn_problems(SP, ps, translate_message);
     ps = rpmpsFree(ps);
   }
