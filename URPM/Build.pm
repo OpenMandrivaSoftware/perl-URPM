@@ -12,7 +12,6 @@ use strict;
 sub parse_rpms_build_headers {
     my ($urpm, %options) = @_;
     my ($dir, %cache, @headers);
-    local (*DIR, *F);
 
     #- check for mandatory options.
     if (@{$options{rpms} || []} > 0) {
@@ -24,8 +23,8 @@ sub parse_rpms_build_headers {
 	#- examine cache if it contains any headers which will be much faster to read
 	#- than parsing rpm file directly.
 	unless ($options{clean}) {
-	    opendir DIR, $dir;
-	    while (my $file = readdir DIR) {
+	    opendir my $dirh, $dir;
+	    while (defined (my $file = readdir $dirh)) {
 		my ($fullname, $filename) = $file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
 		my @stat = stat "$dir/$file";
 		$cache{$filename || $fullname} = { file => $file,
@@ -33,11 +32,11 @@ sub parse_rpms_build_headers {
 						   time => $stat[9],
 						 };
 	    }
-	    closedir DIR;
+	    closedir $dirh;
 	}
 
 	foreach (@{$options{rpms}}) {
-	    my ($key) = m!([^/]*)\.rpm$! or next; #- get rpm filename.
+	    my ($key) = m{([^/]*)\.rpm$} or next; #- get rpm filename.
 	    my ($id, $filename);
 
 	    if ($cache{$key} && $cache{$key}{time} > 0 && $cache{$key}{time} >= (stat $_)[9]) {
@@ -71,9 +70,9 @@ sub parse_rpms_build_headers {
 		"$filename.rpm" eq $pkg->filename or $filename .= ":$key";
 
 		unless (-s "$dir/$filename") {
-		    open F, ">$dir/$filename" or die "unable to open $dir/$filename for writing\n";
-		    $pkg->build_header(fileno *F);
-		    close F;
+		    open my $fh, ">$dir/$filename" or die "unable to open $dir/$filename for writing\n";
+		    $pkg->build_header(fileno $fh);
+		    close $fh;
 		}
 		-s "$dir/$filename" or unlink("$dir/$filename"), die "can create header $dir/$filename\n";
 
@@ -412,15 +411,14 @@ sub build_hdlist {
     $ratio = $options{ratio} || 4;
     $split = $options{split} || 400000;
 
-    local *B;
-    open B, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
+    open my $fh, "| " . ($ENV{LD_LOADER} || '') . " packdrake -b${ratio}ds '$options{hdlist}' '$dir' $split";
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 	my $filename = $pkg->fullname;
-	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ m!([^/]*)\.rpm$! and $filename .= ":$1";
+	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ m{([^/]*)\.rpm$} and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
-	print B "$filename\n";
+	print $fh "$filename\n";
     }
-    close B or die "packdrake failed\n";
+    close $fh or die "packdrake failed\n";
 }
 
 #- build synthesis file.
@@ -454,8 +452,7 @@ sub build_synthesis {
 
 
     #- second pass: write each info including files provided.
-    local *F;
-    $options{synthesis} and open F, "| " . ($ENV{LD_LOADER} || '') . " gzip -$ratio >'$options{synthesis}'";
+    $options{synthesis} and open my $fh, "| " . ($ENV{LD_LOADER} || '') . " gzip -$ratio >'$options{synthesis}'";
     foreach (@idlist) {
 	my $pkg = $urpm->{depslist}[$_];
 	my %files;
@@ -465,9 +462,9 @@ sub build_synthesis {
 	    delete @files{$pkg->provides_nosense};
 	}
 
-	$pkg->build_info($options{synthesis} ? fileno *F : $options{fd}, join('@', keys %files));
+	$pkg->build_info($options{synthesis} ? fileno $fh : $options{fd}, join('@', keys %files));
     }
-    close F;
+    close $fh;
 }
 
 #- write depslist.ordered file according to info in params.
@@ -477,43 +474,42 @@ sub build_synthesis {
 #-   compss   : compss file to create.
 sub build_base_files {
     my ($urpm, %options) = @_;
-    local *F;
 
     if ($options{depslist}) {
-	open F, ">$options{depslist}";
+	open my $fh, ">$options{depslist}";
 	foreach (0 .. $#{$urpm->{depslist}}) {
 	    my $pkg = $urpm->{depslist}[$_];
 
-	    printf F ("%s-%s-%s.%s%s %s %s\n", $pkg->fullname,
+	    printf $fh ("%s-%s-%s.%s%s %s %s\n", $pkg->fullname,
 		      ($pkg->epoch ? ':' . $pkg->epoch : ''), $pkg->size || 0, $urpm->{deps}[$_]);
 	}
-	close F;
+	close $fh;
     }
 
     if ($options{provides}) {
-	open F, ">$options{provides}";
+	open my $fh, ">$options{provides}";
 	while (my ($k, $v) = each %{$urpm->{provides}}) {
-	    printf F "%s\n", join '@', $k, map { scalar $urpm->{depslist}[$_]->fullname } keys %{$v || {}};
+	    printf $fh "%s\n", join '@', $k, map { scalar $urpm->{depslist}[$_]->fullname } keys %{$v || {}};
 	}
-	close F;
+	close $fh;
     }
 
     if ($options{compss}) {
 	my %p;
 
-	open F, ">$options{compss}";
+	open my $fh, ">$options{compss}";
 	foreach (@{$urpm->{depslist}}) {
 	    $_->group or next;
 	    push @{$p{$_->group} ||= []}, $_->name;
 	}
 	foreach (sort keys %p) {
-	    print F $_, "\n";
+	    print $fh $_, "\n";
 	    foreach (@{$p{$_}}) {
-		print F "\t", $_, "\n";
+		print $fh "\t", $_, "\n";
 	    }
-	    print F "\n";
+	    print $fh "\n";
 	}
-	close F;
+	close $fh;
     }
 
     1;
