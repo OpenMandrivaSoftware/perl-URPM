@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.08
-%define release 4mdk
+%define version 0.09
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -16,7 +16,7 @@ Distribution:	Mandrake Linux
 Source:		%{real_name}-%{version}.tar.bz2
 Prefix:		%{_prefix}
 BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
-Requires:	perl, rpm >= %{rpm_version}, bzip2 >= 1.0
+Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 BuildRoot:	%{_tmppath}/%{name}-buildroot
 
 %description
@@ -48,6 +48,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 10 2002 François Pons <fpons@mandrakesoft.com> 0.09-1mdk
+- changed semantics of some package flags to extend usability and
+  simplicity.
+- added no_flag_update to resolve_requested to avoid modifying
+  requested or required flag directly.
+- added closure on ask_remove.
+- removed requires on perl (only perl-base should be enough).
+- fixed wrong unsatisfied_requires return value whit a given name.
+
 * Tue Jul  9 2002 François Pons <fpons@mandrakesoft.com> 0.08-4mdk
 - fixed too many opened files when building hdlist.
 

@@ -38,7 +38,7 @@ sub unsatisfied_requires {
     foreach ($pkg->requires) {
 	if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 	    #- allow filtering on a given name (to speed up some search).
-	    ! defined $name || $n eq $s or next;
+	    ! defined $name || $n eq $name or next;
 
 	    #- avoid recomputing the same all the time.
 	    exists $properties{$_} || $state->{installed}{$_} and next;
@@ -76,6 +76,34 @@ sub unsatisfied_requires {
 	}
     }
     keys %properties;
+}
+
+#- close ask_remove (as urpme previously) for package to be removable without error.
+sub resolve_closure_ask_remove {
+    my ($urpm, $db, $state, $pkg, $why) = @_;
+    my $name = join '-', ($pkg->fullname)[0..2]; #- specila name (without arch) to allow selection.
+
+    #- check if the package has already been asked to removed,
+    #- this means only add the new reason and return.
+    unless ($state->{ask_remove}{$name}) {
+	my @removes = ($pkg);
+
+	while ($pkg = shift @removes) {
+	    foreach ($pkg->provides_nosense) {
+		$db->traverse_tag('whatrequires', [ $_ ], sub {
+				      my ($p) = @_;
+				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p, $_)) {
+					  push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
+					    { unsatisfied => \@l, closure => $name };
+
+					  $p->pack_header; #- need to pack else package is no more visible...
+					  push @removes, $p;
+				      }
+				  });
+	    }
+	}
+    }
+    push @{$state->{ask_remove}{$name}}, $why;
 }
 
 #- resolve requested, keep resolution state to speed process.
@@ -137,30 +165,47 @@ sub resolve_requested {
 	} else {
 	    @chosen = values %$packages;
 	}
+	@chosen = sort { $a->id <=> $b->id } @chosen; #- sort package in order to have best ones first.
 	if (!$pkg && $options{callback_choices} && @chosen > 1) {
 	    $pkg = $options{callback_choices}->($urpm, $db, $state, \@chosen);
 	    $pkg or next; #- callback may decide to not continue (or state is already updated).
 	}
 	$pkg ||= $chosen[0];
-	$pkg && !$pkg->flag_requested && !$pkg->flag_required or next;
+	!$pkg || $pkg->flag_requested || $pkg->flag_required || exists $state->{selected}{$pkg->id} and next;
+
+	if ($pkg->arch eq 'src') {
+	    $pkg->set_flag_upgrade;
+	} else {
+	    unless ($pkg->flag_upgrade || $pkg->flag_installed) {
+		#- assume for this small algorithm package to be upgradable.
+		$pkg->set_flag_upgrade;
+		$db->traverse_tag('name', [ $pkg->name ], sub {
+				      my ($p) = @_;
+				      $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+				      $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
+				  });
+	    }
+	    $pkg->flag_installed && !$pkg->flag_upgrade and next;
+	}
 
 	#- keep in mind the package has be selected.
-	$pkg->set_flag_requested($state->{selected}{$pkg->id} = delete $requested{$dep});
-	$pkg->set_flag_required(!$pkg->flag_requested);
+	$state->{selected}{$pkg->id} = delete $requested{$dep};
+	$options{no_flag_update} or
+	  $state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required;
 
 	#- check if package is not already installed before trying to use it, compute
 	#- obsoleted package too. this is valable only for non source package.
 	if ($pkg->arch ne 'src') {
-	    $pkg->flag_installed and delete $state->{selected}{$pkg->id}, next;
-	    unless ($pkg->flag_upgrade) {
+	    unless ($pkg->flag_upgrade || $pkg->flag_installed) {
+		#- assume for this small algorithm package to be upgradable.
+		$pkg->set_flag_upgrade;
 		$db->traverse_tag('name', [ $pkg->name ], sub {
 				      my ($p) = @_;
-				      $pkg->flag_installed or
-					$pkg->set_flag_installed($pkg->compare_pkg($p) <= 0);
+				      $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+				      $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 				  });
-		$pkg->set_flag_upgrade(!$pkg->flag_installed);
 	    }
-	    $pkg->flag_installed and delete $state->{selected}{$pkg->id}, next;
+	    $pkg->flag_installed && !$pkg->flag_upgrade and next;
 
 	    #- keep in mind the provides of this package, so that future requires can be satisfied
 	    #- with this package potentially.
@@ -213,8 +258,8 @@ sub resolve_requested {
 					      push @properties, $best->id;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
-					      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
-						{ unsatisfied => \@l, pkg => $pkg };
+					      $urpm->resolve_closure_ask_remove($db, $state, $p,
+										{ unsatisfied => \@l, pkg => $pkg });
 					  }
 				      }
 				  });
@@ -232,8 +277,8 @@ sub resolve_requested {
 				      my ($p) = @_;
 				      $state->{conflicts}{$p->fullname}{$pkg->id} = undef;
 				      #- all these packages should be removed.
-				      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}}, 
-					{ conflicts => $file, pkg => $pkg };
+				      $urpm->resolve_closure_ask_remove($db, $state, $p,
+									{ conflicts => $file, pkg => $pkg });
 				  });
 	    } elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 		$db->traverse_tag('whatprovides', [ $name ], sub {
@@ -256,8 +301,8 @@ sub resolve_requested {
 					      push @properties, $best->id;
 					  } else {
 					      #- no package have been found, we need to remove the package examined.
-					      push @{$state->{ask_remove}{join '-', ($p->fullname)[0..2]}},
-						{ conflicts => $property, pkg => $pkg };
+					      $urpm->resolve_closure_ask_remove($db, $state, $p,
+										{ conflicts => $property, pkg => $pkg });
 					  }
 				      }
 				  });
@@ -281,23 +326,22 @@ sub resolve_requested {
 sub compute_installed_flags {
     my ($urpm, $db) = @_;
 
-    #- first pass check according existing package.
+    #- first pass to initialize flags installed and upgrade for all package.
+    foreach (@{$urpm->{depslist}}) {
+	$_->flag_upgrade || $_->flag_installed or $_->set_flag_upgrade;
+    }
+
+    #- second pass to set installed flag and clean upgrade flag according to installed packages.
     $db->traverse(sub {
 		      my ($p) = @_;
 		      foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
 			  my $pkg = $urpm->{depslist}[$_];
 			  $pkg->name eq $p->name or next;
 			  #- compute only installed and upgrade flags.
-			  $pkg->set_flag_installed($pkg->compare_pkg($p) <= 0);
-			  $pkg->set_flag_upgrade(!$pkg->flag_installed);
+			  $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+			  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 		      }
 		  });
-
-    #- second pass allow not installed package to be seen as upgrade.
-    foreach (@{$urpm->{depslist}}) {
-	$_->flag_upgrade || $_->flag_installed and next;
-	$_->set_flag_upgrade(1);
-    }
 }
 
 #- select packages to upgrade, according to package already registered.
@@ -342,15 +386,14 @@ sub resolve_packages_to_upgrade {
 		      #- first try with package using the same name.
 		      #- this will avoid selecting all packages obsoleting an old one.
 		      if (my $pkg = $names{$p->name}) {
+			  $pkg->flag_upgrade || $pkg->flag_installed or $pkg->set_flag_upgrade;
+			  $pkg->set_flag_installed;
 			  if ($pkg->compare_pkg($p) <= 0) {
 			      #- this means the package is already installed (or there
 			      #- is a old version in depslist).
-			      $pkg->set_flag_installed(1);
 			      $pkg->set_flag_upgrade(0);
-			  } else {
-			      #- the depslist version is better than existing one.
-			      $pkg->set_flag_installed(0);
-			      $pkg->set_flag_upgrade(1);
+			  } elsif ($pkg->flag_upgrade) {
+			      #- the depslist version is better than existing one and no existing package is still better.
 			      $state->{requested}{$pkg->id} = $options{requested};
 			      return;
 			  }
