@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.09
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jul 11 2002 François Pons <fpons@mandrakesoft.com> 0.09-2mdk
+- fixed ask_unselect computation.
+- added clear_state option to relove_requested (rollback state
+  modification needed by DrakX).
+
 * Wed Jul 10 2002 François Pons <fpons@mandrakesoft.com> 0.09-1mdk
 - changed semantics of some package flags to extend usability and
   simplicity.

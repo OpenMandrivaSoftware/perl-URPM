@@ -312,7 +312,7 @@ sub resolve_requested {
 	    if (my ($name) =~ /^([^\s\[]*)/) {
 		foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		    my $p = $urpm->{depslist}[$_];
-		    $pkg->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
+		    $p->flag_selected and $state->{ask_unselect}{$p->id}{$pkg->id} = undef;
 		}
 	    }
 	}
@@ -320,6 +320,36 @@ sub resolve_requested {
 
     #- obsoleted packages are no longer marked as being asked to be removed.
     delete @{$state->{ask_remove}}{map { /(.*)\.[^\.]*$/ && $1 } keys %{$state->{obsoleted}}};
+
+    #- clear state according to selection done, this is usefull for
+    #- canceling a selection (works after second call with empty requested).
+    if ($options{clear_state}) {
+	foreach (keys %{$state->{selected} || {}}) {
+	    my $pkg = $urpm->{depslist}[$_];
+
+	    foreach ($pkg->provides) {
+		if (my ($n, $s) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+		    delete $state->{provided}{$n}{$s}{$pkg->id};
+		    %{$state->{provided}{$n}{$s}} or delete $state->{provided}{$n}{$s};
+		}
+	    }
+
+	    foreach ($pkg->obsoletes) {
+		delete $state->{obsoleted}{$pkg->fullname}{$pkg->id};
+		%{$state->{obsoleted}{$pkg->fullname}} or delete $state->{obsoleted}{$pkg->fullname};
+	    }
+
+	    foreach (keys %{$state->{ask_remove} || {}}) {
+		$state->{ask_remove}{$_} = [ grep { $_->{pkg} ne $pkg } @{$state->{ask_remove}{$_} || []} ];
+		@{$state->{ask_remove}{$_}} or delete $state->{ask_remove}{$_};
+	    }
+
+	    foreach (keys %{$state->{ask_unselect} || {}}) {
+		delete $state->{ask_unselect}{$_}{$pkg->id};
+		%{$state->{ask_unselect}{$_}} or delete $state->{ask_unselect}{$_};
+	    }
+	}
+    }
 }
 
 #- compute installed flags for all package in depslist.
