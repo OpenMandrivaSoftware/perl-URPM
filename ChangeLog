@@ -1,3 +1,19 @@
+2004-08-11 06:57  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.xs: Don't panic on bad rpm fullnames
+
+2004-08-02 12:42  Fançois Pons
+
+	* URPM/Resolve.pm: fixed deadlock caused with libgc1 obsoleting
+	  itself ;-) and in the case were an older package is already
+	  installed and an older package is present in urpmi db. The
+	  problems comes with a badly interpreted comparison without an
+	  operator checked.
+
+2004-08-02 11:24  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: 1.00 !
+
 2004-08-02 11:01  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
 
 	* URPM/Resolve.pm: Protection against packages that obsolete
