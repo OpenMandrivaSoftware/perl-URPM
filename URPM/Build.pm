@@ -436,7 +436,6 @@ sub build_hdlist {
 #- parameters are :
 #-   synthesis : synthesis file to create (mandatory if fd not given).
 #-   fd        : file descriptor (mandatory if synthesis not given).
-#-   dir       : directory which contains headers (defaults to /tmp/.build_hdlist)
 #-   start     : index of first package (defaults to first index of depslist).
 #-   end       : index of last package (defaults to last index of depslist).
 #-   idlist    : id list of rpm to compute (defaults is start .. end)
