@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.95
-%define release 2mdk
+%define version 0.96
+%define release 1mdk
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -57,6 +57,10 @@ hdlist files and manage them in memory.
 
 
 %changelog
+* Mon Jul 12 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.96-1mdk
+- Simplify the parsing of skip.list and inst.list files
+- Segfault fixes by Olivier Thauvin
+
 * Fri May 21 2004 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 0.95-2mdk
 - Don't include older packages than the installed ones in the dependencies
   (except when urpmi is invoked with --allow-force)

@@ -1,3 +1,74 @@
+2004-07-12 03:23  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Don't use keys() in scalar context
+
+2004-07-12 03:04  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* Makefile.PL: Add a ChangeLog target in the makefile
+
+2004-07-09 10:56  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Simplify the compute_flags function (used for
+	  the {skip,inst}.list files)
+
+2004-06-27 20:31  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs: - fix segfault in queryformat if tag does not exist
+	  (return nothing instead)
+
+2004-06-23 08:47  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.xs, t/fatal.t: Clarify error message when a synthesis file
+	  can't be read or gunzipped
+
+2004-05-21 13:33  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: 0.95-2mdk
+
+2004-05-21 13:19  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: Allow urpmi to downgrade packages if it was
+	  invoked with --allow-force
+
+2004-05-19 17:28  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM/Resolve.pm: When an rpm installed locally had a version
+	  greater than the one found in the update media, urpmi was trying
+	  to downgrade it.
+
+2004-05-06 11:42  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* URPM.pm, perl-URPM.spec: Version 0.95
+
+2004-05-06 11:22  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* MANIFEST, URPM.pm, URPM.xs, URPM/Resolve.pm, t/fatal.t: Add a way
+	  to downgrade some errors (file not found) to non-fatal
+
+2004-04-30 10:32  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* perl-URPM.spec: 0.94-13mdk
+
+2004-04-27 07:56  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM/Query.pm: - fix tag2id on old mdk, ensure all test are ok on
+	  9.1
+
+2004-04-26 16:40  Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com>
+
+	* t/parse.t: Silence warnings
+
+2004-04-25 23:33  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.xs, t/parse.t: - make parse.t pass all test - add
+	  $pkg->queryformat test
+
+2004-04-25 12:44  Olivier Thauvin <thauvin@aerov.jussieu.fr>
+
+	* URPM.pm, URPM.xs, URPM/Query.pm: - add $pkg->queryformat()
+	  function - $ûrpm->list_rpm_tag show all tag, value for unparsable
+	  tag is 'undef' in hash
+
 2004-04-23 10:01  Olivier Thauvin <thauvin@aerov.jussieu.fr>
 
 	* URPM.xs: - urpm optional arg to Urpm_list_rpm_tag function
