@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.50
-%define release 6mdk
+%define version 0.60
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,16 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Aug  5 2002 François Pons <fpons@mandrakesoft.com> 0.60-1mdk
+- ask_remove list of package now reference id instead of pkg.
+- removed conflicts state not used.
+- fixed ask_unselect not taken into account if two successive
+  requested resolution.
+- ask_remove is now cleaned on unrequested resolution.
+- avoid selecting conflicting packages when resolving packages
+  to upgrade (--auto-select).
+- use perl multi-threaded.
+
 * Thu Jul 25 2002 François Pons <fpons@mandrakesoft.com> 0.50-6mdk
 - fixed incomplete search of best requested packages.
 
