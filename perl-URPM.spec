@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.82
-%define release 3mdk
+%define release 4mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Apr 24 2003 François Pons <fpons@mandrakesoft.com> 0.82-4mdk
+- intergrated another patch from Olivier Thauvin to add method
+  for manipulating source rpm to URPM::Package (buildarchs,
+  excludearchs, exclusivearchs).
+
 * Tue Apr 22 2003 François Pons <fpons@mandrakesoft.com> 0.82-3mdk
 - integrated patch from Olivier Thauvin to add misc method to
   URPM::Package (packager, buildhost, url).

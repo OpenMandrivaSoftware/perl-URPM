@@ -1381,6 +1381,24 @@ Pkg_provides_nosense(pkg)
   SP = xreturn_list_str(SP, pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0);
 
 void
+Pkg_buildarchs(pkg)
+  URPM::Package pkg
+  PPCODE:
+  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0);
+  
+void
+Pkg_excludearchs(pkg)
+  URPM::Package pkg
+  PPCODE:
+  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0);
+  
+void
+Pkg_exclusivearchs(pkg)
+  URPM::Package pkg
+  PPCODE:
+  SP = xreturn_list_str(SP, NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0);
+  
+void
 Pkg_files(pkg)
   URPM::Package pkg
   PPCODE:
