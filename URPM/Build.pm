@@ -23,7 +23,7 @@ sub parse_rpms_build_headers {
 	#- examine cache if it contains any headers which will be much faster to read
 	#- than parsing rpm file directly.
 	unless ($options{clean}) {
-	    opendir my $dirh, $dir;
+	    opendir my $dirh, "$dir";
 	    while (defined (my $file = readdir $dirh)) {
 		my ($fullname, $filename) = $file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
 		my @stat = stat "$dir/$file";
