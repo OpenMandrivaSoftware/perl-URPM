@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.80
-%define release 2mdk
+%define version 0.81
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Dec 17 2002 François Pons <fpons@mandrakesoft.com> 0.81-1mdk
+- little improve on traverse_tag with tag name when env.
+- fixed dependencies resolution when various different version
+  of a package are available.
+
 * Wed Dec 11 2002 François Pons <fpons@mandrakesoft.com> 0.80-2mdk
 - removed dSP in XS (sound like perl doesn't like them a lot),
   this fixes urpmf problem of reading first hdlist.

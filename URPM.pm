@@ -6,7 +6,7 @@ use vars qw($VERSION @ISA);
 require DynaLoader;
 
 @ISA = qw(DynaLoader);
-$VERSION = '0.80';
+$VERSION = '0.81';
 
 bootstrap URPM $VERSION;
 
@@ -80,11 +80,12 @@ sub traverse_tag {
     my ($count, %names) = (0);
 
     if (@{$names || []}) {
-	@names{@$names} = ();
 	if ($tag eq 'name') {
-	    foreach (@{$urpm->{depslist} || []}) {
-		if (exists $names{$_->name}) {
-		    $callback and $callback->($_);
+	    foreach my $n (@$names) {
+		foreach (keys %{$urpm->{provides}{$n} || {}}) {
+		    my $p = $urpm->{depslist}[$_];
+		    $p->name eq $n or next;
+		    $callback and $callback->($p);
 		    ++$count;
 		}
 	    }
@@ -95,36 +96,39 @@ sub traverse_tag {
 		    ++$count;
 		}
 	    }
-	} elsif ($tag eq 'whatrequires') {
-	    foreach (@{$urpm->{depslist} || []}) {
-		if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->requires) {
-		    $callback and $callback->($_);
-		    ++$count;
-		}
-	    }
-	} elsif ($tag eq 'whatconflicts') {
-	    foreach (@{$urpm->{depslist} || []}) {
-		if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->conflicts) {
-		    $callback and $callback->($_);
-		    ++$count;
-		}
-	    }
-	} elsif ($tag eq 'group') {
-	    foreach (@{$urpm->{depslist} || []}) {
-		if (exists $names{$_->group}) {
-		    $callback and $callback->($_);
-		    ++$count;
-		}
-	    }
-	} elsif ($tag eq 'triggeredby' || $tag eq 'path') {
-	    foreach (@{$urpm->{depslist} || []}) {
-		if (grep { exists $names{$_} } $_->files, grep { /^\// } $_->provides_nosense) {
-		    $callback and $callback->($_);
-		    ++$count;
-		}
-	    }
 	} else {
-	    die "unknown tag";
+	    @names{@$names} = ();
+	    if ($tag eq 'whatrequires') {
+		foreach (@{$urpm->{depslist} || []}) {
+		    if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->requires) {
+			$callback and $callback->($_);
+			++$count;
+		    }
+		}
+	    } elsif ($tag eq 'whatconflicts') {
+		foreach (@{$urpm->{depslist} || []}) {
+		    if (grep { /^([^ \[]*)/ && exists $names{$1} } $_->conflicts) {
+			$callback and $callback->($_);
+			++$count;
+		    }
+		}
+	    } elsif ($tag eq 'group') {
+		foreach (@{$urpm->{depslist} || []}) {
+		    if (exists $names{$_->group}) {
+			$callback and $callback->($_);
+			++$count;
+		    }
+		}
+	    } elsif ($tag eq 'triggeredby' || $tag eq 'path') {
+		foreach (@{$urpm->{depslist} || []}) {
+		    if (grep { exists $names{$_} } $_->files, grep { /^\// } $_->provides_nosense) {
+			$callback and $callback->($_);
+			++$count;
+		    }
+		}
+	    } else {
+		die "unknown tag";
+	    }
 	}
     }
 

@@ -5,18 +5,20 @@ use strict;
 #- find candidates packages from a require string (or id),
 #- take care of direct choices using | sepatator.
 sub find_candidate_packages {
-    my ($urpm, $dep) = @_;
+    my ($urpm, $dep, $avoided) = @_;
     my %packages;
 
     foreach (split '\|', $dep) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
+	    $avoided && exists $avoided->{$pkg->fullname} and next;
 	    push @{$packages{$pkg->name}}, $pkg;
 	} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->is_arch_compat or next;
+		$avoided && exists $avoided->{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
 		my $satisfied = 0;
 		foreach ($pkg->provides) {
@@ -169,7 +171,7 @@ sub resolve_requested {
 	    my ($best_requested, $best);
 	    foreach (@$_) {
 		exists $state->{selected}{$_->id} and $best_requested = $_, last;
-		exists $avoided{$_->name} and next;
+		exists $avoided{$_->fullname} and next;
 		if ($best_requested || exists $requested{$_->id}) {
 		    if ($best_requested && $best_requested != $_) {
 			$_->compare_pkg($best_requested) > 0 and $best_requested = $_;
@@ -290,8 +292,6 @@ sub resolve_requested {
 	#- this means required dependencies have undef value in selected hash.
 	#- requested flag is set only for requested package where value is not false.
 	$state->{selected}{$pkg->id} = delete $requested->{$dep};
-	#- mark package of this name to be avoided if possible.
-	$avoided{$pkg->name} = undef;
 
 	$options{no_flag_update} or
 	  $state->{selected}{$pkg->id} ? $pkg->set_flag_requested : $pkg->set_flag_required;
@@ -305,6 +305,19 @@ sub resolve_requested {
 
 	    foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
 		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
+		    #- populate avoided entries according to what is selected.
+		    foreach (keys %{$urpm->{provides}{$n} || {}}) {
+			my $p = $urpm->{depslist}[$_];
+			if ($p->name eq $pkg->name) {
+			    #- all package with the same name should now be avoided except what is chosen.
+			    $p->fullname eq $pkg->fullname or $avoided{$p->fullname} = $pkg->fullname;
+			} else {
+			    #- in case of obsoletes, keep track of what should be avoided.
+			    !$o || eval($p->compare($v) . $o . 0) or next;
+			    $avoided{$p->fullname} = $pkg->fullname;
+			}
+		    }
+		    #- examine rpm db too.
 		    $db->traverse_tag('name', [ $n ], sub {
 					  my ($p) = @_;
 					  !$o || eval($p->compare($v) . $o . 0) or return;
@@ -336,7 +349,7 @@ sub resolve_requested {
 				      if (my @l = $urpm->unsatisfied_requires($db, $state, $p)) {
 					  #- try if upgrading the package will be satisfying all the requires
 					  #- else it will be necessary to ask the user for removing it.
-					  my $packages = $urpm->find_candidate_packages($p->name);
+					  my $packages = $urpm->find_candidate_packages($p->name, \%avoided);
 					  my $best = join '|', map { $_->id }
 					    grep { $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
 					      @{$packages->{$p->name}};
@@ -348,7 +361,7 @@ sub resolve_requested {
 					      #- there exists a package that provided the unsatisfied requires.
 					      my @best;
 					      foreach (@l) {
-						  $packages = $urpm->find_candidate_packages($_);
+						  $packages = $urpm->find_candidate_packages($_, \%avoided);
 						  $best = join('|', map { $_->id } map { @{$_ || []} } values %$packages);
 						  $best and push @best, $best;
 					      }
@@ -391,7 +404,7 @@ sub resolve_requested {
 				      if (grep { ranges_overlap($_, $property) } $p->provides) {
 					  #- the existing package will conflicts with selection, check if a newer
 					  #- version will be ok, else ask to remove the old.
-					  my $packages = $urpm->find_candidate_packages($p->name);
+					  my $packages = $urpm->find_candidate_packages($p->name, \%avoided);
 					  my $best = join '|', map { $_->id }
 					    grep { ! grep { ranges_overlap($_, $property) } $_->provides }
 					      @{$packages->{$p->name}};
