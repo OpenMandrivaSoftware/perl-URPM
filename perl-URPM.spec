@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.81
-%define release 9mdk
+%define release 10mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -49,6 +49,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Feb 27 2003 François Pons <fpons@mandrakesoft.com> 0.81-10mdk
+- allow choices to return mulitple selection.
+
 * Wed Feb 19 2003 François Pons <fpons@mandrakesoft.com> 0.81-9mdk
 - handle titi sucks on libalsa2 which obsoletes itself.
 
