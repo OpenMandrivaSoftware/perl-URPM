@@ -72,24 +72,23 @@ typedef rpmdb URPM__DB;
 typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
-#define FLAG_ID             0x000fffffU
-#define FLAG_RATE           0x00700000U
-#define FLAG_SKIP           0x00800000U
-#define FLAG_BASE           0x01000000U
-#define FLAG_FORCE          0x02000000U
-#define FLAG_INSTALLED      0x04000000U
-#define FLAG_REQUESTED      0x08000000U
-#define FLAG_REQUIRED       0x10000000U
-#define FLAG_UPGRADE        0x20000000U
-#define FLAG_OBSOLETE       0x40000000U
-#define FLAG_NO_HEADER_FREE 0x80000000U
+#define FLAG_ID               0x001fffffU
+#define FLAG_RATE             0x00e00000U
+#define FLAG_BASE             0x01000000U
+#define FLAG_SKIP             0x02000000U
+#define FLAG_DISABLE_OBSOLETE 0x04000000U
+#define FLAG_INSTALLED        0x08000000U
+#define FLAG_REQUESTED        0x10000000U
+#define FLAG_REQUIRED         0x20000000U
+#define FLAG_UPGRADE          0x40000000U
+#define FLAG_NO_HEADER_FREE   0x80000000U
 
-#define FLAG_ID_MAX         0x000ffffe
-#define FLAG_ID_INVALID     0x000fffff
+#define FLAG_ID_MAX           0x001ffffe
+#define FLAG_ID_INVALID       0x001fffff
 
-#define FLAG_RATE_POS       20
-#define FLAG_RATE_MAX       5
-#define FLAG_RATE_INVALID   0
+#define FLAG_RATE_POS         21
+#define FLAG_RATE_MAX         5
+#define FLAG_RATE_INVALID     0
 
 
 #define FILENAME_TAG 1000000
@@ -1989,6 +1988,45 @@ Pkg_build_header(pkg, fileno)
   } else croak("no header available for package");
 
 int
+Pkg_flag(pkg, name)
+  URPM::Package pkg
+  char *name
+  PREINIT:
+  unsigned mask;
+  CODE:
+  if (!strcmp(name, "skip")) mask = FLAG_SKIP;
+  else if (!strcmp(name, "disable_obsolete")) mask = FLAG_DISABLE_OBSOLETE;
+  else if (!strcmp(name, "installed")) mask = FLAG_INSTALLED;
+  else if (!strcmp(name, "requested")) mask = FLAG_REQUESTED;
+  else if (!strcmp(name, "required")) mask = FLAG_REQUIRED;
+  else if (!strcmp(name, "upgrade")) mask = FLAG_UPGRADE;
+  else croak("unknown flag: %s", name);
+  RETVAL = pkg->flag & mask;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag(pkg, name, value=1)
+  URPM::Package pkg
+  char *name
+  int value
+  PREINIT:
+  unsigned mask;
+  CODE:
+  if (!strcmp(name, "skip")) mask = FLAG_SKIP;
+  else if (!strcmp(name, "disable_obsolete")) mask = FLAG_DISABLE_OBSOLETE;
+  else if (!strcmp(name, "installed")) mask = FLAG_INSTALLED;
+  else if (!strcmp(name, "requested")) mask = FLAG_REQUESTED;
+  else if (!strcmp(name, "required")) mask = FLAG_REQUIRED;
+  else if (!strcmp(name, "upgrade")) mask = FLAG_UPGRADE;
+  else croak("unknown flag: %s", name);
+  RETVAL = pkg->flag & mask;
+  if (value) pkg->flag |= mask;
+  else       pkg->flag &= ~mask;
+  OUTPUT:
+  RETVAL
+
+int
 Pkg_flag_skip(pkg)
   URPM::Package pkg
   CODE:
@@ -2027,21 +2065,21 @@ Pkg_set_flag_base(pkg, value=1)
   RETVAL
 
 int
-Pkg_flag_force(pkg)
+Pkg_flag_disable_obsolete(pkg)
   URPM::Package pkg
   CODE:
-  RETVAL = pkg->flag & FLAG_FORCE;
+  RETVAL = pkg->flag & FLAG_DISABLE_OBSOLETE;
   OUTPUT:
   RETVAL
 
 int
-Pkg_set_flag_force(pkg, value=1)
+Pkg_set_flag_disable_obsolete(pkg, value=1)
   URPM::Package pkg
   int value
   CODE:
-  RETVAL = pkg->flag & FLAG_FORCE;
-  if (value) pkg->flag |= FLAG_FORCE;
-  else       pkg->flag &= ~FLAG_FORCE;
+  RETVAL = pkg->flag & FLAG_DISABLE_OBSOLETE;
+  if (value) pkg->flag |= FLAG_DISABLE_OBSOLETE;
+  else       pkg->flag &= ~FLAG_DISABLE_OBSOLETE;
   OUTPUT:
   RETVAL
 
@@ -2118,25 +2156,6 @@ Pkg_set_flag_upgrade(pkg, value=1)
   RETVAL = pkg->flag & FLAG_UPGRADE;
   if (value) pkg->flag |= FLAG_UPGRADE;
   else       pkg->flag &= ~FLAG_UPGRADE;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_flag_obsolete(pkg)
-  URPM::Package pkg
-  CODE:
-  RETVAL = pkg->flag & FLAG_OBSOLETE;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_set_flag_obsolete(pkg, value=1)
-  URPM::Package pkg
-  int value
-  CODE:
-  RETVAL = pkg->flag & FLAG_OBSOLETE;
-  if (value) pkg->flag |= FLAG_OBSOLETE;
-  else       pkg->flag &= ~FLAG_OBSOLETE;
   OUTPUT:
   RETVAL
 

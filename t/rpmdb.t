@@ -25,7 +25,7 @@ my ($count, @all_pkgs_extern, @all_pkgs);
     $count = $db->traverse(sub {
 			       my ($pkg) = @_;
 			       my ($name, $version, $release, $arch) = $pkg->fullname;
-			       $arch or return;
+			       #- arch is void for -pubkey- package.
 			       push @all_pkgs, "$name-$version-$release";
 			   });
 }

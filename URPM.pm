@@ -4,7 +4,7 @@ use strict;
 use DynaLoader;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '0.90';
+our $VERSION = '0.91';
 
 URPM->bootstrap($VERSION);
 
