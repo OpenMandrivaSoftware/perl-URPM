@@ -672,7 +672,7 @@ sub request_packages_to_upgrade {
     foreach my $pkg (values %names) {
 	foreach ($pkg->obsoletes) {
 	    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*)\s*([^\s\]]*)/) {
-		if ($names{$n} && (!$o || eval($names{$n}->compare($v) . $o . 0))) {
+		if ($n ne $pkg->name && $names{$n} && (!$o || eval($names{$n}->compare($v) . $o . 0))) {
 		    #- an existing best package is obsoleted by another one.
 		    $skip{$n} = undef;
 		}
