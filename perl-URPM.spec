@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
-%define version 0.06
-%define release 2mdk
+%define version 0.07
+%define release 1mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jul  4 2002 François Pons <fpons@mandrakesoft.com> 0.07-1mdk
+- added transaction methods and URPM::Transaction type (for DrakX).
+- obsoleted URPM::DB::open_rw and removed it.
+
 * Wed Jul  3 2002 François Pons <fpons@mandrakesoft.com> 0.06-2mdk
 - fixed virtual provides obsoleted by other package (means kernel
   is requested to be installed even if other kernel is installed).

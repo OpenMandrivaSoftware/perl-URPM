@@ -35,7 +35,13 @@ struct s_Package {
   Header h;
 };
 
+struct s_Transaction {
+  rpmdb db;
+  rpmTransactionSet ts;
+};
+
 typedef rpmdb URPM__DB;
+typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
 #define FLAG_ID             0x001fffffU
@@ -1539,8 +1545,9 @@ Pkg_set_rflags(pkg, ...)
 MODULE = URPM            PACKAGE = URPM::DB            PREFIX = Db_
 
 URPM::DB
-Db_open(prefix="/")
+Db_open(prefix="/", write_perm=0)
   char *prefix
+  int write_perm
   PREINIT:
   rpmdb db;
   rpmErrorCallBackType old_cb;
@@ -1548,23 +1555,7 @@ Db_open(prefix="/")
   read_config_files();
   old_cb = rpmErrorSetCallback(callback_empty);
   rpmSetVerbosity(RPMMESS_FATALERROR);
-  RETVAL = rpmdbOpen(prefix, &db, O_RDONLY, 0644) == 0 ? db : NULL;
-  rpmErrorSetCallback(old_cb);
-  rpmSetVerbosity(RPMMESS_NORMAL);
-  OUTPUT:
-  RETVAL
-
-URPM::DB
-Db_open_rw(prefix="/")
-  char *prefix
-  PREINIT:
-  rpmdb db;
-  rpmErrorCallBackType old_cb;
-  CODE:
-  read_config_files();
-  old_cb = rpmErrorSetCallback(callback_empty);
-  rpmSetVerbosity(RPMMESS_FATALERROR);
-  RETVAL = rpmdbOpen(prefix, &db, O_RDWR | O_CREAT, 0644) == 0 ? db : NULL;
+  RETVAL = rpmdbOpen(prefix, &db, write_perm ? O_RDWR | O_CREAT : O_RDONLY, 0644) == 0 ? db : NULL;
   rpmErrorSetCallback(old_cb);
   rpmSetVerbosity(RPMMESS_NORMAL);
   OUTPUT:
@@ -1694,6 +1685,315 @@ Db_traverse_tag(db,tag,names,callback)
   RETVAL = count;
   OUTPUT:
   RETVAL
+
+URPM::Transaction
+Db_create_transaction(db, prefix="/")
+  URPM::DB db
+  char *prefix
+  CODE:
+  if ((RETVAL = malloc(sizeof(struct s_Transaction))) != NULL) {
+    RETVAL->db = db;
+    RETVAL->ts = rpmtransCreateSet(db, prefix);
+  }
+  OUTPUT:
+  RETVAL
+
+
+MODULE = URPM            PACKAGE = URPM::Transaction   PREFIX = Trans_
+
+void
+Trans_DESTROY(trans)
+  URPM::Transaction trans
+  CODE:
+  /* db should be SV with reference count updated */
+  rpmtransFree(trans->ts);
+  free(trans);
+
+int
+Trans_add_package(trans, pkg, update)
+  URPM::Transaction trans
+  SV* pkg
+  int update
+  PREINIT:
+  URPM__Package _pkg;
+  CODE:
+  if (sv_derived_from(ST(0), "URPM::Package")) {
+    IV tmp = SvIV((SV*)SvRV(ST(0)));
+    _pkg = INT2PTR(URPM__Package,tmp);
+  } else croak("pkg is not of type URPM::Package");
+  RETVAL = _pkg->h && rpmtransAddPackage(trans->ts, _pkg->h, NULL, /* SvREFCNT_inc(pkg) */ pkg, update, NULL) == 0;
+  OUTPUT:
+  RETVAL
+
+int
+Trans_remove_package(trans, name)
+  URPM::Transaction trans
+  char *name
+  PREINIT:
+  Header h;
+  rpmdbMatchIterator mi;
+  int count = 0;
+  CODE:
+  mi = rpmdbInitIterator(trans->db, RPMDBI_LABEL, name, 0);
+  while (h = rpmdbNextIterator(mi)) {
+    unsigned int recOffset = rpmdbGetIteratorOffset(mi);
+    if (recOffset) {
+      rpmtransRemovePackage(trans->ts, recOffset);
+      ++count;
+    }
+  }
+  rpmdbFreeIterator(mi);
+  RETVAL=count;
+  OUTPUT:
+  RETVAL
+
+void
+Trans_check(trans)
+  URPM::Transaction trans
+  PREINIT:
+  I32 gimme = GIMME_V;
+  rpmDependencyConflict conflicts;
+  int num_conflicts;
+  PPCODE:
+  if (rpmdepCheck(trans->ts, &conflicts, &num_conflicts)) {
+    if (gimme == G_SCALAR) {
+      XPUSHs(sv_2mortal(newSViv(0)));
+    } else if (gimme == G_ARRAY) {
+      XPUSHs(sv_2mortal(newSVpv("error while checking dependencies", 0)));
+    }
+  } else if (conflicts) {
+    if (gimme == G_SCALAR) {
+      XPUSHs(sv_2mortal(newSViv(0)));
+    } else if (gimme == G_ARRAY) {
+      char buff[1024];
+      int i;
+
+      for (i = 0; i < num_conflicts; ++i) {
+	char *p = buff;
+
+	p += snprintf(p, sizeof(buff) - (p-buff), "%s@%s", 
+		      conflicts[i].sense == RPMDEP_SENSE_REQUIRES ? "requires" : "conflicts",
+		      conflicts[i].needsName);
+	if (sizeof(buff) - (p-buff) > 4 && conflicts[i].needsFlags & RPMSENSE_SENSEMASK) {
+	  *p++ = ' ';
+	  if (conflicts[i].needsFlags & RPMSENSE_LESS)    *p++ = '<';
+	  if (conflicts[i].needsFlags & RPMSENSE_GREATER) *p++ = '>';
+	  if (conflicts[i].needsFlags & RPMSENSE_EQUAL)   *p++ = '=';
+	  if ((conflicts[i].needsFlags & RPMSENSE_SENSEMASK) == RPMSENSE_EQUAL) *p++ = '=';
+	  *p++ = ' ';
+	  p += snprintf(p, sizeof(buff) - (p-buff), "%s@%s-%s-%s",
+			conflicts[i].needsVersion,
+			conflicts[i].byName, conflicts[i].byVersion, conflicts[i].byRelease);
+	}
+	*p = 0;
+	XPUSHs(sv_2mortal(newSVpv(buff, p-buff)));
+      }
+    }
+    rpmdepFreeConflicts(conflicts, num_conflicts);
+  } else if (gimme == G_SCALAR) {
+    XPUSHs(sv_2mortal(newSViv(1)));
+  }
+
+int
+Trans_order(trans)
+  URPM::Transaction trans
+  PREINIT:
+  I32 gimme = GIMME_V;
+  PPCODE:
+  if (rpmdepOrder(trans->ts) == 0) {
+    if (gimme == G_SCALAR) {
+      XPUSHs(sv_2mortal(newSViv(1)));
+    }
+  } else {
+    if (gimme == G_SCALAR) {
+      XPUSHs(sv_2mortal(newSViv(0)));
+    } else if (gimme == G_ARRAY) {
+      XPUSHs(sv_2mortal(newSVpv("error while ordering dependencies", 0)));
+    }
+  }
+
+void
+Trans_run(trans, data, ...)
+  URPM::Transaction trans
+  SV *data
+  PREINIT:
+  /* available callback:
+       callback(data, 'open'|'close', pkg)
+       callback(data, 'trans'|'uninst'|'inst', pkg, 'start'|'progress'|'stop', amount, total)
+  */
+  SV* callback_open = NULL;
+  SV* callback_close = NULL;
+  SV* callback_trans = NULL;
+  SV* callback_uninst = NULL;
+  SV* callback_inst = NULL;
+  int min_delta = 200000;
+  rpmProblemSet probs;
+  int i;
+  void *rpmRunTransactions_callback(const void *h,
+				    const rpmCallbackType what,
+				    const unsigned long amount,
+				    const unsigned long total,
+				    const void * pkgKey,
+				    void * data) {
+    static int last_amount;
+    static FD_t fd = NULL;
+    static struct timeval tprev;
+    static struct timeval tcurr;
+    long delta;
+    int i;
+    SV *callback = NULL;
+    char *callback_type = NULL;
+    char *callback_subtype = NULL;
+
+    switch (what) {
+    case RPMCALLBACK_INST_OPEN_FILE:
+      callback = callback_open; callback_type = "open"; break;
+
+    case RPMCALLBACK_INST_CLOSE_FILE:
+      callback = callback_close; callback_type = "close"; break;
+
+    case RPMCALLBACK_TRANS_START:
+    case RPMCALLBACK_TRANS_PROGRESS:
+    case RPMCALLBACK_TRANS_STOP:
+      callback = callback_trans; callback_type = "trans"; break;
+
+    case RPMCALLBACK_UNINST_START:
+    case RPMCALLBACK_UNINST_PROGRESS:
+    case RPMCALLBACK_UNINST_STOP:
+      callback = callback_uninst; callback_type = "uninst"; break;
+
+    case RPMCALLBACK_INST_START:
+    case RPMCALLBACK_INST_PROGRESS:
+      callback = callback_inst; callback_type = "inst"; break;
+    }
+
+    if (callback != NULL) {
+      switch (what) {
+      case RPMCALLBACK_TRANS_START:
+      case RPMCALLBACK_UNINST_START:
+      case RPMCALLBACK_INST_START:
+	callback_subtype = "start"; break;
+
+      case RPMCALLBACK_TRANS_PROGRESS:
+      case RPMCALLBACK_UNINST_PROGRESS:
+      case RPMCALLBACK_INST_PROGRESS:
+	gettimeofday(&tcurr, NULL);
+	delta = 1000000 * (tcurr.tv_sec - tprev.tv_sec) + (tcurr.tv_usec - tprev.tv_usec);
+	if (delta > 200000 || amount >= total - 1)
+	  callback_subtype = "progress";
+	else
+	  callback = NULL; /* avoid calling too often a given callback */
+	break;
+
+      case RPMCALLBACK_TRANS_STOP:
+      case RPMCALLBACK_UNINST_STOP:
+	callback_subtype = "stop"; break;
+      }
+
+      if (callback != NULL) {
+	/* now, a callback will be called for sure */
+	dSP;
+	PUSHMARK(sp);
+	XPUSHs(data);
+	XPUSHs(sv_2mortal(newSVpv(callback_type, 0)));
+	XPUSHs((SV *)pkgKey);
+	if (callback_subtype != NULL) {
+	  XPUSHs(sv_2mortal(newSVpv(callback_subtype, 0)));
+	  XPUSHs(sv_2mortal(newSViv(amount)));
+	  XPUSHs(sv_2mortal(newSViv(total)));
+	}
+	PUTBACK;
+	i = perl_call_sv(callback, callback == callback_open ? G_SCALAR : G_DISCARD);
+	SPAGAIN;
+	if (i != 1 && callback == callback_open) croak("callback_open should return a file handle");
+	if (i == 1) {
+	  i = POPi;
+	  fd = fdDup(i);
+	  fd = fdLink(fd, "persist perl-URPM");
+	  PUTBACK;
+	  return fd;
+	}
+	if (callback == callback_close) {
+	  /* REFDEC on pkgKey */
+	  fd = fdFree(fd, "persist perl-URPM");
+	  if (fd) {
+	    fdClose(fd);
+	    fd = NULL;
+	  }
+	}
+      }
+    }
+    return NULL;
+  }
+  PPCODE:
+  for (i = 2; i < items-1; i+=2) {
+    STRLEN len;
+    char *s = SvPV(ST(i), len);
+
+    if (len >= 9 && !memcmp(s, "callback_", 9)) {
+      if (len == 9+4 && !memcmp(s+9, "open", 4))
+	callback_open = ST(i+1);
+      else if (len == 9+5 && !memcmp(s+9, "close", 5))
+	callback_close = ST(i+1);
+      else if (len == 9+5 && !memcmp(s+9, "trans", 5))
+	callback_trans = ST(i+1);
+      else if (len == 9+6 && !memcmp(s+9, "uninst", 6))
+	callback_uninst = ST(i+1);
+      else if (len == 9+6 && !memcmp(s+9, "inst", 4))
+	callback_inst = ST(i+1);
+    } else if (len == 5 && !memcmp(s, "delta", 5))
+      min_delta = SvIV(ST(i+1));
+  }
+  if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, NULL, NULL, &probs, 0, 0)) {
+    EXTEND(SP, probs->numProblems);
+    for (i = 0; i < probs->numProblems; i++) {
+      const char *pkgNEVR = (probs->probs[i].pkgNEVR ? probs->probs[i].pkgNEVR : "");
+      const char *altNEVR = probs->probs[i].altNEVR ? probs->probs[i].altNEVR : "";
+      const char *s = probs->probs[i].str1 ? probs->probs[i].str1 : "";
+      SV *sv;
+
+      switch (probs->probs[i].type) {
+      case RPMPROB_BADARCH:
+	sv = newSVpvf("badarch@%s", pkgNEVR); break;
+
+      case RPMPROB_BADOS:
+	sv = newSVpvf("bados@%s", pkgNEVR); break;
+
+      case RPMPROB_PKG_INSTALLED:
+	sv = newSVpvf("installed@%s", pkgNEVR); break;
+
+      case RPMPROB_BADRELOCATE:
+	sv = newSVpvf("badrelocate@%s@%s", pkgNEVR, s); break;
+
+      case RPMPROB_NEW_FILE_CONFLICT:
+      case RPMPROB_FILE_CONFLICT:
+	sv = newSVpvf("conflicts@%s@%s@%s", pkgNEVR, altNEVR, s); break;
+
+      case RPMPROB_OLDPACKAGE:
+	sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
+
+      case RPMPROB_DISKSPACE:
+	sv = newSVpvf("diskspace@%s@%s@%ld", pkgNEVR, s, probs->probs[i].ulong1); break;
+
+      case RPMPROB_DISKNODES:
+	sv = newSVpvf("disknodes@%s@%s@%ld", pkgNEVR, s, probs->probs[i].ulong1); break;
+
+      case RPMPROB_BADPRETRANS:
+	sv = newSVpvf("badpretrans@%s@%s@%s", pkgNEVR, s, strerror(probs->probs[i].ulong1)); break;
+
+      case RPMPROB_REQUIRES:
+	sv = newSVpvf("requires@%s@%s@%s", pkgNEVR, altNEVR+2); break;
+
+      case RPMPROB_CONFLICT:
+	sv = newSVpvf("conflicts@%s@%s", pkgNEVR, altNEVR+2); break;
+
+      default:
+	sv = newSVpvf("unknown@%s", pkgNEVR); break;
+      }
+      PUSHs(sv_2mortal(sv));
+    }
+  }
+
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
