@@ -504,7 +504,7 @@ sub resolve_requested {
 	    if ($pkg->arch ne 'src' && !$pkg->flag_disable_obsolete) {
 		my (%diff_provides);
 
-		foreach ($pkg->name." < ".$pkg->epoch.":".$pkg->version."-".$pkg->release, $pkg->obsoletes) {
+		foreach ($pkg->name . " < " . $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release, $pkg->obsoletes) {
 		    #$pkg->name eq $_ and print STDERR "avoiding same name for package ".$pkg->fullname."\n", next; #- this package obsoletes itself ?? Ignore.
 		    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 			#- populate avoided entries according to what is selected.
@@ -691,7 +691,7 @@ sub resolve_requested {
 				      my $packages = $urpm->find_candidate_packages($p->name, avoided => $state->{rejected});
 				      my $best = join '|', map { $_->id }
 					grep { ($_->name eq $p->name ||
-						$_->obsoletes_overlap($p->name." == ".$p->epoch.":".$p->version."-".$p->release))
+						$_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
 						 && $_->fullname ne $p->fullname &&
 						   $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
 					  map { @{$_ || []} } values %$packages;
@@ -1053,7 +1053,7 @@ sub request_packages_to_upgrade {
     }
 
     #- examine all packages which may be conflicting, it a package conflicts, it should not be requested.
-    my @names = map { $_->name." == ".$_->epoch.":".$_->version."-".$_->release } values %names;
+    my @names = map { $_->name . " == " . $_->epoch . ":" . $_->version . "-" . $_->release } values %names;
     my @pkgs = values %names;
     foreach my $pkg (@pkgs) {
 	exists $requested{$pkg->name} or next;
