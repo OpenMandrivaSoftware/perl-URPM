@@ -1,8 +1,9 @@
 use ExtUtils::MakeMaker;
 
-my $version = `rpm -q --qf '%{VERSION}' rpm`;
-$version =~ /^(?:[4-9]|\d{2})/
-    or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
+my $version = `rpm --version`;
+$version =~ s/RPM version //;
+$version =~ /^(?:[4-9]|\d{2})/ 
+	or die "unable to build URPM with too old (or undetected) rpm version $version";
 
 #- search for correct libraries to use (above 4.0.3 is right).
 my $libs = $version =~ /^4\.0(?:\.[012])?$/ ?
