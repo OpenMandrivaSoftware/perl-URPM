@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.94
-%define release 7mdk
+%define release 8mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -52,6 +52,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Nov 15 2003 François Pons <fpons@mandrakesoft.com> 0.94-8mdk
+- added patch from Olivier Thauvin (new features).
+
 * Mon Oct 13 2003 François Pons <fpons@mandrakesoft.com> 0.94-7mdk
 - fixed search for package broken in full provides instead of
   simply better package version, so that pam-devel is upgraded
