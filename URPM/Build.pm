@@ -81,7 +81,7 @@ sub unresolved_provides_clean {
     my @potentially_unresolved = keys %{$urpm->{provides} || {}};
 
     @{$urpm}{qw(depslist provides)} = ([], {});
-    @{$urpm->{provides}}{@unresolved} = ();
+    @{$urpm->{provides}}{@potentially_unresolved} = ();
 }
 
 #- read a list of headers (typically when building an hdlist when provides have
