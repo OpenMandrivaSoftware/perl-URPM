@@ -142,7 +142,7 @@ sub resolve_requested {
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     while (defined ($dep = shift @properties)) {
-	my (@chosen_requested, @chosen_upgrade, @chosen, %diff_provides, $pkg);
+	my (@chosen, %diff_provides, $pkg);
 	#- take the best package for each choices of same name.
 	my $packages = $urpm->find_candidate_packages($dep);
 	foreach (values %$packages) {
@@ -164,6 +164,7 @@ sub resolve_requested {
 	    $_ = $best_requested || $best;
 	}
 	if (keys(%$packages) > 1) {
+	    my (@chosen_requested_upgrade, @chosen_requested, @chosen_upgrade);
 	    #- package should be prefered if one of their provides is referenced
 	    #- in requested hash or package itself is requested (or required).
 	    #- if there is no preference choose the first one (higher probability
@@ -172,27 +173,34 @@ sub resolve_requested {
 		$p or next; #- this could happen if no package are suitable for this arch.
 		exists $state->{obsoleted}{$p->fullname} and next; #- avoid taking what is removed (incomplete).
 		exists $state->{selected}{$p->id} and $pkg = $p, last; #- already selected package is taken.
-		if (exists $requested{$p->id}) {
-		    push @chosen_requested, $p; #- this only works if id (or choices of id) are used in requested.
-		} else {
-		    unless ($p->flag_upgrade || $p->flag_installed) {
-			#- assume for this small algorithm package to be upgradable.
-			$p->set_flag_upgrade;
-			$db->traverse_tag('name', [ $p->name ], sub {
-					      my ($pp) = @_;
-					      $p->set_flag_installed;
-					      $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
-					  });
-		    }
-		    if ($p->flag_installed) {
+		unless ($p->flag_upgrade || $p->flag_installed) {
+		    #- assume for this small algorithm package to be upgradable.
+		    $p->set_flag_upgrade;
+		    $db->traverse_tag('name', [ $p->name ], sub {
+					  my ($pp) = @_;
+					  $p->set_flag_installed;
+					  $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
+				      });
+		}
+		if ($p->flag_installed) {
+		    if (exists $requested{$p->id}) {
+			push @chosen_requested_upgrade, $p;
+		    } else {
 			push @chosen_upgrade, $p;
+		    }
+		} else {
+		    if (exists $requested{$p->id}) {
+			push @chosen_requested, $p;
 		    } else {
 			push @chosen, $p;
 		    }
 		}
 	    }
-	    @chosen_requested > 0 and @chosen = @chosen_requested;
-	    @chosen_requested == 0 and @chosen_upgrade > 0 and @chosen = @chosen_upgrade;
+	    if (@chosen_requested_upgrade > 0 || @chosen_requested > 0) {
+		@chosen = @chosen_requested_upgrade > 0 ? @chosen_requested_upgrade : @chosen_requested;
+	    } else {
+		@chosen_upgrade > 0 and @chosen = @chosen_upgrade;
+	    }
 	} else {
 	    @chosen = values %$packages;
 	}
@@ -274,7 +282,7 @@ sub resolve_requested {
 					      }
 					      #- check differential provides between obsoleted package and newer one.
 					      if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
-						  ($state->{provided}{$pn} || {})->{$ps} or $diff_provides{$_} = undef;
+						  ($state->{provided}{$pn} || {})->{$ps} or $diff_provides{$pn} = undef;
 					      }
 					  }
 				      });

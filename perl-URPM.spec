@@ -1,7 +1,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 0.60
-%define release 1mdk
+%define release 2mdk
 
 %{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
@@ -48,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Aug  6 2002 François Pons <fpons@mandrakesoft.com> 0.60-2mdk
+- fixed typo on diff provides resolved (unable to search requiring
+  packages if a sense was given).
+- fixed unecessary choices asked to user.
+
 * Mon Aug  5 2002 François Pons <fpons@mandrakesoft.com> 0.60-1mdk
 - ask_remove list of package now reference id instead of pkg.
 - removed conflicts state not used.
