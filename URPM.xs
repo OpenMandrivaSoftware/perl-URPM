@@ -31,7 +31,6 @@ struct s_Package {
   char *conflicts;
   char *provides;
   char *rates;
-  int id;
   unsigned flag;
   Header h;
 };
@@ -39,11 +38,18 @@ struct s_Package {
 typedef rpmdb URPM__DB;
 typedef struct s_Package* URPM__Package;
 
-#define FLAG_SELECTED  0x00ffffff
-#define FLAG_FORCE     0x01000000
-#define FLAG_INSTALLED 0x02000000
-#define FLAG_BASE      0x04000000
-#define FLAG_UPGRADE   0x20000000
+#define FLAG_ID             0x00ffffffU
+#define FLAG_BASE           0x01000000U
+#define FLAG_FORCE          0x02000000U
+#define FLAG_INSTALLED      0x04000000U
+#define FLAG_REQUESTED      0x08000000U
+#define FLAG_REQUIRED       0x10000000U
+#define FLAG_UPGRADE        0x20000000U
+#define FLAG_RESERVED       0x40000000U
+#define FLAG_NO_HEADER_FREE 0x80000000U
+
+#define FLAG_ID_MAX     0x00fffffe
+#define FLAG_ID_INVALID 0x00ffffff
 
 #define FILENAME_TAG 1000000
 #define FILESIZE_TAG 1000001
@@ -330,8 +336,7 @@ pack_header(URPM__Package pkg) {
     if (pkg->provides == NULL)
       pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION);
 
-    /* free header if it is not an iteration (id < 0) and remove reference to it */
-    if (pkg->id != -1) headerFree(pkg->h);
+    if (!(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
     pkg->h = 0;
   }
 }
@@ -355,7 +360,7 @@ update_provide_entry(char *name, STRLEN len, int force, URPM__Package pkg, HV *p
     }
     if (isv && *isv != &PL_sv_undef) {
       char id[8];
-      STRLEN id_len = snprintf(id, sizeof(id), "%d", pkg->id);
+      STRLEN id_len = snprintf(id, sizeof(id), "%d", pkg->flag & FLAG_ID);
       hv_fetch((HV*)SvRV(*isv), id, id_len, 1);
     }
   }
@@ -529,8 +534,8 @@ open_archive(char *filename, pid_t *pid) {
 	  lseek(fd, 0, SEEK_SET);
 	  dup2(fd, STDIN_FILENO); close(fd);
 	  dup2(fdno[1], STDOUT_FILENO); close(fdno[1]);
-	  /*fd = open("/dev/null", O_WRONLY);
-	    dup2(fd, STDERR_FILENO); close(fd);*/
+	  fd = open("/dev/null", O_WRONLY);
+	  dup2(fd, STDERR_FILENO); close(fd);
 	  execvp(unpacker[0], unpacker);
 	  exit(1);
 	}
@@ -553,7 +558,8 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff) {
     data_len = 1+strlen(data);
     if (!strcmp(tag, "info")) {
       pkg->info = memcpy(malloc(data_len), data, data_len);
-      pkg->id = 1 + av_len(depslist);
+      pkg->flag &= ~FLAG_ID;
+      pkg->flag |= 1 + av_len(depslist);
       if (provides) update_provides(pkg, provides);
       av_push(depslist, sv_setref_pv(newSVpv("", 0), "URPM::Package",
 				     memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package))));
@@ -594,7 +600,7 @@ Pkg_DESTROY(pkg)
   free(pkg->conflicts);
   free(pkg->provides);
   free(pkg->rates);
-  if (pkg->h && pkg->id != -1) headerFree(pkg->h);
+  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
   free(pkg);
 
 void
@@ -970,8 +976,8 @@ void
 Pkg_id(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->id >= 0) {
-    XPUSHs(sv_2mortal(newSViv(pkg->id)));
+  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX) {
+    XPUSHs(sv_2mortal(newSViv(pkg->flag & FLAG_ID)));
   }
 
 void
@@ -979,10 +985,11 @@ Pkg_set_id(pkg, id=-1)
   URPM::Package pkg
   int id
   PPCODE:
-  if (pkg->id >= 0) {
-    XPUSHs(sv_2mortal(newSViv(pkg->id)));
+  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX) {
+    XPUSHs(sv_2mortal(newSViv(pkg->flag & FLAG_ID)));
   }
-  pkg->id = id >= 0 ? id : -2; /* -1 should not be used since it marks non freeable header */
+  pkg->flag &= ~FLAG_ID;
+  pkg->flag |= id >= 0 && id <= FLAG_ID_MAX ? id : FLAG_ID_INVALID;
 
 void
 Pkg_requires(pkg)
@@ -1173,6 +1180,101 @@ Pkg_set_flag_base(pkg, value=1)
   OUTPUT:
   RETVAL
 
+int
+Pkg_flag_force(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_FORCE;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag_force(pkg, value=1)
+  URPM::Package pkg
+  int value
+  CODE:
+  RETVAL = pkg->flag & FLAG_FORCE;
+  if (value) pkg->flag |= FLAG_FORCE;
+  else       pkg->flag &= ~FLAG_FORCE;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_flag_installed(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_INSTALLED;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag_installed(pkg, value=1)
+  URPM::Package pkg
+  int value
+  CODE:
+  RETVAL = pkg->flag & FLAG_INSTALLED;
+  if (value) pkg->flag |= FLAG_INSTALLED;
+  else       pkg->flag &= ~FLAG_INSTALLED;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_flag_requested(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_REQUESTED;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag_requested(pkg, value=1)
+  URPM::Package pkg
+  int value
+  CODE:
+  RETVAL = pkg->flag & FLAG_REQUESTED;
+  if (value) pkg->flag |= FLAG_REQUESTED;
+  else       pkg->flag &= ~FLAG_REQUESTED;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_flag_required(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_REQUIRED;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag_required(pkg, value=1)
+  URPM::Package pkg
+  int value
+  CODE:
+  RETVAL = pkg->flag & FLAG_REQUIRED;
+  if (value) pkg->flag |= FLAG_REQUIRED;
+  else       pkg->flag &= ~FLAG_REQUIRED;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_flag_upgrade(pkg)
+  URPM::Package pkg
+  CODE:
+  RETVAL = pkg->flag & FLAG_UPGRADE;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_set_flag_upgrade(pkg, value=1)
+  URPM::Package pkg
+  int value
+  CODE:
+  RETVAL = pkg->flag & FLAG_UPGRADE;
+  if (value) pkg->flag |= FLAG_UPGRADE;
+  else       pkg->flag &= ~FLAG_UPGRADE;
+  OUTPUT:
+  RETVAL
+
 
 MODULE = URPM            PACKAGE = URPM::DB            PREFIX = Db_
 
@@ -1229,7 +1331,7 @@ Db_traverse(db,callback)
       dSP;
       URPM__Package pkg = calloc(1, sizeof(struct s_Package));
 
-      pkg->id = -1; /* this is not a real package where header should not be freed */
+      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
       pkg->h = header;
 
       ENTER;
@@ -1293,7 +1395,7 @@ Db_traverse_tag(db,tag,names,callback)
 	  dSP;
 	  URPM__Package pkg = calloc(1, sizeof(struct s_Package));
 
-	  pkg->id = -1; /* this is not a real package where header should not be freed */
+	  pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
 	  pkg->h = header;
 
 	  ENTER;
@@ -1417,7 +1519,7 @@ Urpm_parse_hdlist(urpm, filename, packing=0)
 	    struct s_Package pkg;
 
 	    memset(&pkg, 0, sizeof(struct s_Package));
-	    pkg.id = 1 + av_len(depslist);
+	    pkg.flag = 1 + av_len(depslist);
 	    pkg.h = header;
 	    if (provides) {
 	      update_provides(&pkg, provides);
@@ -1473,7 +1575,7 @@ Urpm_parse_rpm(urpm, filename, packing=0)
 	  headerAddEntry(header, FILESIZE_TAG, RPM_INT32_TYPE, &size, 1);
 
 	  memset(&pkg, 0, sizeof(struct s_Package));
-	  pkg.id = 1 + av_len(depslist);
+	  pkg.flag = 1 + av_len(depslist);
 	  pkg.h = header;
 	  if (provides) {
 	    update_provides(&pkg, provides);

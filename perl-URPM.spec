@@ -1,8 +1,9 @@
 %define name perl-URPM
 %define real_name URPM
-%define release 3mdk
+%define version 0.03
+%define release 1mdk
 
-%{expand:%%define version %(perl -ne '/VERSION\s+=[^0-9\.]*([0-9\.]+)/ and print "$1\n"' URPM.pm)}
+%{expand:%%define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)}
 
 Packager:       François Pons <fpons@mandrakesoft.com>
 Summary:	URPM module for perl
@@ -14,9 +15,9 @@ Group:		Development/Perl
 Distribution:	Mandrake Linux
 Source:		%{real_name}-%{version}.tar.bz2
 Prefix:		%{_prefix}
-BuildRequires:	perl-devel
+BuildRequires:	perl-devel rpm-devel >= 4.0.3 bzip2-devel gcc
+Requires:	perl >= 5.601 rpm >= %{rpm_version} bzip2 >= 1.0
 BuildRoot:	%{_tmppath}/%{name}-buildroot
-Requires:	perl >= 5.601
 
 %description
 The URPM module allows you to manipulate rpm files, rpm header files and
@@ -47,6 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jun  6 2002 François Pons <fpons@mandrakesoft.com> 0.03-1mdk
+- added more flag method to URPM::Package
+- avoid garbage output when reading hdlist archive.
+- moved id internal reference to bit field of flag.
+
 * Wed Jun  5 2002 François Pons <fpons@mandrakesoft.com> 0.02-3mdk
 - removed log on opening/closing rpmdb.
 - modified reading of archive to avoid incomplete read.
