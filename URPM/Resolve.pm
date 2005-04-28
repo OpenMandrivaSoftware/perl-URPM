@@ -104,7 +104,7 @@ sub find_chosen_packages {
     }
 
     if (keys(%packages) > 1) {
-	my ($mode, @chosen, @chosen_good_locales, @chosen_bad_locales, @chosen_other, $install);
+	my ($mode, @chosen, @chosen_good_locales, @chosen_bad_locales, @chosen_other, @chosen_other_en, $install);
 
 	#- packages should be preferred if one of their provides is referenced
 	#- in the "requested" hash, or if the package itself is requested (or
@@ -150,7 +150,8 @@ sub find_chosen_packages {
 	#- already installed should be preferred over packages that require locales
 	#- which are not installed.
 	foreach (@chosen) {
-	    if (my ($specific_locales) = grep { /locales-/ && ! /locales-en/ } $_->requires_nosense) {
+	    my @r = $_->requires_nosense;
+	    if (my ($specific_locales) = grep { /locales-(?!en)/ } @r) {
 		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
 		    $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
 		    push @chosen_good_locales, $_;
@@ -158,13 +159,18 @@ sub find_chosen_packages {
 		    push @chosen_bad_locales, $_;
 		}
 	    } else {
-		push @chosen_other, $_;
+		if (grep /locales-en/, @r) {
+		    push @chosen_other_en, $_;
+		} else {
+		    push @chosen_other, $_;
+		}
 	    }
 	}
 
 	#- sort packages in order to have preferred ones first
 	#- (this means good locales, no locales, bad locales).
 	return (sort sort_package_result @chosen_good_locales),
+	       (sort sort_package_result @chosen_other_en),
 	       (sort sort_package_result @chosen_other),
 	       (sort sort_package_result @chosen_bad_locales);
     }
