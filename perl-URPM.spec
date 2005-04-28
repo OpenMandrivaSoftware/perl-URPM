@@ -7,7 +7,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 1.11
-%define release 1mdk
+%define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
