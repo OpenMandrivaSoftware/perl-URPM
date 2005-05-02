@@ -661,10 +661,9 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
   dSP;
   int i;
   int_32 *list;
-  int_16 *list16;
   int_32 count, type;
   headerGetEntry(header, tag_name, &type, (void **) &list, &count);
-  
+
   for (i=0; i<count; i++) {
     char *buff[15];
     char *s= buff;
@@ -3507,23 +3506,18 @@ char *
 Urpm_verify_rpm(filename, ...)
   char *filename
   PREINIT:
+  rpmVSFlags vsflags = RPMVSF_DEFAULT;
+  rpmVSFlags oldvsflags = RPMVSF_DEFAULT;
   URPM__DB db = NULL;
-  int nopgp = 0, nogpg = 0, nomd5 = 0, norsa = 0, nodsa = 0, nosha1 = 0;
-  struct rpmlead lead;
-  Header sigh;
-  HeaderIterator sigIter;
-  const void *ptr;
-  int_32 tag, type, count;
+  Header ret = NULL;
+  rpmRC rc = 0;
   FD_t fd;
-  const char *tmpfile = NULL;
   int i;
-  char result[8*BUFSIZ];
-  unsigned char buffer[8192];
-  unsigned char *b = buffer;
+  const char *tmpfile = NULL;
+  char * fmtsig = NULL;
+  char buffer[8192];
 #ifdef RPM_42
   rpmts ts;
-  pgpDig dig;
-  pgpDigParams sigp;
 #else
   FD_t ofd;
 #endif
@@ -3539,23 +3533,30 @@ Urpm_verify_rpm(filename, ...)
       } else
 	croak("db is not of type URPM::DB");
     } else if (len == 5) {
-      if (!memcmp(s, "nopgp", 5))
-	nopgp = SvIV(ST(i+1));
-      else if (!memcmp(s, "nogpg", 5))
-	nogpg = SvIV(ST(i+1));
-      else if (!memcmp(s, "nomd5", 5))
-	nomd5 = SvIV(ST(i+1));
-      else if (!memcmp(s, "norsa", 5))
-	norsa = SvIV(ST(i+1));
-      else if (!memcmp(s, "nodsa", 5))
-	nodsa = SvIV(ST(i+1));
-    } else if (len == 9 && !memcmp(s, "nodigests", 9))
-      nomd5 = nosha1 = SvIV(ST(i+1));
+      if (!memcmp(s, "nopgp", 5)) {
+	if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
+      }
+      else if (!memcmp(s, "nogpg", 5)) {
+	if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
+      }
+      else if (!memcmp(s, "nomd5", 5)) {
+        if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOMD5 |  RPMVSF_NOMD5HEADER);
+      }
+      else if (!memcmp(s, "norsa", 5)) {
+        if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NORSA | RPMVSF_NORSAHEADER);
+      }
+      else if (!memcmp(s, "nodsa", 5)) {
+        if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NODSA | RPMVSF_NODSAHEADER);
+      }
+    }
+    else if (len == 9 && !memcmp(s, "nodigests", 9)) {
+      if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NODIGESTS;
+    }
     else if (len == 12) {
       if (!memcmp(s, "tmp_filename", 12))
 	tmpfile = SvPV_nolen(ST(i+1));
       else if (!memcmp(s, "nosignatures", 12))
-	nopgp = nogpg = norsa = nodsa = 1;
+	vsflags |= _RPMVSF_NOSIGNATURES;
     }
   }
   RETVAL = NULL;
@@ -3566,6 +3567,8 @@ Urpm_verify_rpm(filename, ...)
 #ifdef RPM_42
     if (db) {
       ts = db->ts;
+      /* setting verify flags, keeping trace of current flags */
+      oldvsflags = rpmtsSetVSFlags(ts, vsflags);
     } else {
       /* compabilty mode to use rpmdb installed on / */
       ts = rpmtsCreate();
@@ -3575,309 +3578,51 @@ Urpm_verify_rpm(filename, ...)
     }
 #endif
 
-    memset(&lead, 0, sizeof(lead));
-    if (readLead(fd, &lead)) {
-      RETVAL = "Could not read lead bytes";
-    } else if (lead.major == 1) {
-      RETVAL = "RPM version of package doesn't support signatures";
-    } else {
-#ifdef RPM_42
-      i = rpmReadSignature(fd, &sigh, lead.signature_type, NULL);
-#else
-      i = rpmReadSignature(fd, &sigh, lead.signature_type);
-#endif
-      if (i != RPMRC_OK) {
-	RETVAL = "Could not read signature block (`rpmReadSignature' failed)";
-      } else if (!sigh) {
-	RETVAL = "No signatures";
-#ifdef RPM_42
-      }
-      /* Grab a hint of what needs doing to avoid duplication. */
-      tag = 0;
-      if (tag == 0) {
-	if (!nodsa && headerIsEntry(sigh, RPMSIGTAG_DSA))
-	  tag = RPMSIGTAG_DSA;
-	else if (!norsa && headerIsEntry(sigh, RPMSIGTAG_RSA))
-	  tag = RPMSIGTAG_RSA;
-	else if (!nogpg && headerIsEntry(sigh, RPMSIGTAG_GPG))
-	  tag = RPMSIGTAG_GPG;
-	else if (!nopgp && headerIsEntry(sigh, RPMSIGTAG_PGP))
-	  tag = RPMSIGTAG_PGP;
-      }
-      if (tag == 0) {
-	if (!nomd5 && headerIsEntry(sigh, RPMSIGTAG_MD5))
-	  tag = RPMSIGTAG_MD5;
-	else if (!nosha1 && headerIsEntry(sigh, RPMSIGTAG_SHA1))
-	  tag = RPMSIGTAG_SHA1;	/* XXX never happens */
-      }
-
-      if (headerIsEntry(sigh, RPMSIGTAG_PGP)
-	  ||  headerIsEntry(sigh, RPMSIGTAG_PGP5)
-	  ||  headerIsEntry(sigh, RPMSIGTAG_MD5))
-	fdInitDigest(fd, PGPHASHALGO_MD5, 0);
-      if (headerIsEntry(sigh, RPMSIGTAG_GPG))
-	fdInitDigest(fd, PGPHASHALGO_SHA1, 0);
-
-      dig = rpmtsDig(ts);
-      sigp = rpmtsSignature(ts);
-
-      /* Read the file, generating digest(s) on the fly. */
-      if (dig == NULL || sigp == NULL || readFile(fd, filename, dig)) {
-	RETVAL = "Unable to read rpm file";
-      } else {
-#else
-      } else if (makeTempFile(NULL, &tmpfile, &ofd)) {
-	if (tmpfile) {
-	  unlink(tmpfile);
-	  ofd = Fopen(tmpfile, "w+x.ufdio");
-	  if (ofd == NULL || Ferror(fd))
-	    RETVAL = "Unable to create tempory file";
-	} else
-	  if (makeTempFile(NULL, &tmpfile, &ofd))
-	    RETVAL = "Unable to create tempory file";
-      }
-      if (!RETVAL) {
-	while ((i = fdRead(fd, buffer, sizeof(buffer))) != 0) {
-	  if (i == -1) {
-	    RETVAL = "Error reading file";
-	    break;
-	  }
-	  if (fdWrite(ofd, buffer, i) < 0) {
-	    RETVAL = "Error writing temp file";
-	    break;
-	  }
-	}
-#endif
-	if (!RETVAL) {
-	  int res2 = 0;
-	  int res3;
-	  char *tempKey;
-
-	  buffer[0] = 0; /* reset buffer as it is used again */
-	  for (sigIter = headerInitIterator(sigh);
-	       headerNextIterator(sigIter, &tag, &type, &ptr, &count);
-#ifdef RPM_42
-	       (void) rpmtsSetSig(ts, tag, type, NULL, count)) {
-#else
-	       ptr = headerFreeData(ptr, type)) {
-#endif
-	    if (ptr == NULL) continue;
-#ifdef RPM_42
-	    (void) rpmtsSetSig(ts, tag, type, ptr, count);
-	    pgpCleanDig(dig);
-#endif
-	    switch (tag) {
-	    case RPMSIGTAG_PGP5:
-	    case RPMSIGTAG_PGP:
-	      if (nopgp) continue;
-	      break;
-
-	    case RPMSIGTAG_GPG:
-	      if (nogpg) continue;
-	      break;
-#ifdef RPM_42
-	    case RPMSIGTAG_RSA:
-	      if (norsa) continue;
-	      break;
-
-	    case RPMSIGTAG_DSA:
-	      if (nodsa) continue;
-	      break;
-#endif
-	    case RPMSIGTAG_LEMD5_2:
-	    case RPMSIGTAG_LEMD5_1:
-	    case RPMSIGTAG_MD5:
-	      if (nomd5) continue;
-	      break;
-#ifdef RPM_42
-	    case RPMSIGTAG_SHA1:
-	      if (nosha1) continue;
-	      break;
-#endif
-
-	    default:
-	      continue;
-	    }
-#ifdef RPM_42
-	    switch (tag) {
-	    case RPMSIGTAG_PGP5:
-	    case RPMSIGTAG_PGP:
-	    case RPMSIGTAG_GPG:
-	    case RPMSIGTAG_RSA:
-	    case RPMSIGTAG_DSA:
-	      pgpPrtPkts(ptr, count, dig, 0); if (sigp->version != 3) continue;
-	      break;
-
-	    default:
-	      break;
-	    }
-	    res3 = rpmVerifySignature(ts, result);
-#else
-	    res3 = rpmVerifySignature(tmpfile, tag, ptr, count, result);
-#endif
-	    tempKey = strstr(result, "ey ID");
-	    if (tempKey) tempKey += 6;
-	    else {
-	      tempKey = strstr(result, "keyid:");
-	      if (tempKey) tempKey += 9;
-	    }
-	    if (res3) {
-	      switch (tag) {
-#ifdef RPM_42
-	      case RPMSIGTAG_SHA1:
-		b = stpcpy(b, "SHA1 ");
-		res2 = 1;
-		/*@switchbreak@*/ break;
-	      case RPMSIGTAG_RSA:
-		b = stpcpy(b, "RSA ");
-		res2 = 1;
-		/*@switchbreak@*/ break;
-	      case RPMSIGTAG_DSA:
-		b = stpcpy(b, "(SHA1) DSA ");
-		res2 = 1;
-		/*@switchbreak@*/ break;
-#endif
-	      case RPMSIGTAG_SIZE:
-		b = stpcpy(b, "SIZE ");
-		res2 = 1;
-		/*@switchbreak@*/ break;
-	      case RPMSIGTAG_LEMD5_2:
-	      case RPMSIGTAG_LEMD5_1:
-	      case RPMSIGTAG_MD5:
-		b = stpcpy(b, "MD5 ");
-		res2 = 1;
-		/*@switchbreak@*/ break;
-	      case RPMSIGTAG_PGP5:	/* XXX legacy */
-	      case RPMSIGTAG_PGP:
-		switch (res3) {
-#ifdef RPM_42
-		case RPMRC_NOKEY:
-#else
-		case RPMSIG_NOKEY:
-#endif
-		  res2 = 1;
-		  /*@fallthrough@*/
-#ifdef RPM_42
-		case RPMRC_NOTTRUSTED:
-#else
-		case RPMSIG_NOTTRUSTED:
-#endif
-		  b = stpcpy(b, "(MD5) (PGP) ");
-		  if (tempKey) {
-#ifdef RPM_42
-		    if (res3 == RPMRC_NOKEY)
-#else
-		    if (res3 == RPMSIG_NOKEY)
-#endif
-		      b = stpcpy(b, "(MISSING KEY) ");
-		    else
-		      b = stpcpy(b, "(UNTRUSTED KEY) ");
-		  }
-		default:
-		  b = stpcpy(b, "MD5 PGP ");
-		  res2 = 1;
-		  /*@innerbreak@*/ break;
-		}
-		if (tempKey) {
-		  b = stpcpy(b, "PGP#");
-		  b = stpncpy(b, tempKey, 8);
-		  b = stpcpy(b, " ");
-		}
-		/*@switchbreak@*/ break;
-	      case RPMSIGTAG_GPG:
-		/* Do not consider this a failure */
-		switch (res3) {
-#ifdef RPM_42
-		case RPMRC_NOKEY:
-#else
-		case RPMSIG_NOKEY:
-#endif
-		  b = stpcpy(b, "(GPG) (MISSING KEY) ");
-		  res2 = 1;
-		  /*@innerbreak@*/ break;
-		default:
-		  b = stpcpy(b, "GPG ");
-		  res2 = 1;
-		  /*@innerbreak@*/ break;
-		}
-		if (tempKey) {
-		  b = stpcpy(b, "GPG#");
-		  b = stpncpy(b, tempKey, 8);
-		  b = stpcpy(b, " ");
-		}
-		/*@switchbreak@*/ break;
-	      default:
-		b = stpcpy(b, "?UnknownSignatureType? ");
-		res2 = 1;
-		/*@switchbreak@*/ break;
-	      }
-	  } else {
-	    switch (tag) {
-#ifdef RPM_42
-	    case RPMSIGTAG_SHA1:
-	      b = stpcpy(b, "sha1 ");
-	      /*@switchbreak@*/ break;
-	    case RPMSIGTAG_RSA:
-	      b = stpcpy(b, "rsa ");
-	      /*@switchbreak@*/ break;
-	    case RPMSIGTAG_DSA:
-	      b = stpcpy(b, "(sha1) dsa ");
-	      /*@switchbreak@*/ break;
-#endif
-	    case RPMSIGTAG_SIZE:
-	      b = stpcpy(b, "size ");
-	      /*@switchbreak@*/ break;
-	    case RPMSIGTAG_LEMD5_2:
-	    case RPMSIGTAG_LEMD5_1:
-	    case RPMSIGTAG_MD5:
-	      b = stpcpy(b, "md5 ");
-	      /*@switchbreak@*/ break;
-	    case RPMSIGTAG_PGP5:	/* XXX legacy */
-	    case RPMSIGTAG_PGP:
-	      b = stpcpy(b, "(md5) pgp ");
-	      if (tempKey) {
-		b = stpcpy(b, "PGP#");
-		b = stpncpy(b, tempKey, 8);
-		b = stpcpy(b, " ");
-	      }
-	      /*@switchbreak@*/ break;
-	    case RPMSIGTAG_GPG:
-	      b = stpcpy(b, "gpg ");
-	      if (tempKey) {
-		b = stpcpy(b, "GPG#");
-		b = stpncpy(b, tempKey, 8);
-		b = stpcpy(b, " ");
-	      }
-	      /*@switchbreak@*/ break;
-	    default:
-	      b = stpcpy(b, "??? ");
-	      /*@switchbreak@*/ break;
-	    }
-	  }
-	  }
-	  sigIter = headerFreeIterator(sigIter);
-
-	  if (res2) {
-	    b = stpcpy(b, "NOT OK");
-	  } else {
-	    b = stpcpy(b, "OK");
-	  }
-
-	  RETVAL = buffer;
-	}
-      }
-#ifndef RPM_42
-      fdClose(ofd);
-      unlink(tmpfile);
-#endif
-      sigh = rpmFreeSignature(sigh);
-#ifdef RPM_42
-      rpmtsCleanDig(ts);
-      if (!db) rpmtsFree(ts);
-#endif
-    }
+    rc = rpmReadPackageFile(ts, fd, filename, &ret);
     fdClose(fd);
+
+    if (ret) {
+      fmtsig = headerSprintf(
+          ret,
+          "%|DSAHEADER?{%{DSAHEADER:pgpsig}}:{%|RSAHEADER?{%{RSAHEADER:pgpsig}}:"
+          "{%|SIGGPG?{%{SIGGPG:pgpsig}}:{%|SIGPGP?{%{SIGPGP:pgpsig}}:{(none)}|}|}|}|",
+          rpmTagTable, rpmHeaderFormats, NULL);
+      headerFree(ret);
+      switch(rc) {
+        case RPMRC_OK:
+          sprintf(buffer, "%s", fmtsig);
+          RETVAL = buffer;
+        break;
+        case RPMRC_NOTFOUND:
+          sprintf(buffer, "%s (missing key) NOT OK", fmtsig);
+          RETVAL = buffer;
+        break;
+        case RPMRC_FAIL:
+          RETVAL = "(can't get key) NOT OK";
+        break;
+        case RPMRC_NOTTRUSTED:
+          sprintf(buffer, "%s (Key not trusted) OK", fmtsig);
+          RETVAL = buffer;
+        break;
+        case RPMRC_NOKEY:
+          sprintf(buffer, "(no key found) OK");
+          RETVAL = buffer;
+        break;
+        default: /* can't happen */
+        break;
+      }
+    } else {
+	RETVAL = "Unable to read rpm file";
+    }
   }
+
+  if (!db)
+    ts = rpmtsFree(ts);
+  else
+    /* Restoring verification flag to the ts */
+    (void) rpmtsSetVSFlags(ts, oldvsflags);
+
+  _free(fmtsig);
   if (!RETVAL) RETVAL = "";
   OUTPUT:
   RETVAL
