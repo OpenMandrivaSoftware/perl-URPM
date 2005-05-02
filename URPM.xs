@@ -26,14 +26,12 @@
 #undef Stat
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
-#ifdef RPM_42
 #include <rpm/rpmio.h>
 #include <rpm/rpmdb.h>
 #include <rpm/rpmts.h>
 #include <rpm/rpmps.h>
 #include <rpm/rpmpgp.h>
 #include <rpm/rpmcli.h>
-#endif
 
 struct s_Package {
   char *info;
@@ -48,14 +46,8 @@ struct s_Package {
 };
 
 struct s_Transaction {
-#ifdef RPM_42
   rpmts ts;
   int count;
-#else
-  rpmdb db;
-  rpmTransactionSet ts;
-  FD_t script_fd;
-#endif
 };
 
 struct s_TransactionData {
@@ -68,11 +60,7 @@ struct s_TransactionData {
   SV *data; /* chain with another data user provided */
 };
 
-#ifdef RPM_42
 typedef struct s_Transaction* URPM__DB;
-#else
-typedef rpmdb URPM__DB;
-#endif
 typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
@@ -109,7 +97,6 @@ typedef struct s_Package* URPM__Package;
 
 /* these are in rpmlib but not in rpmlib.h */
 int readLead(FD_t fd, struct rpmlead *lead);
-#ifdef RPM_42
 /* Importing rpm hidden functions,
      Does RedHat try to force using their fucking functions using char **
      as direct mapping of rpm command line options ? */
@@ -271,10 +258,6 @@ int rpmReadSignature(FD_t fd, Header *header, short sig_type, const char **msg);
 /* needed for importing keys (from rpmio) */
 int rpmioSlurp(const char * fn, const byte ** bp, ssize_t * blenp);
 int b64decode (const char * s, void ** datap, size_t *lenp);
-#else
-int rpmReadSignature(FD_t fd, Header *header, short sig_type);
-#endif
-
 
 static void
 get_fullname_parts(URPM__Package pkg, char **name, char **version, char **release, char **arch, char **eos) {
@@ -385,10 +368,8 @@ ranges_overlap(int_32 aflags, char *sa, int_32 bflags, char *sb, int b_nopromote
     /* now compare epoch */
     if (ea && eb)
       sense = rpmvercmp(*ea ? ea : "0", *eb ? eb : "0");
-#ifdef RPM_42
     else if (ea && *ea && atol(ea) > 0)
       sense = b_nopromote ? 1 : 0;
-#endif
     else if (eb && *eb && atol(eb) > 0)
       sense = -1;
     /* now compare version and release if epoch has not been enough */
@@ -605,11 +586,9 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
       if (list[i] & RPMFILE_SPECFILE)  *s++ = 'S';
       if (list[i] & RPMFILE_README)    *s++ = 'R';
       if (list[i] & RPMFILE_EXCLUDE)   *s++ = 'e';
-#ifdef RPM_42
       if (list[i] & RPMFILE_ICON)      *s++ = 'i';
       if (list[i] & RPMFILE_UNPATCHED) *s++ = 'u';
       if (list[i] & RPMFILE_PUBKEY)    *s++ = 'p';
-#endif
     break;
     default:
       return;  
@@ -774,11 +753,7 @@ return_files(Header header, int filter_mode) {
 }
 
 void
-#ifdef RPM_42
 return_problems(rpmps ps, int translate_message) {
-#else
-return_problems(rpmProblemSet ps, int translate_message) {
-#endif
   dSP;
   if (ps && ps->probs && ps->numProblems > 0) {
     int i;
@@ -1195,21 +1170,13 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags) {
       if (sig[0] == 0xed && sig[1] == 0xab && sig[2] == 0xee && sig[3] == 0xdb) {
 	FD_t fd = fdDup(d);
 	Header header;
-#ifdef RPM_42
 	rpmts ts;
 	/* rpmVSFlags vsflags, ovsflags; */
-#else
-	int isSource;
-#endif
 
 	close(d);
-#ifdef RPM_42
 	ts = rpmtsCreate();
 	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES);
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0) {
-#else
-	if (fd != NULL && rpmReadPackageHeader(fd, &header, &isSource, NULL, NULL) == 0) {
-#endif
 	  struct stat sb;
 	  char *basename;
 	  int_32 size;
@@ -1280,10 +1247,6 @@ read_config_files(int force) {
     already = 1;
   }
 }
-
-#ifndef RPM_42
-static void callback_empty(void) {}
-#endif
 
 static void *rpmRunTransactions_callback(const void *h,
 					 const rpmCallbackType what,
@@ -2634,24 +2597,13 @@ Db_open(prefix="", write_perm=0)
   int write_perm
   PREINIT:
   URPM__DB db;
-#ifndef RPM_42
-  rpmErrorCallBackType old_cb;
-#endif
   CODE:
   read_config_files(0);
-#ifdef RPM_42
   db = malloc(sizeof(struct s_Transaction));
   db->ts = rpmtsCreate();
   db->count = 1;
   rpmtsSetRootDir(db->ts, prefix);
   RETVAL = rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0 ? db : NULL;
-#else
-  old_cb = rpmErrorSetCallback(callback_empty);
-  rpmSetVerbosity(RPMMESS_FATALERROR);
-  RETVAL = rpmdbOpen(prefix, &db, write_perm ? O_RDWR | O_CREAT : O_RDONLY, 0644) == 0 ? db : NULL;
-  rpmErrorSetCallback(old_cb);
-  rpmSetVerbosity(RPMMESS_NORMAL);
-#endif
   OUTPUT:
   RETVAL
 
@@ -2659,25 +2611,13 @@ int
 Db_rebuild(prefix="")
   char *prefix
   PREINIT:
-#ifdef RPM_42
   rpmts ts;
-#else
-  rpmErrorCallBackType old_cb;
-#endif
   CODE:
   read_config_files(0);
-#ifdef RPM_42
   ts = rpmtsCreate();
   rpmtsSetRootDir(ts, prefix);
   RETVAL = rpmtsRebuildDB(ts) == 0;
   rpmtsFree(ts);
-#else
-  old_cb = rpmErrorSetCallback(callback_empty);
-  rpmSetVerbosity(RPMMESS_FATALERROR);
-  RETVAL = rpmdbRebuild(prefix) == 0;
-  rpmErrorSetCallback(old_cb);
-  rpmSetVerbosity(RPMMESS_NORMAL);
-#endif
   OUTPUT:
   RETVAL
 
@@ -2685,14 +2625,10 @@ void
 Db_DESTROY(db)
   URPM::DB db
   CODE:
-#ifdef RPM_42
   if (--db->count <= 0) {
     rpmtsFree(db->ts);
     free(db);
   }
-#else
-  rpmdbClose(db);
-#endif
 
 int
 Db_traverse(db,callback)
@@ -2703,11 +2639,7 @@ Db_traverse(db,callback)
   rpmdbMatchIterator mi;
   int count = 0;
   CODE:
-#ifdef RPM_42
   mi = rpmtsInitIterator(db->ts, RPMDBI_PACKAGES, NULL, 0);
-#else
-  mi = rpmdbInitIterator(db, RPMDBI_PACKAGES, NULL, 0);
-#endif
   while ((header = rpmdbNextIterator(mi))) {
     if (SvROK(callback)) {
       dSP;
@@ -2768,11 +2700,7 @@ Db_traverse_tag(db,tag,names,callback)
       STRLEN str_len;
       SV **isv = av_fetch(names_av, i, 0);
       char *name = SvPV(*isv, str_len);
-#ifdef RPM_42
       mi = rpmtsInitIterator(db->ts, rpmtag, name, str_len);
-#else
-      mi = rpmdbInitIterator(db, rpmtag, name, str_len);
-#endif
       while ((header = rpmdbNextIterator(mi))) {
 	if (SvROK(callback)) {
 	  dSP;
@@ -2804,18 +2732,10 @@ Db_create_transaction(db, prefix="/")
   URPM::DB db
   char *prefix
   CODE:
-#ifdef RPM_42
   /* this is *REALLY* dangerous to create a new transaction while another is open,
      so use the db transaction instead. */
   RETVAL = db;
   ++RETVAL->count;
-#else
-  if ((RETVAL = calloc(1, sizeof(struct s_Transaction))) != NULL) {
-    /* rpmSetVerbosity(RPMMESS_DEBUG); TODO check remove and add in same transaction */
-    RETVAL->db = db;
-    RETVAL->ts = rpmtransCreateSet(db, prefix);
-  }
-#endif
   OUTPUT:
   RETVAL
 
@@ -2826,29 +2746,17 @@ void
 Trans_DESTROY(trans)
   URPM::Transaction trans
   CODE:
-#ifdef RPM_42
   if (--trans->count <= 0) {
     rpmtsFree(trans->ts);
     free(trans);
   }
-#else
-  rpmtransFree(trans->ts);
-  if (trans->script_fd != NULL) fdClose(trans->script_fd);
-  free(trans);
-#endif
 
 void
 Trans_set_script_fd(trans, fdno)
   URPM::Transaction trans
   int fdno
   CODE:
-#ifdef RPM_42
   rpmtsSetScriptFd(trans->ts, fdDup(fdno));
-#else
-  if (trans->script_fd != NULL) fdClose(trans->script_fd);
-  trans->script_fd = fdDup(fdno);
-  rpmtransSetScriptFd(trans->ts, trans->script_fd);
-#endif
 
 int
 Trans_add(trans, pkg, ...)
@@ -2884,11 +2792,7 @@ Trans_add(trans, pkg, ...)
 	}
       }
     }
-#ifdef RPM_42
     RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (void *)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
-#else
-    RETVAL = rpmtransAddPackage(trans->ts, pkg->h, NULL, (void *)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
-#endif
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
     free(relocations);
   } else RETVAL = 0;
@@ -2918,19 +2822,11 @@ Trans_remove(trans, name)
       *boa = '.'; boa = NULL;
     }
   }
-#ifdef RPM_42
   mi = rpmtsInitIterator(trans->ts, RPMDBI_LABEL, name, 0);
-#else
-  mi = rpmdbInitIterator(trans->db, RPMDBI_LABEL, name, 0);
-#endif
   while ((h = rpmdbNextIterator(mi))) {
     unsigned int recOffset = rpmdbGetIteratorOffset(mi);
     if (recOffset != 0) {
-#ifdef RPM_42
       rpmtsAddEraseElement(trans->ts, h, recOffset);
-#else
-      rpmtransRemovePackage(trans->ts, recOffset);
-#endif
       ++count;
     }
   }
@@ -2947,10 +2843,6 @@ Trans_check(trans, ...)
   I32 gimme = GIMME_V;
   int translate_message = 0;
   int i;
-#ifndef RPM_42
-  rpmDependencyConflict conflicts;
-  int num_conflicts;
-#endif
   PPCODE:
   for (i = 1; i < items-1; i+=2) {
     STRLEN len;
@@ -2960,17 +2852,12 @@ Trans_check(trans, ...)
       translate_message = SvIV(ST(i+1));
     }
   }
-#ifdef RPM_42
   if (rpmtsCheck(trans->ts)) {
-#else
-  if (rpmdepCheck(trans->ts, &conflicts, &num_conflicts)) {
-#endif
     if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSViv(0)));
     } else if (gimme == G_ARRAY) {
       XPUSHs(sv_2mortal(newSVpv("error while checking dependencies", 0)));
     }
-#ifdef RPM_42
   } else {
     rpmps ps = rpmtsProblems(trans->ts);
     if (rpmpsNumProblems(ps) > 0) {
@@ -2986,39 +2873,6 @@ Trans_check(trans, ...)
       XPUSHs(sv_2mortal(newSViv(1)));
     }
     ps = rpmpsFree(ps);
-#else
-  } else if (conflicts) {
-    if (gimme == G_SCALAR) {
-      XPUSHs(sv_2mortal(newSViv(0)));
-    } else if (gimme == G_ARRAY) {
-      char buff[1024];
-      int i;
-
-      for (i = 0; i < num_conflicts; ++i) {
-	char *p = buff;
-
-	p += snprintf(p, sizeof(buff) - (p-buff), "%s@%s", 
-		      conflicts[i].sense == RPMDEP_SENSE_REQUIRES ? "requires" : "conflicts",
-		      conflicts[i].needsName);
-	if (sizeof(buff) - (p-buff) > 4 && conflicts[i].needsFlags & RPMSENSE_SENSEMASK) {
-	  *p++ = ' ';
-	  if (conflicts[i].needsFlags & RPMSENSE_LESS)    *p++ = '<';
-	  if (conflicts[i].needsFlags & RPMSENSE_GREATER) *p++ = '>';
-	  if (conflicts[i].needsFlags & RPMSENSE_EQUAL)   *p++ = '=';
-	  if ((conflicts[i].needsFlags & RPMSENSE_SENSEMASK) == RPMSENSE_EQUAL) *p++ = '=';
-	  *p++ = ' ';
-	  p += snprintf(p, sizeof(buff) - (p-buff), "%s", conflicts[i].needsVersion);
-	}
-	p += snprintf(p, sizeof(buff) - (p-buff), "@%s-%s-%s",
-		      conflicts[i].byName, conflicts[i].byVersion, conflicts[i].byRelease);
-	*p = 0;
-	XPUSHs(sv_2mortal(newSVpv(buff, p-buff)));
-      }
-    }
-    rpmdepFreeConflicts(conflicts, num_conflicts);
-  } else if (gimme == G_SCALAR) {
-    XPUSHs(sv_2mortal(newSViv(1)));
-#endif
   }
 
 void
@@ -3027,11 +2881,7 @@ Trans_order(trans)
   PREINIT:
   I32 gimme = GIMME_V;
   PPCODE:
-#ifdef RPM_42
   if (rpmtsOrder(trans->ts) == 0) {
-#else
-  if (rpmdepOrder(trans->ts) == 0) {
-#endif
     if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSViv(1)));
     }
@@ -3055,9 +2905,6 @@ Trans_run(trans, data, ...)
   struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, 100000, data };
   rpmtransFlags transFlags = RPMTRANS_FLAG_NONE;
   int probFilter = 0;
-#ifndef RPM_42
-  rpmProblemSet probs;
-#endif
   int translate_message = 0;
   int i;
   PPCODE:
@@ -3097,7 +2944,6 @@ Trans_run(trans, data, ...)
       }
     }
   }
-#ifdef RPM_42
   rpmtsSetFlags(trans->ts, transFlags);
   rpmtsSetNotifyCallback(trans->ts, rpmRunTransactions_callback, &td);
   if (rpmtsRun(trans->ts, NULL, probFilter) > 0) {
@@ -3108,13 +2954,6 @@ Trans_run(trans, data, ...)
     ps = rpmpsFree(ps);
   }
   rpmtsEmpty(trans->ts);
-#else
-  if (rpmRunTransactions(trans->ts, rpmRunTransactions_callback, &td, NULL, &probs, transFlags, probFilter)) {
-    PUTBACK;
-    return_problems(probs, translate_message);
-    SPAGAIN;
-  }
-#endif
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
@@ -3443,11 +3282,7 @@ Urpm_verify_rpm(filename, ...)
   const char *tmpfile = NULL;
   char * fmtsig = NULL;
   char buffer[8192];
-#ifdef RPM_42
   rpmts ts;
-#else
-  FD_t ofd;
-#endif
   CODE:
   for (i = 1; i < items-1; i+=2) {
     STRLEN len;
@@ -3491,7 +3326,6 @@ Urpm_verify_rpm(filename, ...)
   if (fdFileno(fd) < 0) {
     RETVAL = "Couldn't open file";
   } else {
-#ifdef RPM_42
     if (db) {
       ts = db->ts;
       /* setting verify flags, keeping trace of current flags */
@@ -3503,7 +3337,6 @@ Urpm_verify_rpm(filename, ...)
       rpmtsSetRootDir(ts, "/");
       rpmtsOpenDB(ts, O_RDONLY);
     }
-#endif
 
     rc = rpmReadPackageFile(ts, fd, filename, &ret);
     fdClose(fd);
@@ -3564,14 +3397,12 @@ Urpm_import_pubkey(...)
   char *block = NULL;
   STRLEN filename_len = 0;
   char *filename = NULL;
-#ifdef RPM_42
   rpmts ts;
   const unsigned char *pkt = NULL;
   ssize_t pktlen = 0;
   const byte * b = NULL;
   ssize_t blen;
   int rc;
-#endif
   CODE:
   for (i = 0; i < items-1; i+=2) {
     STRLEN len;
@@ -3594,7 +3425,6 @@ Urpm_import_pubkey(...)
     }
   }
   RETVAL = 1;
-#ifdef RPM_42
   /* get transaction for importing keys, open rpmdb in write mode */
   if (db) {
     ts = db->ts;
@@ -3742,7 +3572,6 @@ Urpm_import_pubkey(...)
   rpmtsClean(ts);
   _free(pkt);
   if (!db) rpmtsFree(ts);
-#endif
   OUTPUT:
   RETVAL
 

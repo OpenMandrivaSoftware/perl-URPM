@@ -2,13 +2,10 @@ use ExtUtils::MakeMaker;
 
 my $version = `rpm --version`;
 $version =~ s/RPM version //;
-$version =~ /^(?:[4-9]|\d{2})/ 
-	or die "unable to build URPM with too old (or undetected) rpm version $version";
+$version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/ 
+    or die "unable to build URPM with too old (or undetected) rpm version $version";
 
-#- search for correct libraries to use (above 4.0.3 is right).
-my $libs = $version =~ /^4\.0(?:\.[012])?$/ ?
-    '-lrpm -lrpmio -lpopt -lz -lbz2' : '-lrpm -lrpmio -lrpmdb -lpopt -lz -lbz2';
-my $define = $version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/ ? '-DRPM_42' : '';
+my $libs = '-lrpm -lrpmio -lrpmdb -lpopt -lz -lbz2';
 
 sub MY::postamble {
     <<MAKECHANGELOG;
@@ -28,7 +25,6 @@ WriteMakefile(
     'OBJECT'    => 'URPM.o',
     'VERSION_FROM'   => 'URPM.pm',
     'LIBS'      => [ $libs ],
-    'DEFINE'    => $define,
     'INC'       => '-I/usr/include/rpm',
     INSTALLDIRS => 'vendor',
 );
