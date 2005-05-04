@@ -15,7 +15,6 @@
 %{expand:%%define compat_makeinstall_std %(perl -e 'printf "%%s\n", "%{?makeinstall_std:1}" ? "%%makeinstall_std" : "%%{__make} install PREFIX=%%{buildroot}%%{_prefix}"')}
 %{expand:%%define compat_perl_vendorarch %(perl -MConfig -e 'printf "%%s\n", "%{?perl_vendorarch:1}" ? "%%{perl_vendorarch}" : "$Config{installvendorarch}"')}
 %{expand:%%define buildreq_perl_devel %%(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "perl-devel" : "perl"')}
-%{expand:%%define distribution %%(perl -e 'printf "%%s\\n", ("%_vendor" =~ /mandrake/i ? "Mandrakelinux" : "Red Hat Linux")')}
 %{expand:%%define real_release %%(perl -e 'printf "%%s\\n", ("%_vendor" !~ /mandrake/i && ("%release" =~ /(.*?)mdk/)[0] || "%release")')}
 
 Summary:	URPM module for perl
@@ -24,7 +23,6 @@ Version:	%{version}
 Release:	%{real_release}
 License:	GPL or Artistic
 Group:		%{group}
-Distribution:	%{distribution}
 Source:		%{real_name}-%{version}.tar.bz2
 URL:		http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.0.3 bzip2-devel
