@@ -6,7 +6,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.11
+%define version 1.20
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /mandrake/i ? "Development/Perl" : "Applications/CPAN"')
@@ -66,6 +66,13 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Wed May 04 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.20-1mdk
+- Adaptations for rpm 4.4.1 (Olivier Thauvin)
+- More deprecation for RPMSENSE_PREREQ
+- Remove rpm 4.0 support
+- when no preferred locale is found, put locales-en in front of choice list
+  (bug #15628)
+
 * Mon Mar 07 2005 Rafael Garcia-Suarez <rgarciasuarez@mandrakesoft.com> 1.11-1mdk
 - Speed optimisation for updating media
 
