@@ -1,3 +1,19 @@
+2005-05-09 08:32  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: Update buildrequires
+
+2005-05-09 07:37  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: Make spec mandriva-compliant
+
+2005-05-04 05:06  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: Don't hardcode distribution name
+
+2005-05-04 05:01  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.20-1mdk
+
 2005-05-02 12:58  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* Makefile.PL, URPM.xs: Remove rpm 4.0 support
