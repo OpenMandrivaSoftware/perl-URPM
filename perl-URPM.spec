@@ -24,7 +24,7 @@ License:	GPL or Artistic
 Group:		%{group}
 Source:		%{real_name}-%{version}.tar.bz2
 URL:		http://cvs.mandriva.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
-BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.0.3 bzip2-devel
+BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.2.3 bzip2-devel perl-devel
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 Requires:	packdrake >= 5.0.2
 Requires:	perl-base >= 2:5.8.6
