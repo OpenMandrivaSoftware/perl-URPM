@@ -6,7 +6,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 1.20
-%define release %mkrel 2
+%define release %mkrel 3
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Tue May 10 2005 Olivier Thauvin <nanardon@mandriva.org> 1.20-3mdk
+- Rebuild for rpm 4.4.1 (amd64)
+
 * Mon May 09 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.20-2mdk
 - Rebuild for rpm 4.4.1
 
