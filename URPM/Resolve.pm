@@ -915,7 +915,6 @@ sub selected_size {
 #- compute installed flags for all packages in depslist.
 sub compute_installed_flags {
     my ($urpm, $db) = @_;
-    my %sizes;
 
     #- first pass to initialize flags installed and upgrade for all packages.
     foreach (@{$urpm->{depslist}}) {
@@ -926,8 +925,6 @@ sub compute_installed_flags {
     #- second pass to set installed flag and clean upgrade flag according to installed packages.
     $db->traverse(sub {
 	my ($p) = @_;
-	#- remember sizes of each package.
-	$sizes{$p->name} += $p->size;
 	#- compute flags.
 	foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
 	    my $pkg = $urpm->{depslist}[$_];
@@ -937,8 +934,6 @@ sub compute_installed_flags {
 	    $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 	}
     });
-
-    \%sizes;
 }
 
 sub compute_flag {
