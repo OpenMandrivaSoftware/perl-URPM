@@ -492,6 +492,8 @@ Return an array of human readable view of tag values. $tagid is the numerical va
 
 =item $package->packager()
 
+=item $package->payload_format()
+
 =item $package->provides()
 
 =item $package->provides_nosense()

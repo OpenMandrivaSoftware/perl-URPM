@@ -1547,6 +1547,14 @@ Pkg_os(pkg)
   }
 
 void
+Pkg_payload_format(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_PAYLOADFORMAT), 0)));
+  }
+
+void
 Pkg_fullname(pkg)
   URPM::Package pkg
   PREINIT:
