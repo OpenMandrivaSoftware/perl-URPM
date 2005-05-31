@@ -5,8 +5,8 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.20
-%define release %mkrel 3
+%define version 1.21
+%define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -27,7 +27,7 @@ URL:		http://cvs.mandriva.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.2.3 bzip2-devel perl-devel
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 Requires:	packdrake >= 5.0.2
-Requires:	perl-base >= 2:5.8.6
+Requires:	perl-base >= 2:5.8.7
 Provides:	perl(URPM::Build) = %{version}-%{release}
 Provides:	perl(URPM::Resolve) = %{version}-%{release}
 Provides:	perl(URPM::Signature) = %{version}-%{release}
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Tue May 31 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.21-1mdk
+- Add the URPM::Package::payload_format method
+
 * Tue May 10 2005 Olivier Thauvin <nanardon@mandriva.org> 1.20-3mdk
 - Rebuild for rpm 4.4.1 (amd64)
 
