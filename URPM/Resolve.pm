@@ -1041,9 +1041,10 @@ sub request_packages_to_upgrade {
     #- now we can examine all existing packages to find packages to upgrade.
     $db->traverse(sub {
 	my ($p) = @_;
+	my $pn = $p->name;
 	#- first try with package using the same name.
 	#- this will avoid selecting all packages obsoleting an old one.
-	if (my $pkg = $names{$p->name}) {
+	if (my $pkg = $names{$pn}) {
 	    unless ($pkg->flag_upgrade || $pkg->flag_installed) {
 		$pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
 		$pkg->set_flag_upgrade;
@@ -1051,9 +1052,9 @@ sub request_packages_to_upgrade {
 	    $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
 	    #- keep in mind the package is requested.
 	    if ($pkg->flag_upgrade) {
-		$requested{$p->name} = undef;
+		$requested{$pn} = undef;
 	    } else {
-		delete $names{$p->name};
+		delete $names{$pn};
 	    }
 	}
 
@@ -1065,7 +1066,7 @@ sub request_packages_to_upgrade {
 	    unless ($p->obsoletes_overlap($property)) {
 		if (my ($n) = $property =~ /^([^\s\[]*)/) {
 		    foreach my $pkg (@{$obsoletes{$n} || []}) {
-			next if $pkg->name eq $p->name || $p->name ne $n || !$names{$pkg->name};
+			next if $pkg->name eq $pn || $pn ne $n || !$names{$pkg->name};
 			if ($pkg->obsoletes_overlap($property)) {
 			    #- the package being examined can be obsoleted.
 			    #- do not set installed and provides flags.
@@ -1117,7 +1118,7 @@ sub request_packages_to_upgrade {
     $requested;
 }
 
-#- detect a dependency relation.
+#- detects a dependency relation.
 sub has_dependence {
     my ($urpm, $state, $a, $b) = @_;
     my %examined; $examined{$a} = undef;
@@ -1226,45 +1227,6 @@ sub build_transaction_set {
     }
 
     $state->{transaction};
-}
-
-#- compatiblity method which are going to be removed.
-sub resolve_closure_ask_remove {
-    my ($urpm, $db, $state, $pkg, $from, $why) = @_;
-
-    print STDERR "calling obsoleted method URPM::resolve_closure_ask_remove\n";
-
-    my @unsatisfied;
-    $urpm->resolve_rejected($db, $state, $pkg, from => $from, why => $why, removed => 1, unsatisfied => \@unsatisfied);
-
-    #- rebuild correctly ask_remove hash.
-    delete $state->{ask_remove};
-    foreach (keys %{$state->{rejected}}) {
-	$state->{rejected}{$_}{obsoleted} and next;
-	$state->{rejected}{$_}{removed} or next;
-
-	$state->{ask_remove}{$_}{closure} = $state->{rejected}{$_}{closure}; #- fullnames are not converted back to id as expected.
-	$state->{ask_remove}{$_}{size} = $state->{rejected}{$_}{size};
-    }
-
-    @unsatisfied;
-}
-sub resolve_unrequested {
-    my ($urpm, $db, $state, $unrequested, %_options) = @_;
-
-    print STDERR "calling obsoleted method URPM::resolve_unrequested\n";
-
-    my @l = $urpm->disable_selected($db, $state, map { $urpm->{depslist}[$_] } keys %$unrequested);
-
-    #- build unselected accordingly.
-    delete $state->{unselected};
-    foreach (@l) {
-	delete $unrequested->{$_->id};
-	$state->{unselected}{$_->id} = undef;
-    }
-
-    #- use return value of old method.
-    %$unrequested && $unrequested;
 }
 
 1;
