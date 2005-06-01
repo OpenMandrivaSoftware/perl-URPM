@@ -31,7 +31,8 @@ sub parse_rpms_build_headers {
 	#- examine cache if it contains any headers which will be much faster to read
 	#- than parsing rpm file directly.
 	unless ($options{clean}) {
-	    opendir my $dirh, $dir;
+	    my $dirh;
+	    opendir $dirh, $dir;
 	    while (defined (my $file = readdir $dirh)) {
 		my ($fullname, $filename) = $file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
 		my @stat = stat "$dir/$file";
@@ -527,13 +528,20 @@ sub build_base_files {
 }
 
 our $MAKEDELTARPM = '/usr/bin/makedeltarpm';
+
+=item make_delta_rpm($old_rpm_file, $new_rpm_file)
+
+Creates a delta rpm in the current directory.
+
+=cut
+
 sub make_delta_rpm ($$) {
-    my (@files) = @_;
-    -e $files[0] && -e $files[1] && -x $MAKEDELTARPM or return 0;
+    @_ == 2 or return 0;
+    -e $_[0] && -e $_[1] && -x $MAKEDELTARPM or return 0;
     my @id;
     my $urpm = new URPM;
     foreach my $i (0, 1) {
-	($id[$i]) = $urpm->parse_rpm($files[$i]);
+	($id[$i]) = $urpm->parse_rpm($_[$i]);
 	defined $id[$i] or return 0;
     }
     my $oldpkg = $urpm->{depslist}[$id[0]];
@@ -541,7 +549,7 @@ sub make_delta_rpm ($$) {
     $oldpkg->arch eq $newpkg->arch or return 0;
     #- construct filename of the deltarpm
     my $patchrpm = $oldpkg->name . '-' . $oldpkg->version . '-' . $oldpkg->release . '_' . $newpkg->version . '-' . $newpkg->release . '.' . $oldpkg->arch . '.delta.rpm';
-    !system($MAKEDELTARPM, $files[0], $files[1], $patchrpm);
+    !system($MAKEDELTARPM, @_, $patchrpm);
 }
 
 1;
