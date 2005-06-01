@@ -533,13 +533,15 @@ sub make_delta_rpm ($$) {
     my @id;
     my $urpm = new URPM;
     foreach my $i (0, 1) {
-	defined (($id[$i]) = $urpm->parse_rpm($files[$i])) or return 0;
+	($id[$i]) = $urpm->parse_rpm($files[$i]);
+	defined $id[$i] or return 0;
     }
     my $oldpkg = $urpm->{depslist}[$id[0]];
     my $newpkg = $urpm->{depslist}[$id[1]];
+    $oldpkg->arch eq $newpkg->arch or return 0;
     #- construct filename of the deltarpm
     my $patchrpm = $oldpkg->name . '-' . $oldpkg->version . '-' . $oldpkg->release . '_' . $newpkg->version . '-' . $newpkg->release . '.' . $oldpkg->arch . '.delta.rpm';
-    !system($MAKEDELTARPM, $old, $new, $patchrpm);
+    !system($MAKEDELTARPM, $files[0], $files[1], $patchrpm);
 }
 
 1;
