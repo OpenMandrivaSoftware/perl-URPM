@@ -31,7 +31,7 @@ sub parse_rpms_build_headers {
 	#- examine cache if it contains any headers which will be much faster to read
 	#- than parsing rpm file directly.
 	unless ($options{clean}) {
-	    opendir my $dirh, "$dir";
+	    opendir my $dirh, $dir;
 	    while (defined (my $file = readdir $dirh)) {
 		my ($fullname, $filename) = $file =~ /(.+?-[^:\-]+-[^:\-]+\.[^:\-\.]+)(?::(\S+))?$/ or next;
 		my @stat = stat "$dir/$file";
@@ -110,7 +110,7 @@ sub parse_rpms_build_headers {
 sub unresolved_provides_clean {
     my ($urpm) = @_;
     $urpm->{depslist} = [];
-    $urpm->{provides}{$_} = undef for keys %{$urpm->{provides} || {}};
+    $urpm->{provides}{$_} = undef foreach keys %{$urpm->{provides} || {}};
 }
 
 #- read a list of headers (typically when building an hdlist when provides have
@@ -174,7 +174,7 @@ sub fuzzy_parse {
 	    defined ($start) and return ($start .. $end);
         }
     }
-    ()
+    return ();
 }
 
 #- compute dependencies, result in stored in info values of urpm.
@@ -487,7 +487,7 @@ sub build_base_files {
     my ($urpm, %options) = @_;
 
     if ($options{depslist}) {
-	open my $fh, ">", $options{depslist} or die "Can't write to $options{depslist}: $!\n";;
+	open my $fh, ">", $options{depslist} or die "Can't write to $options{depslist}: $!\n";
 	foreach (0 .. $#{$urpm->{depslist}}) {
 	    my $pkg = $urpm->{depslist}[$_];
 
@@ -524,6 +524,22 @@ sub build_base_files {
     }
 
     1;
+}
+
+our $MAKEDELTARPM = '/usr/bin/makedeltarpm';
+sub make_delta_rpm ($$) {
+    my (@files) = @_;
+    -e $files[0] && -e $files[1] && -x $MAKEDELTARPM or return 0;
+    my @id;
+    my $urpm = new URPM;
+    foreach my $i (0, 1) {
+	defined (($id[$i]) = $urpm->parse_rpm($files[$i])) or return 0;
+    }
+    my $oldpkg = $urpm->{depslist}[$id[0]];
+    my $newpkg = $urpm->{depslist}[$id[1]];
+    #- construct filename of the deltarpm
+    my $patchrpm = $oldpkg->name . '-' . $oldpkg->version . '-' . $oldpkg->release . '_' . $newpkg->version . '-' . $newpkg->release . '.' . $oldpkg->arch . '.delta.rpm';
+    !system($MAKEDELTARPM, $old, $new, $patchrpm);
 }
 
 1;
