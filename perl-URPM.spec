@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.21
+%define version 1.22
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Tue Jun 07 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.22-1mdk
+- Add make_delta_rpm function
+
 * Tue May 31 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.21-1mdk
 - Add the URPM::Package::payload_format method
 

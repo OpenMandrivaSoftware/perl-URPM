@@ -1,3 +1,19 @@
+2005-06-01 11:39  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Build.pm: Warning fixes and documentation
+
+2005-06-01 05:48  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Build.pm: Ensure archs are identical
+
+2005-06-01 05:29  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Build.pm: Integrate a function to produce deltarpms
+
+2005-05-31 11:33  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.21-1mdk
+
 2005-05-31 10:45  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM/Resolve.pm: Removes obsolete code
