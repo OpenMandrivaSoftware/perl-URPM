@@ -1,3 +1,12 @@
+2005-06-16 12:03  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Add a binding for rpm internal debugging
+	  function setVerbosity()
+
+2005-06-07 03:43  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.22-1mdk
+
 2005-06-01 11:39  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM/Build.pm: Warning fixes and documentation
