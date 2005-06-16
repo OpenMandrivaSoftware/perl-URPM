@@ -3634,4 +3634,10 @@ resetmacros()
     PPCODE:
     rpmFreeMacros(NULL);
 
+void
+setVerbosity(level)
+    int level
+    PPCODE:
+    rpmSetVerbosity(level);
+
   /* vim:set ts=8 sts=2 sw=2: */
