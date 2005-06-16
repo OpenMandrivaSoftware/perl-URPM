@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Thu Jun 16 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.23-1mdk
+- add setVerbosity function
+
 * Tue Jun 07 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.22-1mdk
 - Add make_delta_rpm function
 
