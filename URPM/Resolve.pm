@@ -435,7 +435,8 @@ sub resolve_rejected {
 #- Base flag should always be "installed" or "upgraded".
 #- The following options are recognized :
 #-   callback_choices : subroutine to be called to ask the user to choose
-#-     between several possible packages.
+#-     between several possible packages. Returns an array of URPM::Package
+#-     objects, or an empty list eventually.
 #-   keep_requested_flag :
 #-   keep_unrequested_dependencies :
 #-   keep :
