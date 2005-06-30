@@ -3640,4 +3640,7 @@ setVerbosity(level)
     PPCODE:
     rpmSetVerbosity(level);
 
+const char *
+rpmErrorString()
+
   /* vim:set ts=8 sts=2 sw=2: */

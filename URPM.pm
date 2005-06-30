@@ -643,6 +643,8 @@ Destroys macros.
 Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
 (RPMMESS_DEBUG).
 
+=item rpmErrorString()
+
 =back
 
 =head1 COPYRIGHT
