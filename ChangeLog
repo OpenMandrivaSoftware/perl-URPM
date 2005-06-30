@@ -1,3 +1,23 @@
+2005-06-30 06:58  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Add function rpmErrorWriteTo($fd)
+
+2005-06-30 06:32  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: add rpmErrorString function
+
+2005-06-29 11:02  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: Doclet
+
+2005-06-16 12:27  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: Forgot to commit changelog
+
+2005-06-16 12:05  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.23-1mdk
+
 2005-06-16 12:03  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm, URPM.xs: Add a binding for rpm internal debugging

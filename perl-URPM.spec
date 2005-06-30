@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.23
+%define version 1.24
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Thu Jun 30 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.24-1mdk
+- Add rpmErrorWriteTo() and rpmErrorString()
+
 * Thu Jun 16 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.23-1mdk
 - add setVerbosity function
 
