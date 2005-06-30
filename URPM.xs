@@ -239,6 +239,13 @@ struct _FD_s {
 };
 /*@access FD_t@*/
 
+static int rpmError_callback_data;
+void rpmError_callback() {
+  if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR) {
+    write(rpmError_callback_data, rpmErrorString(), strlen(rpmErrorString()));
+  }
+}
+
 static inline
 void fdInitDigest(FD_t fd, pgpHashAlgo hashalgo, int flags)
 	/*@modifies fd @*/
@@ -3642,5 +3649,12 @@ setVerbosity(level)
 
 const char *
 rpmErrorString()
+
+void
+rpmErrorWriteTo(fd)
+  int fd
+  CODE:
+  rpmError_callback_data = fd;
+  rpmErrorSetCallback(rpmError_callback);
 
   /* vim:set ts=8 sts=2 sw=2: */

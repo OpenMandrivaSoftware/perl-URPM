@@ -645,6 +645,8 @@ Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
 
 =item rpmErrorString()
 
+=item rpmErrorWriteTo($fd)
+
 =back
 
 =head1 COPYRIGHT
