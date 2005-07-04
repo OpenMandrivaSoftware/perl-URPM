@@ -296,7 +296,7 @@ $names is a reference to an array, holding the acceptable values of the said
 tag for the searched variables.
 Then, $callback is called for each matching package in the depslist.
 
-=item $urpm->verify_rpm($file, %options)
+=item URPM::verify_rpm($file, %options)
 
 Verifies an RPM file.
 Recognized options are:
