@@ -655,6 +655,9 @@ Copyright 2002-2005 Mandrakesoft
 
 Original author: François Pons
 
+Current maintainer: Rafael Garcia-Suarez
+<rgarciasuarez@mandriva.com>
+
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
 
