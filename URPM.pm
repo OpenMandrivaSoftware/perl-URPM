@@ -257,7 +257,7 @@ file and adds them to the URPM object. Allowed options are
     keep_all_tags => 0 / 1
 
 Return value is an array of first and last id parsed.
-    
+
 =item $urpm->parse_rpms($files, %options)
 
 This method loads rpm informations from rpm B<headers> and adds them to
@@ -367,9 +367,15 @@ of an RPM package.
 
 =item $package->arch()
 
+Gives the package architecture
+
 =item $package->build_header($fileno)
 
+Writes the rpm header to the specified file ($fileno being an integer).
+
 =item $package->build_info($fileno, [$provides_files])
+
+Writes a line of information in a synthesis file.
 
 =item $package->buildarchs()
 
