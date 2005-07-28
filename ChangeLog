@@ -1,3 +1,19 @@
+2005-07-28 04:26  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Doc bits
+
+2005-07-28 04:12  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* README, URPM.pm, URPM.xs: update copyright and maintainer
+
+2005-07-04 11:32  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Documentation fix
+
+2005-06-30 07:01  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.24
+
 2005-06-30 06:58  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm, URPM.xs: Add function rpmErrorWriteTo($fd)
