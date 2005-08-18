@@ -1,3 +1,12 @@
+2005-08-18 17:32  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: Allow to rebuild URPM under non-C locales (Boris
+	  Filipovic)
+
+2005-07-28 07:06  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: 1.24-2mdk
+
 2005-07-28 04:26  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm: Doc bits

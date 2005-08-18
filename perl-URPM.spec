@@ -6,7 +6,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 1.24
-%define release %mkrel 2
+%define release %mkrel 3
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Thu Aug 18 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.24-3mdk
+- Allow to rebuild under non-C locales
+
 * Thu Jul 28 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.24-2mdk
 - Rebuild for rpm 4.4.2
 - Doc nits
