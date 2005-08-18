@@ -1,6 +1,6 @@
 use ExtUtils::MakeMaker;
 
-my $version = `rpm --version`;
+my $version = `LC_ALL=C rpm --version`;
 $version =~ s/RPM version //;
 $version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/ 
     or die "unable to build URPM with too old (or undetected) rpm version $version";
