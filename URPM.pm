@@ -587,10 +587,13 @@ Options are:
 
     translate_message => 0 / 1 (currently ignored.)
 
+In list context, returns an array of problems (an empty array indicates
+success).
+
 =item $trans->order()
 
-Determines package order in a transaction set according to dependencies.
-Returns a boolean indicating success.
+Determines package order in a transaction set according to dependencies. In
+list context, returns an array of problems (an empty array indicates success).
 
 =item $trans->run($data, %options)
 
