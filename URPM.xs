@@ -1345,8 +1345,10 @@ static void *rpmRunTransactions_callback(const void *h,
 	if (i != 1) croak("callback_open should return a file handle");
 	i = POPi;
 	fd = fdDup(i);
-	fd = fdLink(fd, "persist perl-URPM");
-	Fcntl(fd, F_SETFD, (void *)1); /* necessary to avoid forked/execed process to lock removable */
+	if (fd) {
+	  fd = fdLink(fd, "persist perl-URPM");
+	  Fcntl(fd, F_SETFD, (void *)1); /* necessary to avoid forked/execed process to lock removable */
+	}
 	PUTBACK;
       } else if (callback == td->callback_close) {
 	fd = fdFree(fd, "persist perl-URPM");
