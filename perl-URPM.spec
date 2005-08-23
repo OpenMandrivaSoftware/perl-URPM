@@ -5,8 +5,8 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.24
-%define release %mkrel 3
+%define version 1.25
+%define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -63,6 +63,10 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Tue Aug 23 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.25-1mdk
+- Better handle bad file descriptors returned by transaction callbacks (Pixel)
+- Doc fixes
+
 * Thu Aug 18 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.24-3mdk
 - Allow to rebuild under non-C locales
 
