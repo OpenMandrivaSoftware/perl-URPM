@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.25
+%define version 1.26
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Thu Sep 01 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.26-1mdk
+- Add noscripts option to run transactions
+
 * Tue Aug 23 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.25-1mdk
 - Better handle bad file descriptors returned by transaction callbacks (Pixel)
 - Doc fixes
