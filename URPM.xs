@@ -2935,7 +2935,7 @@ Trans_run(trans, data, ...)
       if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_NODOCS;
     } else if (len == 5) {
       if (!memcmp(s, "force", 5)) {
-	if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_REPLACEPKG | 
+	if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_REPLACEPKG |
 					  RPMPROB_FILTER_REPLACEOLDFILES |
 					  RPMPROB_FILTER_REPLACENEWFILES |
 					  RPMPROB_FILTER_OLDPACKAGE);
@@ -2943,6 +2943,12 @@ Trans_run(trans, data, ...)
 	td.min_delta = SvIV(ST(i+1));
     } else if (len == 6 && !memcmp(s, "nosize", 6)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_DISKSPACE;
+    } else if (len == 9 && !memcmp(s, "noscripts", 9)) {
+      if (SvIV(ST(i+1))) transFlags |= (RPMTRANS_FLAG_NOSCRIPTS |
+				        RPMTRANS_FLAG_NOPRE |
+				        RPMTRANS_FLAG_NOPREUN |
+				        RPMTRANS_FLAG_NOPOST |
+				        RPMTRANS_FLAG_NOPOSTUN );
     } else if (len == 10 && !memcmp(s, "oldpackage", 10)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_OLDPACKAGE;
     } else if (len == 17 && !memcmp(s, "translate_message", 17))
