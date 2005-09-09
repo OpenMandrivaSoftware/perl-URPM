@@ -3627,7 +3627,7 @@ expand(name)
     XPUSHs(sv_2mortal(newSVpv(value, 0)));
 
 void
-add_macro(macro)
+add_macro_noexpand(macro)
     char * macro
     CODE:
     rpmDefineMacro(NULL, macro, RMIL_DEFAULT);

@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.26';
+our $VERSION = '1.27';
 
 URPM->bootstrap($VERSION);
 
@@ -156,6 +156,13 @@ sub traverse_tag {
     }
 
     $count;
+}
+
+sub add_macro {
+    my ($s) = @_;
+    #- quote for rpmlib, *sigh*
+    $s =~ s/\n/\\\n/g;
+    add_macro_noexpand($s);
 }
 
 package URPM::Package;
@@ -634,10 +641,15 @@ Expands the specified macro.
 
 =item add_macro($macro_definition)
 
+=item add_macro_noexpand($macro_definition)
+
 Define a macro. For example,
 
     URPM::add_macro("vendor Mandrakesoft");
     my $vendor = URPM::expand("%vendor");
+
+The 'noexpand' version doesn't expand literal newline characters in the
+macro definition.
 
 =item del_macro($name)
 
