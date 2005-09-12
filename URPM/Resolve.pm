@@ -649,7 +649,7 @@ sub resolve_requested {
 	    #- be upgraded to a new version which will be safe, else it should be removed.
 	    foreach ($pkg->conflicts) {
 		@keep and last;
-		#- propagate conflicts to avoided.
+		#- propagate conflicts to avoid
 		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
 		    foreach (keys %{$urpm->{provides}{$n} || {}}) {
 			my $p = $urpm->{depslist}[$_];
@@ -681,7 +681,7 @@ sub resolve_requested {
 			if ($p->provides_overlap($property)) {
 			    #- the existing package will conflict with the selection; check
 			    #- whether a newer version will be ok, else ask to remove the old.
-			    my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch.":" : "") .
+			    my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch . ":" : "") .
 			    $p->version . "-" . $p->release;
 			    my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
 			    my $best = join '|', map { $_->id }
@@ -807,7 +807,7 @@ sub disable_selected {
 	#- keep a trace of what is deselected.
 	push @unselected, $pkg;
 
-	#- do a closure on rejected packages (removed, obsoleted or avoided).
+	#- perform a closure on rejected packages (removed, obsoleted or avoided).
 	my @closure_rejected = scalar $pkg->fullname;
 	while (my $fullname = shift @closure_rejected) {
 	    my @rejecteds = keys %{$state->{rejected}};
@@ -957,7 +957,7 @@ sub compute_flag {
 #-   disable_obsolete : if true, set the 'disable_obsolete' flag
 sub compute_flags {
     my ($urpm, $val, %options) = @_;
-    if (ref $val eq 'HASH') { $val = [ keys %$val ] }; #- compatibility with urpmi <= 4.5-13mdk
+    if (ref $val eq 'HASH') { $val = [ keys %$val ] } #- compatibility with urpmi <= 4.5-13mdk
     my @regex;
 
     #- unless a regular expression is given, search in provides
