@@ -1166,7 +1166,7 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, 
 }
 
 static int
-update_header(char *filename, URPM__Package pkg, int keep_all_tags) {
+update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags) {
   int d = open(filename, O_RDONLY);
 
   if (d >= 0) {
@@ -1182,7 +1182,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags) {
 
 	close(d);
 	ts = rpmtsCreate();
-	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES);
+	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES | vsflags);
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0) {
 	  struct stat sb;
 	  char *basename;
@@ -2276,7 +2276,7 @@ Pkg_update_header(pkg, filename, ...)
       }
     }
   }
-  RETVAL = update_header(filename, pkg, !packing && keep_all_tags);
+  RETVAL = update_header(filename, pkg, !packing && keep_all_tags, RPMVSF_DEFAULT);
   if (RETVAL && packing) pack_header(pkg);
   OUTPUT:
   RETVAL
@@ -3249,6 +3249,7 @@ Urpm_parse_rpm(urpm, filename, ...)
       int packing = 0;
       int keep_all_tags = 0;
       SV *callback = NULL;
+      rpmVSFlags vsflags = RPMVSF_DEFAULT;
 
       /* compability mode with older interface of parse_hdlist */
       if (items == 3) {
@@ -3265,7 +3266,30 @@ Urpm_parse_rpm(urpm, filename, ...)
 	    keep_all_tags = SvIV(ST(i+1));
 	  } else if (len == 8 && !memcmp(s, "callback", 8)) {
 	    if (SvROK(ST(i+1))) callback = ST(i+1);
-	  }
+	  } else if (len == 5) {
+            if (!memcmp(s, "nopgp", 5)) {
+              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
+            }
+            else if (!memcmp(s, "nogpg", 5)) {
+              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
+            }
+            else if (!memcmp(s, "nomd5", 5)) {
+              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOMD5 |  RPMVSF_NOMD5HEADER);
+            }
+            else if (!memcmp(s, "norsa", 5)) {
+              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NORSA | RPMVSF_NORSAHEADER);
+            }
+            else if (!memcmp(s, "nodsa", 5)) {
+              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NODSA | RPMVSF_NODSAHEADER);
+            }
+          } else if (len == 9) {
+            if (!memcmp(s, "nodigests", 9)) {
+              if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NODIGESTS;
+            } else
+            if (!memcmp(s, "nopayload", 9)) {
+              if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NOPAYLOAD;
+            }
+          } 
 	}
       }
       PUTBACK;
@@ -3273,7 +3297,7 @@ Urpm_parse_rpm(urpm, filename, ...)
       pkg.flag = 1 + av_len(depslist);
       _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package));
 
-      if (update_header(filename, _pkg, keep_all_tags)) {
+      if (update_header(filename, _pkg, keep_all_tags, vsflags)) {
 	sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package", _pkg);
 	if (call_package_callback(urpm, sv_pkg, callback)) {
 	  if (provides) {
