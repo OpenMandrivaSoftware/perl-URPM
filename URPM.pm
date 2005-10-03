@@ -674,7 +674,7 @@ Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
 
 Copyright 2002-2005 Mandrakesoft
 
-Original author: François Pons
+Original author: FranE<ccedil>ois Pons
 
 Current maintainer: Rafael Garcia-Suarez
 <rgarciasuarez@mandriva.com>
