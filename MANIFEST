@@ -12,7 +12,6 @@ t/fatal.t
 t/parse.t
 t/rpmdb.t
 t/synthesis.t
-build_rpm
 ChangeLog
 perl-URPM.spec
 META.yml                                 Module meta-data (added by MakeMaker)
