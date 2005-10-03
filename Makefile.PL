@@ -53,4 +53,5 @@ WriteMakefile(
     LIBS	=> [ '-lrpm -lrpmio -lrpmdb -lpopt -lz -lbz2' ],
     INC		=> '-I/usr/include/rpm',
     dist	=> { COMPRESS => "bzip2", SUFFIX => ".bz2" },
+    realclean	=> { FILES => "t/RPMS/noarch/*" },
 );

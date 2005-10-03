@@ -14,7 +14,7 @@ ok($a);
 
 END { unlink 'hdlist.cz' }
 
-my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
+my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "t/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
 ok(@{$a->{depslist}} == 1);
 my $pkg = $a->{depslist}[0];
 ok($pkg);
