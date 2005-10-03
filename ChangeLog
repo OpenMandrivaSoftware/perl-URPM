@@ -1,3 +1,60 @@
+2005-10-03 11:19  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Documentation encoding fix
+
+2005-10-03 11:17  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* MANIFEST, Makefile.PL, test-rpm-1.0-1mdk.noarch.rpm,
+	  t/00prepare.t, t/parse.t: Rebuild test rpm when running tests.
+	  Add cleanup to files.
+
+2005-10-03 10:40  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* MANIFEST: Update MANIFEST
+
+2005-10-03 10:38  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* build_rpm: Remove obsolete script
+
+2005-10-03 10:36  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: Add an rpm makefile target
+
+2005-10-03 10:20  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: Makefile.PL cleanup
+
+2005-09-14 15:17  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.xs: - add some options to parse_rpm (nomd5, nopayload)
+
+2005-09-12 17:13  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: Minor comment fixes
+
+2005-09-09 14:54  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: 1.27-1mdk
+
+2005-09-09 14:53  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Make URPM::add_macro expand literal \n to \\\n
+	  in macro definitions.  add URPM::add_macro_noexpand to get the
+	  old (rpmlib like) behaviour
+
+2005-09-01 18:19  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.26-1mdk
+
+2005-09-01 17:43  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Add a "noscripts" option to run transactions. Inhibits
+	  pre, preun, post and postun scritps.
+
+2005-08-23 14:22  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.25-1mdk
+
 2005-08-23 14:15  Pixel <pixel at mandriva.com>
 
 	* URPM.xs: correctly handle -1 fileno returned by callback_open

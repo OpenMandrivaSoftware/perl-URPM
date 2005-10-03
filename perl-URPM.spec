@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.27
+%define version 1.28
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,10 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Mon Oct 03 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.28-1mdk
+- add some options to parse_rpm (nomd5, nopayload) (Olivier Thauvin)
+- Build process cleanup
+
 * Fri Sep 09 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.27-1mdk
 - make add_macro quote embedded newlines. add_macro_noexpand now works like
   the previous version (i.e. like in the rpmlib)
