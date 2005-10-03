@@ -1,11 +1,24 @@
+use strict;
 use ExtUtils::MakeMaker;
 
-my $version = `LC_ALL=C rpm --version`;
+# where to find the rpm utility
+my $rpm_path = $ENV{RPM_PATH};
+
+unless (defined $rpm_path) {
+    for (qw(/bin/rpm /usr/bin/rpm)) {
+	if (-x) {
+	    $rpm_path = $_;
+	    last;
+	}
+    }
+}
+
+defined $rpm_path or die "Can't find rpm on this system\n";
+
+my $version = `LC_ALL=C $rpm_path --version`;
 $version =~ s/RPM version //;
 $version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/ 
-    or die "unable to build URPM with too old (or undetected) rpm version $version";
-
-my $libs = '-lrpm -lrpmio -lrpmdb -lpopt -lz -lbz2';
+    or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 
 sub MY::postamble {
     <<MAKECHANGELOG;
@@ -18,13 +31,10 @@ MAKECHANGELOG
 }
 
 WriteMakefile(
-    'NAME'      => 'URPM',
-    'CCFLAGS'   => '-Wall',
-    'OPTIMIZE'  => '-O3 -fomit-frame-pointer -fno-exceptions -pipe -s -ffast-math -fexpensive-optimizations',
-    'MAKEFILE'  => 'Makefile',
-    'OBJECT'    => 'URPM.o',
-    'VERSION_FROM'   => 'URPM.pm',
-    'LIBS'      => [ $libs ],
-    'INC'       => '-I/usr/include/rpm',
-    INSTALLDIRS => 'vendor',
+    NAME	=> 'URPM',
+    CCFLAGS	=> '-Wall',
+    OPTIMIZE	=> '-O3 -fomit-frame-pointer -fno-exceptions -pipe -s -ffast-math -fexpensive-optimizations',
+    VERSION_FROM	=> 'URPM.pm',
+    LIBS	=> [ '-lrpm -lrpmio -lrpmdb -lpopt -lz -lbz2' ],
+    INC		=> '-I/usr/include/rpm',
 );
