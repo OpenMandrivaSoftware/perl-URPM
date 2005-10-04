@@ -2,8 +2,17 @@
 
 # $Id$
 
-use strict ;
-use warnings ;
+use strict;
+use warnings;
+
+BEGIN {
+    eval { require Packdrakeng };
+    if ($@) {
+	print "1..0 # SKIP: no Packdrakeng here\n";
+	exit 0;
+    }
+}
+
 use Test::More tests => 24;
 use URPM;
 use URPM::Build;
@@ -50,7 +59,6 @@ ok(URPM::rpmvercmp("0:1-1mdk",   "1-1mdk") ==  -1, "Same value, epoch 0 on left 
 ok(URPM::rpmvercmp("1-1mdk",     "1-2mdk") == -1, "Right value win = -1");
 ok(URPM::rpmvercmp("1-2mdk",     "1-1mdk") ==  1, "Left value win = 1");
 ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
-
 
 {
     open(my $hdfh, "zcat hdlist.cz 2>/dev/null |") or die $!;
