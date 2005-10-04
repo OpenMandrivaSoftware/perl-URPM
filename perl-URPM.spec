@@ -13,7 +13,6 @@
 
 %{expand:%%define compat_makeinstall_std %(perl -e 'printf "%%s\n", "%{?makeinstall_std:1}" ? "%%makeinstall_std" : "%%{__make} install PREFIX=%%{buildroot}%%{_prefix}"')}
 %{expand:%%define compat_perl_vendorarch %(perl -MConfig -e 'printf "%%s\n", "%{?perl_vendorarch:1}" ? "%%{perl_vendorarch}" : "$Config{installvendorarch}"')}
-%{expand:%%define buildreq_perl_devel %%(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "perl-devel" : "perl"')}
 %{expand:%%define real_release %%(perl -e 'printf "%%s\\n", ("%_vendor" !~ /\\bmandr/i && ("%release" =~ /(.*?)mdk/)[0] || "%release")')}
 
 Summary:	URPM module for perl
@@ -24,7 +23,8 @@ License:	GPL or Artistic
 Group:		%{group}
 Source:		%{real_name}-%{version}.tar.bz2
 URL:		http://cvs.mandriva.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
-BuildRequires:	%{buildreq_perl_devel} rpm-devel >= 4.2.3 bzip2-devel perl-devel
+BuildRequires:	perl%{?mdkversion:-devel}
+BuildRequires:	rpm-devel >= 4.2.3
 Requires:	rpm >= %{rpm_version}, bzip2 >= 1.0
 Requires:	packdrake >= 5.0.2
 Requires:	perl-base >= 2:5.8.7
