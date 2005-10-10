@@ -2942,7 +2942,7 @@ Trans_run(trans, data, ...)
       } else if (!memcmp(s, "delta", 5))
 	td.min_delta = SvIV(ST(i+1));
     } else if (len == 6 && !memcmp(s, "nosize", 6)) {
-      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_DISKSPACE;
+      if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_DISKSPACE|RPMPROB_FILTER_DISKNODES);
     } else if (len == 9 && !memcmp(s, "noscripts", 9)) {
       if (SvIV(ST(i+1))) transFlags |= (RPMTRANS_FLAG_NOSCRIPTS |
 				        RPMTRANS_FLAG_NOPRE |
