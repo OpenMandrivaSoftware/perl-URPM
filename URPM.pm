@@ -418,7 +418,11 @@ Writes a line of information in a synthesis file.
 
 =item $package->filename()
 
+The rpm's file name.
+
 =item $package->files()
+
+List of files in this rpm.
 
 =item $package->files_flags()
 
@@ -462,8 +466,8 @@ Writes a line of information in a synthesis file.
 
 =item $package->fullname()
 
-Returns a 4 element list: name, version, release and architecture in an array context.
-Returns a string NAME-VERSION-RELEASE.ARCH in scalar context.
+Returns a 4 element list: name, version, release and architecture in an array
+context. Returns a string NAME-VERSION-RELEASE.ARCH in scalar context.
 
 =item $package->get_tag($tagid)
 
@@ -492,6 +496,8 @@ Return an array of human readable view of tag values. $tagid is the numerical va
 =item $package->license()
 
 =item $package->name()
+
+The rpm's bare name.
 
 =item $package->obsoletes()
 
