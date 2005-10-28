@@ -205,7 +205,7 @@ URPM - Perl module to manipulate RPM files
 =head1 DESCRIPTION
 
 The URPM module allows you to manipulate RPM files, RPM header files and
-hdlist files and manage them in memory. It is notably used by the B<urpmi>
+hdlist files and manage them in memory. It is notably used by the C<urpmi>
 utility. It provides four classes : C<URPM>, C<URPM::DB>, C<URPM::Package>,
 and C<URPM::Transaction>.
 
@@ -213,7 +213,7 @@ and C<URPM::Transaction>.
 
 =over 4
 
-=item new()
+=item URPM->new()
 
 The constructor creates a new, empty URPM object. It's a blessed hash that
 contains two fields:
@@ -228,15 +228,15 @@ If the constructor is called with the arguments C<< nofatal => 1 >>, various
 fatal error messages are suppressed (file not found in parse_hdlist() and
 parse_synthesis()).
 
-=item read_config_files()
+=item URPM::read_config_files()
 
 Force the re-reading of the RPM configuration files.
 
-=item list_rpm_tag()
+=item URPM::list_rpm_tag()
 
-Return a hash containing the key/id values of known rpm tags
+Returns a hash containing the key/id values of known rpm tags.
 
-=item ranges_overlap($range1, $range2 [, $nopromoteepoch])
+=item URPM::ranges_overlap($range1, $range2 [, $nopromoteepoch])
 
 This utility function compares two version ranges, in order to calculate
 dependencies properly. The ranges have roughly the form
@@ -247,7 +247,7 @@ where epoch, version and release are RPM-style version numbers.
 
 If the optional parameter $nopromoteepoch is true, and if the 2nd range has no
 epoch while the first one has one, then the 2nd range is assumed to have an
-epoch == 0.
+epoch C<== 0>.
 
 =item $urpm->parse_synthesis($file, [ callback => sub {...} ])
 
@@ -256,21 +256,21 @@ and adds them to the URPM object.
 
 =item $urpm->parse_hdlist($file, %options)
 
-This method loads rpm informations from rpm B<headers> contained in an hdlist
+This method loads rpm informations from rpm headers contained in an hdlist
 file and adds them to the URPM object. Allowed options are 
 
     packing => 0 / 1
     callback => sub { ... }
     keep_all_tags => 0 / 1
 
-Return value is an array of first and last id parsed.
+The return value is a two-element array containing the first and the last id
+parsed.
 
 =item $urpm->parse_rpms($files, %options)
 
-This method loads rpm informations from rpm B<headers> and adds them to
-the URPM object.
-
-Return value is an array of first and last id parsed.
+This method loads rpm informations from rpm headers and adds them to the URPM
+object. The return value is a two-element array containing the first and the
+last id parsed.
 
 =item $urpm->parse_rpm($file, %options)
 
