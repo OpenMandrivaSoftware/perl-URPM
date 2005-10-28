@@ -399,7 +399,7 @@ sub compute_deps {
 #-   end      : index of last package (defaults to last index of depslist).
 #-   idlist   : id list of rpm to compute (defaults is start .. end)
 #-   ratio    : compression ratio (default 4).
-#-   split    : split ratio (default 400kb, see Packdrakeng).
+#-   split    : split ratio (default 400kb, see MDV::Packdrakeng).
 sub build_hdlist {
     my ($urpm, %options) = @_;
     my ($dir, $ratio, @idlist);
@@ -419,8 +419,8 @@ sub build_hdlist {
     #-   3        7.6 sec     8.60Mb
     $ratio = $options{ratio} || 4;
 
-    require Packdrakeng;
-    my $pack = Packdrakeng->new(
+    require MDV::Packdrakeng;
+    my $pack = MDV::Packdrakeng->new(
 	archive => $options{hdlist},
 	compress => "gzip",
 	uncompress => "gzip -d",

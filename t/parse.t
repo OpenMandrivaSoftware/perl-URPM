@@ -4,16 +4,8 @@
 
 use strict;
 use warnings;
-
-BEGIN {
-    eval { require Packdrakeng };
-    if ($@) {
-	print "1..0 # SKIP: no Packdrakeng here\n";
-	exit 0;
-    }
-}
-
 use Test::More tests => 24;
+use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
 use URPM::Query;
