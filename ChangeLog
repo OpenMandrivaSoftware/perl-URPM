@@ -1,3 +1,44 @@
+2005-11-02 11:42  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Mention noscripts option in docs
+
+2005-10-28 16:30  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Doc neatification
+
+2005-10-28 16:15  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: Require MDV::Packdrakeng in Makefile.PL
+
+2005-10-28 16:10  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Build.pm, t/parse.t: Use new MDV namespace
+
+2005-10-18 18:46  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: More docs for confusing method names
+
+2005-10-10 20:21  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Add the RPMPROB_FILTER_DISKNODES flag for running
+	  transactions with the nosize option. Although rpm doesn't seem to
+	  use it internally, it sets it on the --ignoresize command-line
+	  option.
+
+2005-10-04 14:19  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* t/parse.t: Don't require Packdrakeng for running tests
+
+2005-10-04 14:00  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: Remove buildrequires on bzip2.  Simplify
+	  buildreq_perl_devel conditional dependency per Buchan's
+	  suggestion.
+
+2005-10-03 11:25  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.28-1mdk
+
 2005-10-03 11:19  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm: Documentation encoding fix
