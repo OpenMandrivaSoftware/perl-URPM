@@ -625,9 +625,10 @@ Recognized options are:
     excludedocs => 0 / 1
     force => 0 / 1
     nosize => 0 / 1
+    noscripts => 0 / 1
     oldpackage => 0 / 1
     test => 0 / 1
-    translate_message
+    translate_message => 1
 
 They roughly correspond to command-line options to rpm(1).
 
