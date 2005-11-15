@@ -168,6 +168,22 @@ sub add_macro {
 package URPM::Package;
 our @ISA = qw(); # help perl_checker
 
+#- debug help for urpmi
+sub dump_flags {
+    my ($pkg) = @_;
+    <<EODUMP;
+available:	  ${\($pkg->flag_available)}
+base:		  ${\($pkg->flag_base)}
+disable_obsolete: ${\($pkg->flag_disable_obsolete)}
+installed:	  ${\($pkg->flag_installed)}
+requested:	  ${\($pkg->flag_requested)}
+required:	  ${\($pkg->flag_required)}
+selected:	  ${\($pkg->flag_selected)}
+skip:		  ${\($pkg->flag_skip)}
+upgrade:	  ${\($pkg->flag_upgrade)}
+EODUMP
+}
+
 package URPM::Transaction;
 our @ISA = qw(); # help perl_checker
 
