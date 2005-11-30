@@ -438,8 +438,8 @@ callback_list_str_overlap(char *s, int slen, char *name, int_32 flags, char *evr
   int result = 0;
   char *eos = NULL;
   char *eon = NULL;
-  char eosc;
-  char eonc;
+  char eosc = '\0';
+  char eonc = '\0';
 
   /* we need to extract name, flags and evr from a full sense information, store result in local copy */
   if (s) {
@@ -1966,7 +1966,7 @@ Pkg_obsoletes_overlap(pkg, s, b_nopromote=1, direction=-1)
   PREINIT:
   struct cb_overlap_s os;
   char *eon = NULL;
-  char eonc;
+  char eonc = '\0';
   CODE:
   os.name = s;
   os.flags = 0;
@@ -2039,7 +2039,7 @@ Pkg_provides_overlap(pkg, s, b_nopromote=1, direction=1)
   PREINIT:
   struct cb_overlap_s os;
   char *eon = NULL;
-  char eonc;
+  char eonc = '\0';
   CODE:
   os.name = s;
   os.flags = 0;
