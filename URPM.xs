@@ -579,9 +579,9 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
   int_32 count, type;
   headerGetEntry(header, tag_name, &type, (void **) &list, &count);
 
-  for (i=0; i<count; i++) {
-    char *buff[15];
-    char *s= buff;
+  for (i = 0; i < count; i++) {
+    char buff[15];
+    char *s = buff;
     switch (tag_name) {
     case RPMTAG_FILEFLAGS:
       if (list[i] & RPMFILE_CONFIG)    *s++ = 'c';
