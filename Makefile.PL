@@ -53,7 +53,7 @@ WriteMakefile(
     CCFLAGS	=> '-Wall',
     OPTIMIZE	=> '-O3 -fomit-frame-pointer -fno-exceptions -pipe -s -ffast-math -fexpensive-optimizations',
     VERSION_FROM	=> 'URPM.pm',
-    LIBS	=> [ '-lrpm -lrpmio -lrpmdb -lpopt -lz -lbz2' ],
+    LIBS	=> [ '-lrpm -lrpmio -lrpmdb -lpopt -lz' ],
     INC		=> '-I/usr/include/rpm',
     dist	=> { COMPRESS => "bzip2", SUFFIX => ".bz2" },
     realclean	=> { FILES => "t/RPMS/noarch/*" },
