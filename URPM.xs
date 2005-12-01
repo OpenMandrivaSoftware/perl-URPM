@@ -1618,7 +1618,7 @@ Pkg_epoch(pkg)
       RETVAL = 0;
     }
   } else if (pkg->h) {
-    RETVAL = get_int(pkg->h, RPMTAG_SERIAL);
+    RETVAL = get_int(pkg->h, RPMTAG_EPOCH);
   } else RETVAL = 0;
   OUTPUT:
   RETVAL
