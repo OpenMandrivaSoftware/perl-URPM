@@ -1,3 +1,46 @@
+2005-12-07 17:48  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec, URPM/Resolve.pm: Fix longstanding epoch promotion
+	  bug, caused by braindead API design
+
+2005-12-07 17:44  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Document trap in that braindead stupid API.
+
+2005-12-01 17:53  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: Be verbose about the detected RPM version
+
+2005-12-01 14:57  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: RPMTAG_SERIAL (old name of RPMTAG_EPOCH) has been
+	  removed in rpm 4.4.3
+
+2005-11-30 14:48  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Fix a couple of compilation warnings
+
+2005-11-30 14:45  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Fix cast error
+
+2005-11-30 14:21  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: libbzip2 is actually not used by URPM.
+
+2005-11-15 17:14  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Add an URPM::Package::dump_flags method, to help
+	  debugging the depsolver
+
+2005-11-15 11:45  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* .cvsignore: Ignore MakeMaker build files
+
+2005-11-02 15:44  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.29-1mdk
+
 2005-11-02 11:42  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm: Mention noscripts option in docs

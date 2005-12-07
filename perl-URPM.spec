@@ -5,8 +5,8 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.29
-%define release %mkrel 1.1
+%define version 1.30
+%define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -26,7 +26,6 @@ URL:		http://cvs.mandriva.com/cgi-bin/cvsweb.cgi/soft/perl-URPM
 BuildRequires:	perl%{?mdkversion:-devel}
 BuildRequires:	rpm-devel >= 4.2.3
 Requires:	rpm >= %{rpm_version}
-Requires:	bzip2 >= 1.0
 Requires:	perl(MDV::Packdrakeng)
 Requires:	perl-base >= 2:5.8.7
 Provides:	perl(URPM::Build) = %{version}-%{release}
@@ -64,6 +63,13 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Wed Dec 07 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.30-1mdk
+- Fix epoch comparison bug
+- Be compatible with rpm 4.4.3
+- Add a URPM::Package::dump_flags debug method
+- C code and makefile cleanup
+- Don't require bzip2 anymore
+
 * Wed Nov 02 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.29-1mdk
 - Don't require packdrake, use MDV::Packdrakeng instead
 - Support for --ignoresize
