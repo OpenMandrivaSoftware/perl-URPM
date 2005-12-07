@@ -265,6 +265,9 @@ If the optional parameter $nopromoteepoch is true, and if the 2nd range has no
 epoch while the first one has one, then the 2nd range is assumed to have an
 epoch C<== 0>.
 
+B<Warning>: $nopromoteepoch actually defaults to 1, so if you're going to
+pass a variable, make sure undef is treated like 1, not 0.
+
 =item $urpm->parse_synthesis($file, [ callback => sub {...} ])
 
 This method gets the B<depslist> and the B<provides> from a synthesis file
