@@ -698,10 +698,11 @@ Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
 
 =head1 COPYRIGHT
 
-Copyright 2002-2005 Mandrakesoft
+Copyright 2002, 2003, 2004, 2005 MandrakeSoft SA
 
-Original author: FranE<ccedil>ois Pons
+Copyright 2005 Mandriva SA
 
+Original author: FranE<ccedil>ois Pons.
 Current maintainer: Rafael Garcia-Suarez
 <rgarciasuarez@mandriva.com>
 
