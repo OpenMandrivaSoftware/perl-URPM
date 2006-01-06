@@ -1,3 +1,11 @@
+2005-12-08 10:29  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Update copyrights
+
+2005-12-07 17:54  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.30
+
 2005-12-07 17:48  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* perl-URPM.spec, URPM/Resolve.pm: Fix longstanding epoch promotion

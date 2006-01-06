@@ -11,7 +11,7 @@ my ($pkg_perl, $count_perl, $pkg_perl_extern);
     my $db;
     ok($db = URPM::DB::open, 'DB opened');
 
-    @all_pkgs_extern = sort { $a cmp $b } split '\n', `rpm -qa`;
+    @all_pkgs_extern = sort { $a cmp $b } split /\n/ => qx(rpm -qa --qf '%{name}-%{version}-%{release}\n');
     ok(@all_pkgs_extern > 0, 'There are RPMs');
 
     $count = $db->traverse(sub {
@@ -42,4 +42,6 @@ my $bad_pkgs = 0;
 foreach (0..$#all_pkgs_sorted) {
     $all_pkgs_sorted[$_] eq $all_pkgs_extern[$_] or ++$bad_pkgs;
 }
+warn "# ".@all_pkgs_extern[0..3]."\n";
+warn "# ".@all_pkgs_sorted[0..3]."\n";
 is($bad_pkgs, 0, 'no mismatch between package lists');
