@@ -1,3 +1,8 @@
+2006-01-06 12:12  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* t/rpmdb.t: Use --qf in test to accomodate variations in
+	  %_query_all_fmt values
+
 2005-12-08 10:29  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm, URPM.xs: Update copyrights

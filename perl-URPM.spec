@@ -6,7 +6,7 @@
 %define name perl-URPM
 %define real_name URPM
 %define version 1.30
-%define release %mkrel 1
+%define release %mkrel 2
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
 %define rpm_version %(rpm -q --queryformat '%{VERSION}-%{RELEASE}' rpm)
@@ -63,6 +63,10 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Fri Jan 06 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.30-2mdk
+- Rebuild for rpm 4.4.4
+- Fix a regression test
+
 * Wed Dec 07 2005 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.30-1mdk
 - Fix epoch comparison bug
 - Be compatible with rpm 4.4.3
