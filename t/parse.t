@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 24;
+use Test::More tests => 26;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
@@ -61,4 +61,10 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
     ok($pkg->get_tag(1002) eq '1mdk');
     ok($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}") eq "test-rpm-1.0-1mdk.noarch");
     close $hdfh;
+}
+
+{
+    my $pkg = URPM::spec2srcheader("test-rpm.spec");
+    ok(defined $pkg, "Parsing a spec works");
+    ok($pkg->get_tag(1000) eq 'test-rpm');
 }

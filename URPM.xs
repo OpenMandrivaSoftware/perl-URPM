@@ -34,6 +34,7 @@
 #include <rpm/rpmps.h>
 #include <rpm/rpmpgp.h>
 #include <rpm/rpmcli.h>
+#include <rpm/rpmbuild.h>
 
 struct s_Package {
   char *info;
@@ -3644,6 +3645,33 @@ Urpm_stream2header(fp)
         }
         Fclose(fd);
     }
+
+void
+Urpm_spec2srcheader(specfile)
+  char *specfile
+  PREINIT:
+    rpmts ts = rpmtsCreate();
+    URPM__Package pkg;
+    Spec spec = NULL;
+  PPCODE:
+#define SPEC_ANYARCH 1
+#define SPEC_FORCE 1
+  if (!parseSpec(ts, specfile, "/", NULL, 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE)) {
+    spec = rpmtsSetSpec(ts, NULL);
+    if ( ! spec->sourceHeader)
+      initSourceHeader(spec);
+    pkg = (URPM__Package)malloc(sizeof(struct s_Package));
+    memset(pkg, 0, sizeof(struct s_Package));
+    pkg->h = headerLink(spec->sourceHeader);
+    SV *sv_pkg;
+    EXTEND(SP, 1);
+    sv_pkg = sv_newmortal();
+    sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
+    PUSHs(sv_pkg);
+    spec = freeSpec(spec);
+  }
+  ts = rpmtsFree(ts);
+    
 
 void
 expand(name)
