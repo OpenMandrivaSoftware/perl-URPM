@@ -694,6 +694,12 @@ Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
 
 =item rpmErrorWriteTo($fd)
 
+=item spec2srcheader($specfile)
+
+Return a URPM::Package containing the header of source rpm produce by the
+evaluation of $specfile. Which mean all dependencies are exactally the one
+need to build the specfile.
+
 =back
 
 =head1 COPYRIGHT
