@@ -3666,13 +3666,15 @@ Urpm_spec2srcheader(specfile)
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
     pkg->h = headerLink(spec->sourceHeader);
-    EXTEND(SP, 1);
     sv_pkg = sv_newmortal();
     sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
-    PUSHs(sv_pkg);
+    XPUSHs(sv_pkg);
     spec = freeSpec(spec);
   } else {
-    PUSHs(&PL_sv_undef);
+    XPUSHs(&PL_sv_undef);
+    /* apparently rpmlib sets errno this when given a bad spec. */
+    if (errno == EBADF)
+      errno = 0;
   }
   ts = rpmtsFree(ts);
 
