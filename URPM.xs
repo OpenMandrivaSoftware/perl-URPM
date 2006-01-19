@@ -3654,24 +3654,27 @@ Urpm_spec2srcheader(specfile)
     URPM__Package pkg;
     Spec spec = NULL;
   PPCODE:
+/* Do not verify architecture */
 #define SPEC_ANYARCH 1
+/* Do not verify whether sources exist */
 #define SPEC_FORCE 1
   if (!parseSpec(ts, specfile, "/", NULL, 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE)) {
+    SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
-    if ( ! spec->sourceHeader)
+    if (! spec->sourceHeader)
       initSourceHeader(spec);
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
     pkg->h = headerLink(spec->sourceHeader);
-    SV *sv_pkg;
     EXTEND(SP, 1);
     sv_pkg = sv_newmortal();
     sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
     PUSHs(sv_pkg);
     spec = freeSpec(spec);
+  } else {
+    PUSHs(&PL_sv_undef);
   }
   ts = rpmtsFree(ts);
-    
 
 void
 expand(name)

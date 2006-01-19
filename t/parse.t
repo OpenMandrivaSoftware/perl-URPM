@@ -4,11 +4,14 @@
 
 use strict;
 use warnings;
-use Test::More tests => 26;
+use Test::More tests => 27;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
 use URPM::Query;
+
+# shut up
+URPM::setVerbosity(2);
 
 my $a = new URPM;
 ok($a);
@@ -66,5 +69,7 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
 {
     my $pkg = URPM::spec2srcheader("test-rpm.spec");
     ok(defined $pkg, "Parsing a spec works");
-    ok($pkg->get_tag(1000) eq 'test-rpm');
+    ok($pkg->get_tag(1000) eq 'test-rpm', 'parsed correctly');
+    $pkg = URPM::spec2srcheader("doesnotexist.spec");
+    ok(!defined $pkg, "non-existent spec");
 }
