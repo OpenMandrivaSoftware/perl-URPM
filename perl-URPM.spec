@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.30
+%define version 1.31
 %define release %mkrel 2
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -63,6 +63,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Thu Jan 19 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.31-1mdk
+- New function spec2srcheader() (Olivier Thauvin)
+
 * Fri Jan 06 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.30-2mdk
 - Rebuild for rpm 4.4.4
 - Fix a regression test

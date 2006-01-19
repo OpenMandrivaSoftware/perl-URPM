@@ -1,3 +1,30 @@
+2006-01-19 14:31  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Rewrite and relocate doc at a more proper place. Update
+	  copyright notice.
+
+2006-01-19 14:24  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs, t/parse.t: In spec2srcheader(): extend stack; fudge with
+	  errno.
+
+2006-01-19 14:05  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs, t/parse.t: Return undef on spec parsing failure
+
+2006-01-19 13:52  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.pm: - add doc for Urpm_spec2srcheader
+
+2006-01-19 12:36  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* Makefile.PL, URPM.xs, t/parse.t: - add Urpm_spec2srcheader():
+	  return header of src.rpm from a specfile
+
+2006-01-06 17:22  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: 1.30-2mdk
+
 2006-01-06 12:12  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* t/rpmdb.t: Use --qf in test to accomodate variations in
