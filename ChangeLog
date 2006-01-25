@@ -1,3 +1,16 @@
+2006-01-25 15:18  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Flag headers returned by spec2srcheader() as source
+	  packages
+
+2006-01-24 12:38  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Pod formatting fix
+
+2006-01-19 14:39  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.31
+
 2006-01-19 14:31  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm: Rewrite and relocate doc at a more proper place. Update
