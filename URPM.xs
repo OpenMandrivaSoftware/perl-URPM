@@ -3659,12 +3659,14 @@ Urpm_spec2srcheader(specfile)
 /* Do not verify whether sources exist */
 #define SPEC_FORCE 1
   if (!parseSpec(ts, specfile, "/", NULL, 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE)) {
+    int_32 one = 1;
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
     if (! spec->sourceHeader)
       initSourceHeader(spec);
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
+    headerAddEntry(spec->sourceHeader, RPMTAG_SOURCEPACKAGE, RPM_INT32_TYPE, &one, 1);
     pkg->h = headerLink(spec->sourceHeader);
     sv_pkg = sv_newmortal();
     sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
