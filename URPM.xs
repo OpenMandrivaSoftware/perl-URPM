@@ -2954,6 +2954,8 @@ Trans_run(trans, data, ...)
 				        RPMTRANS_FLAG_NOPOSTUN );
     } else if (len == 10 && !memcmp(s, "oldpackage", 10)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_OLDPACKAGE;
+    } else if (len == 9 && !memcmp(s, "repackage", 9)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMTRANS_FLAG_REPACKAGE;
     } else if (len == 17 && !memcmp(s, "translate_message", 17))
       translate_message = 1;
     else if (len >= 9 && !memcmp(s, "callback_", 9)) {
