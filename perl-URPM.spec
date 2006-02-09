@@ -27,7 +27,6 @@ BuildRequires:	perl%{?mdkversion:-devel}
 BuildRequires:	rpm-devel >= 4.2.3
 Requires:	rpm >= %{rpm_version}
 Requires:	perl(MDV::Packdrakeng)
-Requires:	perl-base >= 2:5.8.7
 Provides:	perl(URPM::Build) = %{version}-%{release}
 Provides:	perl(URPM::Resolve) = %{version}-%{release}
 Provides:	perl(URPM::Signature) = %{version}-%{release}
