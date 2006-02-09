@@ -300,6 +300,9 @@ and adds them to the URPM object. Allowed options are
     keep_all_tags => 0 / 1
     callback => sub { ... }
 
+If C<keep_all_tags> isn't specified, URPM will drop all memory-consuming tags
+(notably changelogs, filelists, scriptlets).
+
 =item $urpm->search($name, %options)
 
 Search an RPM by name or by part of name in the list of RPMs represented by
