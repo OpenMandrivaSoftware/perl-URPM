@@ -206,7 +206,7 @@ URPM - Perl module to manipulate RPM files
     my $db = URPM::DB::open();
     $db->traverse(sub {
 	my ($package) = @_; # this is a URPM::Package object
-	print $package->filename, "\n";
+	print $package->name, "\n";
 	# ...
     });
 
