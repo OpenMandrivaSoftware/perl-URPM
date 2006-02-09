@@ -520,6 +520,8 @@ Return an array of human readable view of tag values. $tagid is the numerical va
 
 =item $package->id()
 
+=item $package->installtid()
+
 =item $package->is_arch_compat()
 
 =item $package->license()

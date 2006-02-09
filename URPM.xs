@@ -1518,6 +1518,18 @@ Pkg_buildtime(pkg)
   OUTPUT:
   RETVAL
 
+int
+Pkg_installtid(pkg)
+  URPM::Package pkg
+  CODE:
+  if (pkg->h) {
+    RETVAL = get_int(pkg->h, RPMTAG_INSTALLTID);
+  } else {
+    RETVAL = 0;
+  }
+  OUTPUT:
+  RETVAL
+
 void
 Pkg_url(pkg)
   URPM::Package pkg
