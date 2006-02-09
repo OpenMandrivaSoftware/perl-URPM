@@ -1,3 +1,23 @@
+2006-02-09 14:52  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.33-1mdk
+
+2006-02-09 14:50  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Document new flag repackage in run()
+
+2006-02-09 14:25  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Fix repackage option, oops
+
+2006-02-09 13:57  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Add repackage flag to run transactions
+
+2006-01-25 15:21  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs, perl-URPM.spec: 1.32-1mdk
+
 2006-01-25 15:18  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.xs: Flag headers returned by spec2srcheader() as source
