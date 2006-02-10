@@ -1,3 +1,28 @@
+2006-02-10 09:55  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Doc nits
+
+2006-02-10 09:53  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Remove unused variable
+
+2006-02-09 18:33  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Fix code example in URPM's synopsis
+
+2006-02-09 18:29  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Add installtid method
+
+2006-02-09 15:47  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Document keep_all_tags option to parse rpms
+
+2006-02-09 14:57  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: No need to make an explicit dependency on
+	  perl-base
+
 2006-02-09 14:52  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm, perl-URPM.spec: 1.33-1mdk
