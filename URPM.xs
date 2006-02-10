@@ -3343,7 +3343,6 @@ Urpm_verify_rpm(filename, ...)
   rpmRC rc = 0;
   FD_t fd;
   int i;
-  const char *tmpfile = NULL;
   char * fmtsig = NULL;
   char buffer[8192];
   rpmts ts;
@@ -3378,11 +3377,8 @@ Urpm_verify_rpm(filename, ...)
     else if (len == 9 && !memcmp(s, "nodigests", 9)) {
       if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NODIGESTS;
     }
-    else if (len == 12) {
-      if (!memcmp(s, "tmp_filename", 12))
-	tmpfile = SvPV_nolen(ST(i+1));
-      else if (!memcmp(s, "nosignatures", 12))
-	vsflags |= _RPMVSF_NOSIGNATURES;
+    else if (len == 12 && !memcmp(s, "nosignatures", 12)) {
+      vsflags |= _RPMVSF_NOSIGNATURES;
     }
   }
   RETVAL = NULL;
