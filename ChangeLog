@@ -1,3 +1,12 @@
+2006-02-10 18:06  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: repackage also when only the rpm macro is defined. Maybe
+	  rpm ought to do this, but obviously, as of 4.4.4, it does not.
+
+2006-02-10 10:03  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.34-1mdk
+
 2006-02-10 09:55  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm: Doc nits
