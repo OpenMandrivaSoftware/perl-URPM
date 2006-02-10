@@ -196,7 +196,7 @@ __END__
 
 =head1 NAME
 
-URPM - Perl module to manipulate RPM files
+URPM - Manipulate RPM files and headers
 
 =head1 SYNOPSIS
 
@@ -330,17 +330,18 @@ Then, $callback is called for each matching package in the depslist.
 Verifies an RPM file.
 Recognized options are:
 
-    db => $urpm_db
+    db => $urpm_db (optional, will use this rpm DB)
     nopgp => 0 / 1
     nogpg => 0 / 1
     nomd5 => 0 / 1
     norsa => 0 / 1
     nodsa => 0 / 1
     nodigests => 0 / 1
-    tmp_filename => '...'
     nosignatures => 0 / 1 (equivalent to nopgp = nogpg = norsa = nodsa = 1)
 
 =item $urpm->import_pubkey(%options)
+
+Import a key in the RPM database.
 
     db => $urpm_db
     root => '...'
@@ -534,7 +535,7 @@ The rpm's bare name.
 
 =item $package->obsoletes_nosense()
 
-=item $package->obsoletes_overlap($s, [$nopromoteepoch,] [$direction])
+=item $package->obsoletes_overlap($s, [$nopromoteepoch, [$direction] ])
 
 =item $package->os()
 
