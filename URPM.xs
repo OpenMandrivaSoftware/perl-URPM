@@ -2930,10 +2930,6 @@ Trans_run(trans, data, ...)
   URPM::Transaction trans
   SV *data
   PREINIT:
-  /* available callback:
-       callback(data, 'open'|'close', id|undef)
-       callback(data, 'trans'|'uninst'|'inst', id|undef, 'start'|'progress'|'stop', amount, total)
-  */
   struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, 100000, data };
   rpmtransFlags transFlags = RPMTRANS_FLAG_NONE;
   int probFilter = 0;
@@ -2983,6 +2979,13 @@ Trans_run(trans, data, ...)
 	if (SvROK(ST(i+1))) td.callback_inst = ST(i+1);
       }
     }
+  }
+  /* check macros */
+  {
+    char *repa = rpmExpand("%_repackage_all_erasures", NULL);
+    if (repa && *repa && *repa != '0')
+      transFlags |= RPMTRANS_FLAG_REPACKAGE;
+    if (repa) free(repa);
   }
   rpmtsSetFlags(trans->ts, transFlags);
   rpmtsSetNotifyCallback(trans->ts, rpmRunTransactions_callback, &td);
