@@ -525,6 +525,11 @@ Return an array of human readable view of tag values. $tagid is the numerical va
 
 =item $package->is_arch_compat()
 
+Returns whether this package is compatible with the current machine's
+architecture. 0 means not compatible. The higher the result is, the "more
+compatible" the package is; in other words the return value is a compatibility
+score.
+
 =item $package->license()
 
 =item $package->name()
