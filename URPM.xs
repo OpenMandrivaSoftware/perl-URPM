@@ -3350,7 +3350,7 @@ Urpm_verify_rpm(filename, ...)
   int i;
   char * fmtsig = NULL;
   char buffer[8192];
-  rpmts ts;
+  rpmts ts = NULL;
   CODE:
   for (i = 1; i < items-1; i+=2) {
     STRLEN len;
@@ -3441,7 +3441,7 @@ Urpm_verify_rpm(filename, ...)
     }
   }
 
-  if (!db)
+  if (!db && ts)
     ts = rpmtsFree(ts);
   else
     /* Restoring verification flag to the ts */
@@ -3507,6 +3507,8 @@ Urpm_import_pubkey(...)
   } else if (block) {
     blen = block_len;
     b = memcpy(malloc(blen+1), block, blen+1); /* XXX should use xmalloc instead */
+    rc = 0;
+  } else {
     rc = 0;
   }
   if (rc || b == NULL || blen <= 0) {
