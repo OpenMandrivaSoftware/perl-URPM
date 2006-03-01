@@ -52,7 +52,7 @@ WriteMakefile(
 	'MDV::Packdrakeng' => '1.00',
     },
     CCFLAGS	=> '-Wall',
-    OPTIMIZE	=> '-O3 -fomit-frame-pointer -fno-exceptions -pipe -s -ffast-math -fexpensive-optimizations',
+    OPTIMIZE	=> '-O3 -fomit-frame-pointer -fno-exceptions -pipe -s -ffast-math -fexpensive-optimizations -fno-strict-aliasing',
     VERSION_FROM	=> 'URPM.pm',
     LIBS	=> [ '-lrpm -lrpmio -lrpmdb -lrpmbuild -lpopt -lz' ],
     INC		=> '-I/usr/include/rpm',
