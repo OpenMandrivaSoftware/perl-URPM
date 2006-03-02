@@ -3390,8 +3390,6 @@ Urpm_verify_rpm(filename, ...)
   } else {
     if (db) {
       ts = db->ts;
-      /* setting verify flags, keeping trace of current flags */
-      oldvsflags = rpmtsSetVSFlags(ts, vsflags);
     } else {
       /* compabilty mode to use rpmdb installed on / */
       ts = rpmtsCreate();
@@ -3399,6 +3397,8 @@ Urpm_verify_rpm(filename, ...)
       rpmtsSetRootDir(ts, "/");
       rpmtsOpenDB(ts, O_RDONLY);
     }
+    /* setting verify flags, keeping trace of current flags */
+    oldvsflags = rpmtsSetVSFlags(ts, vsflags);
 
     rc = rpmReadPackageFile(ts, fd, filename, &ret);
     fdClose(fd);
