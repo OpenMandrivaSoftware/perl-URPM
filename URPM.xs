@@ -3363,10 +3363,7 @@ Urpm_verify_rpm(filename, ...)
       } else
 	croak("db is not of type URPM::DB");
     } else if (len == 5) {
-      if (!memcmp(s, "nopgp", 5)) {
-	if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
-      }
-      else if (!memcmp(s, "nogpg", 5)) {
+      if (!memcmp(s, "nopgp", 5) || !memcmp(s, "nogpg", 5)) {
 	if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
       }
       else if (!memcmp(s, "nomd5", 5)) {
@@ -3383,7 +3380,7 @@ Urpm_verify_rpm(filename, ...)
       if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NODIGESTS;
     }
     else if (len == 12 && !memcmp(s, "nosignatures", 12)) {
-      vsflags |= _RPMVSF_NOSIGNATURES;
+      if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NOSIGNATURES;
     }
   }
   RETVAL = NULL;
@@ -3434,6 +3431,8 @@ Urpm_verify_rpm(filename, ...)
           RETVAL = buffer;
         break;
         default: /* can't happen */
+	  sprintf(buffer, "Unknown return value %d (NOT OK)", rc);
+	  RETVAL = buffer;
         break;
       }
     } else {
