@@ -328,6 +328,7 @@ Then, $callback is called for each matching package in the depslist.
 =item URPM::verify_rpm($file, %options)
 
 Verifies an RPM file.
+Returns 0 on failure, 1 on success.
 Recognized options are:
 
     nodigests => 0 / 1
