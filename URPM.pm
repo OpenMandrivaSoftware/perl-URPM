@@ -330,13 +330,8 @@ Then, $callback is called for each matching package in the depslist.
 Verifies an RPM file.
 Recognized options are:
 
-    nopgp => 0 / 1
-    nogpg => 0 / 1
-    nomd5 => 0 / 1
-    norsa => 0 / 1
-    nodsa => 0 / 1
     nodigests => 0 / 1
-    nosignatures => 0 / 1 (equivalent to nopgp = nogpg = norsa = nodsa = 1)
+    nosignatures => 0 / 1
 
 =item $urpm->import_pubkey(%options)
 

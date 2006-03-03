@@ -3337,96 +3337,43 @@ Urpm_parse_rpm(urpm, filename, ...)
     } else croak("first argument should contain a depslist ARRAY reference");
   } else croak("first argument should be a reference to a HASH");
 
-char *
+int
 Urpm_verify_rpm(filename, ...)
   char *filename
   PREINIT:
-  rpmVSFlags vsflags = RPMVSF_DEFAULT;
-  Header ret = NULL;
-  rpmRC rc = 0;
   FD_t fd;
   int i;
-  char * fmtsig = NULL;
-  char buffer[512];
   rpmts ts = NULL;
+  struct rpmQVKArguments_s qva;
   CODE:
-  for (i = 1; i < items-1; i+=2) {
+  memset(&qva, 0, sizeof(struct rpmQVKArguments_s));
+  qva.qva_source = RPMQV_RPM;
+  qva.qva_flags = VERIFY_ALL;
+  for (i = 1 ; i < items - 1 ; i += 2) {
     STRLEN len;
     char *s = SvPV(ST(i), len);
-
-    if (len == 5) {
-      if (!memcmp(s, "nopgp", 5) || !memcmp(s, "nogpg", 5)) {
-	if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
-      }
-      else if (!memcmp(s, "nomd5", 5)) {
-        if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOMD5 |  RPMVSF_NOMD5HEADER);
-      }
-      else if (!memcmp(s, "norsa", 5)) {
-        if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NORSA | RPMVSF_NORSAHEADER);
-      }
-      else if (!memcmp(s, "nodsa", 5)) {
-        if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NODSA | RPMVSF_NODSAHEADER);
-      }
-    }
-    else if (len == 9 && !memcmp(s, "nodigests", 9)) {
-      if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NODIGESTS;
-    }
-    else if (len == 12 && !memcmp(s, "nosignatures", 12)) {
-      if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NOSIGNATURES;
+    if (len == 9 && !strncmp(s, "nodigests", 9)) {
+      if (SvIV(ST(i+1))) qva.qva_flags &= ~VERIFY_DIGEST;
+    } else if (len == 12 && !strncmp(s, "nosignatures", 12)) {
+      if (SvIV(ST(i+1))) qva.qva_flags &= ~VERIFY_SIGNATURE;
     }
   }
-  RETVAL = NULL;
   fd = fdOpen(filename, O_RDONLY, 0);
   if (fdFileno(fd) < 0) {
-    RETVAL = "Couldn't open file";
+    RETVAL = 0;
   } else {
-    ts = rpmtsCreate();
     read_config_files(0);
+    ts = rpmtsCreate();
     rpmtsSetRootDir(ts, "/");
     rpmtsOpenDB(ts, O_RDONLY);
-    rpmtsSetVSFlags(ts, vsflags);
-
-    rc = rpmReadPackageFile(ts, fd, filename, &ret);
-    fdClose(fd);
-
-    if (ret) {
-      fmtsig = headerSprintf(
-          ret,
-          "%|DSAHEADER?{%{DSAHEADER:pgpsig}}:{%|RSAHEADER?{%{RSAHEADER:pgpsig}}:"
-          "{%|SIGGPG?{%{SIGGPG:pgpsig}}:{%|SIGPGP?{%{SIGPGP:pgpsig}}:{(none)}|}|}|}|",
-          rpmTagTable, rpmHeaderFormats, NULL);
-      headerFree(ret);
-      switch(rc) {
-	case RPMRC_OK:
-	  snprintf(buffer, sizeof(buffer), "%s", fmtsig);
-	  break;
-	case RPMRC_NOTFOUND:
-	  snprintf(buffer, sizeof(buffer), "%s (missing key) NOT OK", fmtsig);
-	  break;
-	case RPMRC_FAIL:
-	  snprintf(buffer, sizeof(buffer), "(can't get key) NOT OK");
-	  break;
-	case RPMRC_NOTTRUSTED:
-	  snprintf(buffer, sizeof(buffer), "%s (Key not trusted) OK", fmtsig);
-	  break;
-	case RPMRC_NOKEY:
-	  snprintf(buffer, sizeof(buffer), "(no key found) OK");
-	  break;
-	default: /* can't happen */
-	  snprintf(buffer, sizeof(buffer), "Unknown return value %d (NOT OK)", rc);
-	  break;
-      }
-      RETVAL = buffer;
+    if (rpmVerifySignatures(&qva, ts, fd, filename)) {
+      RETVAL = 0;
     } else {
-      RETVAL = "Unable to read rpm file";
+      RETVAL = 1;
     }
+    rpmtsFree(ts);
   }
 
-  if (ts)
-    ts = rpmtsFree(ts);
-
-  _free(fmtsig);
-  if (!RETVAL) RETVAL = "";
   OUTPUT:
   RETVAL
 
