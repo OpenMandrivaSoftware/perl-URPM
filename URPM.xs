@@ -1181,7 +1181,6 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	FD_t fd = fdDup(d);
 	Header header;
 	rpmts ts;
-	/* rpmVSFlags vsflags, ovsflags; */
 
 	close(d);
 	ts = rpmtsCreate();
@@ -3376,6 +3375,51 @@ Urpm_verify_rpm(filename, ...)
     rpmtsFree(ts);
   }
   rpmlogSetMask(oldlogmask);
+
+  OUTPUT:
+  RETVAL
+
+char *
+Urpm_verify_signature(filename)
+  char *filename
+  PREINIT:
+  rpmts ts = NULL;
+  char result[1024];
+  rpmRC rc;
+  FD_t fd;
+  Header h;
+  CODE:
+  fd = fdOpen(filename, O_RDONLY, 0);
+  if (fdFileno(fd) < 0) {
+    RETVAL = "NOT OK (could not read file)";
+  } else {
+    read_config_files(0);
+    ts = rpmtsCreate();
+    rpmtsSetRootDir(ts, "/");
+    rpmtsOpenDB(ts, O_RDONLY);
+    rpmtsSetVSFlags(ts, RPMVSF_DEFAULT);
+    rc = rpmReadPackageFile(ts, fd, filename, &h);
+    *result = '\0';
+    switch(rc) {
+      case RPMRC_OK:
+	snprintf(result, sizeof(result), "OK");
+	break;
+      case RPMRC_NOTFOUND:
+	snprintf(result, sizeof(result), "NOT OK (signature not found): %s", rpmErrorString());
+	break;
+      case RPMRC_FAIL:
+	snprintf(result, sizeof(result), "NOT OK (fail): %s", rpmErrorString());
+	break;
+      case RPMRC_NOTTRUSTED:
+	snprintf(result, sizeof(result), "NOT OK (key not trusted): %s", rpmErrorString());
+	break;
+      case RPMRC_NOKEY:
+	snprintf(result, sizeof(result), "NOT OK (no key): %s", rpmErrorString());
+	break;
+    }
+    RETVAL = result;
+    rpmtsFree(ts);
+  }
 
   OUTPUT:
   RETVAL
