@@ -3349,7 +3349,7 @@ Urpm_verify_rpm(filename, ...)
   FD_t fd;
   int i;
   char * fmtsig = NULL;
-  char buffer[8192];
+  char buffer[512];
   rpmts ts = NULL;
   CODE:
   for (i = 1; i < items-1; i+=2) {
@@ -3411,32 +3411,28 @@ Urpm_verify_rpm(filename, ...)
           rpmTagTable, rpmHeaderFormats, NULL);
       headerFree(ret);
       switch(rc) {
-        case RPMRC_OK:
-          sprintf(buffer, "%s", fmtsig);
-          RETVAL = buffer;
-        break;
-        case RPMRC_NOTFOUND:
-          sprintf(buffer, "%s (missing key) NOT OK", fmtsig);
-          RETVAL = buffer;
-        break;
-        case RPMRC_FAIL:
-          RETVAL = "(can't get key) NOT OK";
-        break;
-        case RPMRC_NOTTRUSTED:
-          sprintf(buffer, "%s (Key not trusted) OK", fmtsig);
-          RETVAL = buffer;
-        break;
-        case RPMRC_NOKEY:
-          sprintf(buffer, "(no key found) OK");
-          RETVAL = buffer;
-        break;
-        default: /* can't happen */
-	  sprintf(buffer, "Unknown return value %d (NOT OK)", rc);
-	  RETVAL = buffer;
-        break;
+	case RPMRC_OK:
+	  snprintf(buffer, sizeof(buffer), "%s", fmtsig);
+	  break;
+	case RPMRC_NOTFOUND:
+	  snprintf(buffer, sizeof(buffer), "%s (missing key) NOT OK", fmtsig);
+	  break;
+	case RPMRC_FAIL:
+	  snprintf(buffer, sizeof(buffer), "(can't get key) NOT OK");
+	  break;
+	case RPMRC_NOTTRUSTED:
+	  snprintf(buffer, sizeof(buffer), "%s (Key not trusted) OK", fmtsig);
+	  break;
+	case RPMRC_NOKEY:
+	  snprintf(buffer, sizeof(buffer), "(no key found) OK");
+	  break;
+	default: /* can't happen */
+	  snprintf(buffer, sizeof(buffer), "Unknown return value %d (NOT OK)", rc);
+	  break;
       }
+      RETVAL = buffer;
     } else {
-	RETVAL = "Unable to read rpm file";
+      RETVAL = "Unable to read rpm file";
     }
   }
 
