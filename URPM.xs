@@ -3342,10 +3342,12 @@ Urpm_verify_rpm(filename, ...)
   char *filename
   PREINIT:
   FD_t fd;
-  int i;
+  int i, oldlogmask;
   rpmts ts = NULL;
   struct rpmQVKArguments_s qva;
   CODE:
+  /* Don't display error messages */
+  oldlogmask = rpmlogSetMask(RPMLOG_UPTO(RPMLOG_PRI(4)));
   memset(&qva, 0, sizeof(struct rpmQVKArguments_s));
   qva.qva_source = RPMQV_RPM;
   qva.qva_flags = VERIFY_ALL;
@@ -3373,6 +3375,7 @@ Urpm_verify_rpm(filename, ...)
     }
     rpmtsFree(ts);
   }
+  rpmlogSetMask(oldlogmask);
 
   OUTPUT:
   RETVAL
