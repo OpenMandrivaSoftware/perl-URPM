@@ -330,7 +330,6 @@ Then, $callback is called for each matching package in the depslist.
 Verifies an RPM file.
 Recognized options are:
 
-    db => $urpm_db (optional, will use this rpm DB)
     nopgp => 0 / 1
     nogpg => 0 / 1
     nomd5 => 0 / 1

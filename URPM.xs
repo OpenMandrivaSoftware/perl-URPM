@@ -3342,8 +3342,6 @@ Urpm_verify_rpm(filename, ...)
   char *filename
   PREINIT:
   rpmVSFlags vsflags = RPMVSF_DEFAULT;
-  rpmVSFlags oldvsflags = RPMVSF_DEFAULT;
-  URPM__DB db = NULL;
   Header ret = NULL;
   rpmRC rc = 0;
   FD_t fd;
@@ -3356,13 +3354,7 @@ Urpm_verify_rpm(filename, ...)
     STRLEN len;
     char *s = SvPV(ST(i), len);
 
-    if (len == 2 && !memcmp(s, "db", 2)) {
-      if (sv_derived_from(ST(i+1), "URPM::DB")) {
-	IV tmp = SvIV((SV*)SvRV(ST(i+1)));
-	db = INT2PTR(URPM__DB, tmp);
-      } else
-	croak("db is not of type URPM::DB");
-    } else if (len == 5) {
+    if (len == 5) {
       if (!memcmp(s, "nopgp", 5) || !memcmp(s, "nogpg", 5)) {
 	if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
       }
@@ -3388,17 +3380,11 @@ Urpm_verify_rpm(filename, ...)
   if (fdFileno(fd) < 0) {
     RETVAL = "Couldn't open file";
   } else {
-    if (db) {
-      ts = db->ts;
-    } else {
-      /* compabilty mode to use rpmdb installed on / */
-      ts = rpmtsCreate();
-      read_config_files(0);
-      rpmtsSetRootDir(ts, "/");
-      rpmtsOpenDB(ts, O_RDONLY);
-    }
-    /* setting verify flags, keeping trace of current flags */
-    oldvsflags = rpmtsSetVSFlags(ts, vsflags);
+    ts = rpmtsCreate();
+    read_config_files(0);
+    rpmtsSetRootDir(ts, "/");
+    rpmtsOpenDB(ts, O_RDONLY);
+    rpmtsSetVSFlags(ts, vsflags);
 
     rc = rpmReadPackageFile(ts, fd, filename, &ret);
     fdClose(fd);
@@ -3436,11 +3422,8 @@ Urpm_verify_rpm(filename, ...)
     }
   }
 
-  if (!db && ts)
+  if (ts)
     ts = rpmtsFree(ts);
-  else
-    /* Restoring verification flag to the ts */
-    (void) rpmtsSetVSFlags(ts, oldvsflags);
 
   _free(fmtsig);
   if (!RETVAL) RETVAL = "";
