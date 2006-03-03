@@ -334,6 +334,12 @@ Recognized options are:
     nodigests => 0 / 1
     nosignatures => 0 / 1
 
+=item URPM::verify_signature($file)
+
+Verifies the signature of an RPM file. Returns a string that will contain "OK"
+or "NOT OK" as well as a description of the found key (if successful) or of the
+error (if signature verification failed.)
+
 =item $urpm->import_pubkey(%options)
 
 Import a key in the RPM database.
