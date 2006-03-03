@@ -1,3 +1,77 @@
+2006-03-03 16:08  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Document URPM::verify_signature()
+
+2006-03-03 16:05  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Include key id in verify_signature()'s OK output. Also,
+	  avoid a header leak.
+
+2006-03-03 15:44  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: New function verify_signature
+
+2006-03-03 14:50  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Don't display error messages from rpmVerifySignatures
+
+2006-03-03 14:14  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Document (new-ish) return value of verify_rpm()
+
+2006-03-03 14:00  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Reimplement verify_rpm, using the rpm cli
+	  interface
+
+2006-03-03 11:22  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Remove support for the (broken) db option to
+	  verify_rpm
+
+2006-03-03 10:26  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Use a smaller buffer for the return value of verify_rpm,
+	  and guard against overflows
+
+2006-03-02 18:40  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Honor verification flags in verif_rpm() even when
+	  reading from a file without having open the rpmdb
+
+2006-03-02 18:22  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Nits in verify_rpm.
+
+2006-03-01 12:44  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Fix a couple of compilation warnings. URPM.xs is now
+	  warning-clean.
+
+2006-03-01 12:40  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: Make sure -fno-strict-aliasing is used (gcc option)
+
+2006-02-13 14:17  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Document the is_arch_compat package method
+
+2006-02-13 11:40  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: 1.36-1mdk
+
+2006-02-13 11:39  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm: Document new ignorearch flag
+
+2006-02-13 11:22  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Add ignorearch option to run transactions
+
+2006-02-10 18:07  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.35-1mdk
+
 2006-02-10 18:06  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.xs: repackage also when only the rpm macro is defined. Maybe
