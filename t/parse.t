@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 28;
+use Test::More tests => 29;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
@@ -24,10 +24,14 @@ my $pkg = $a->{depslist}[0];
 ok($pkg);
 my %tags = $a->list_rpm_tag;
 ok(keys %tags);
-ok($pkg->get_tag(1000) eq 'test-rpm');
-ok($pkg->get_tag(1001) eq '1.0');
-ok($pkg->get_tag(1002) eq '1mdk');
-# ok($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}") eq "test-rpm-1.0-1mdk.noarch");
+is($pkg->get_tag(1000), 'test-rpm', 'name');
+is($pkg->get_tag(1001), '1.0', 'version');
+is($pkg->get_tag(1002), '1mdk', 'release');
+TODO: {
+    local $TODO = "not implemented";
+    is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
+	q/get headers from parsing rpm/);
+}
 
 $a->build_hdlist(
     start  => 0,
@@ -43,10 +47,11 @@ my $b = new URPM;
 ok(@{$b->{depslist}} == 1);
 $pkg = $b->{depslist}[0];
 ok($pkg);
-ok($pkg->get_tag(1000) eq 'test-rpm');
-ok($pkg->get_tag(1001) eq '1.0');
-ok($pkg->get_tag(1002) eq '1mdk');
-ok($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}") eq "test-rpm-1.0-1mdk.noarch");
+is($pkg->get_tag(1000), 'test-rpm', 'name');
+is($pkg->get_tag(1001), '1.0', 'version');
+is($pkg->get_tag(1002), '1mdk', 'release');
+is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
+    q/get headers from hdlist/);
 
 # Version comparison
 ok(URPM::rpmvercmp("1-1mdk",     "1-1mdk") ==  0, "Same value = 0");
@@ -59,17 +64,17 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
     open(my $hdfh, "zcat hdlist.cz 2>/dev/null |") or die $!;
     my $pkg = URPM::stream2header($hdfh);
     ok(defined $pkg, "Reading a header works");
-    ok($pkg->get_tag(1000) eq 'test-rpm');
-    ok($pkg->get_tag(1001) eq '1.0');
-    ok($pkg->get_tag(1002) eq '1mdk');
-    ok($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}") eq "test-rpm-1.0-1mdk.noarch");
+    is($pkg->get_tag(1000), 'test-rpm');
+    is($pkg->get_tag(1001), '1.0');
+    is($pkg->get_tag(1002), '1mdk');
+    is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch");
     close $hdfh;
 }
 
 {
     my $pkg = URPM::spec2srcheader("test-rpm.spec");
     ok(defined $pkg, "Parsing a spec works");
-    ok($pkg->get_tag(1000) eq 'test-rpm', 'parsed correctly');
+    is($pkg->get_tag(1000), 'test-rpm', 'parsed correctly');
     $pkg = URPM::spec2srcheader("doesnotexist.spec");
     ok(!defined $pkg, "non-existent spec");
     open my $f, '>', 'bad.spec' or die "Can't write bad.spec: $!\n";
