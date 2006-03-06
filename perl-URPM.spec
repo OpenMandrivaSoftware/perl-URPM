@@ -62,7 +62,7 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
-* Mon Mar 06 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.38-
+* Mon Mar 06 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.38-1mdk
 - Fix deallocation of rpm transactions
 
 * Fri Mar 03 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.37-1mdk
