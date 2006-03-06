@@ -2774,6 +2774,7 @@ Db_create_transaction(db, prefix="/")
   /* this is *REALLY* dangerous to create a new transaction while another is open,
      so use the db transaction instead. */
   db->ts = rpmtsLink(db->ts, "URPM::DB::create_transaction");
+  ++db->count;
   RETVAL = db;
   OUTPUT:
   RETVAL
