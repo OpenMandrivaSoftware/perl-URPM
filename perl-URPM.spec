@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.37
+%define version 1.38
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -62,6 +62,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Mon Mar 06 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.38-
+- Fix deallocation of rpm transactions
+
 * Fri Mar 03 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.37-1mdk
 - Rewrite verify_rpm(), which wasn't working with recent rpms
   (note incompatible API change)

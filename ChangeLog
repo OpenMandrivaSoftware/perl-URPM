@@ -1,3 +1,26 @@
+2006-03-06 14:48  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* t/rpmdb.t: Perform this test faster
+
+2006-03-06 14:45  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* t/parse.t: Be more Test::More-ish, add a TODO test
+
+2006-03-06 14:31  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: It wasn't a good idea to completely remove the refcount,
+	  because it's used to free the underlying C glue structure.  Also,
+	  and rpmtsLink was misplaced.
+
+2006-03-06 12:09  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Don't use our own reference counter, but the rpmlib's,
+	  for transactions.
+
+2006-03-03 16:48  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.37
+
 2006-03-03 16:08  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm: Document URPM::verify_signature()
