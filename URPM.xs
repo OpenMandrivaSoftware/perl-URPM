@@ -50,6 +50,7 @@ struct s_Package {
 
 struct s_Transaction {
   rpmts ts;
+  int count;
 };
 
 struct s_TransactionData {
@@ -2631,6 +2632,7 @@ Db_open(prefix="", write_perm=0)
   CODE:
   read_config_files(0);
   db = malloc(sizeof(struct s_Transaction));
+  db->count = 1;
   db->ts = rpmtsCreate();
   rpmtsSetRootDir(db->ts, prefix);
   if (rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0) {
@@ -2661,7 +2663,7 @@ Db_DESTROY(db)
   URPM::DB db
   CODE:
   rpmtsFree(db->ts);
-  free(db);
+  if (!--db->count) free(db);
 
 int
 Db_traverse(db,callback)
@@ -2757,8 +2759,8 @@ Db_traverse_tag(db,tag,names,callback)
 	++count;
       }
       rpmdbFreeIterator(mi);
+      rpmtsFree(db->ts);
     } 
-    rpmtsFree(db->ts);
   } else croak("bad arguments list");
   RETVAL = count;
   OUTPUT:
@@ -2784,7 +2786,7 @@ Trans_DESTROY(trans)
   URPM::Transaction trans
   CODE:
   rpmtsFree(trans->ts);
-  free(trans);
+  if (!--trans->count) free(trans);
 
 void
 Trans_set_script_fd(trans, fdno)
