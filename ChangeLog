@@ -1,3 +1,24 @@
+2006-03-07 11:27  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL: Clean up gcc options
+
+2006-03-07 11:07  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Protect rpmtsRun with a new link to the transaction
+	  object
+
+2006-03-06 15:11  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: Spec file nit.
+
+2006-03-06 15:11  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Also, increase refcounts.
+
+2006-03-06 14:59  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.38
+
 2006-03-06 14:48  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* t/rpmdb.t: Perform this test faster

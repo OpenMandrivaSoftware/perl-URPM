@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.38';
+our $VERSION = '1.39';
 
 URPM->bootstrap($VERSION);
 
@@ -342,7 +342,7 @@ error (if signature verification failed.)
 
 =item $urpm->import_pubkey(%options)
 
-Import a key in the RPM database.
+Imports a key in the RPM database.
 
     db => $urpm_db
     root => '...'

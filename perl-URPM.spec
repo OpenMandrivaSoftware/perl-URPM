@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.38
+%define version 1.39
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -62,6 +62,10 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Tue Mar 07 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.39-1mdk
+- More memory protection
+- Fix gcc options
+
 * Mon Mar 06 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.38-1mdk
 - Fix deallocation of rpm transactions
 
