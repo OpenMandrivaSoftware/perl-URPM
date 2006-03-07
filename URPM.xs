@@ -2996,6 +2996,7 @@ Trans_run(trans, data, ...)
     if (repa) free(repa);
   }
   rpmtsSetFlags(trans->ts, transFlags);
+  trans->ts = rpmtsLink(trans->ts, "URPM::Transaction::run");
   rpmtsSetNotifyCallback(trans->ts, rpmRunTransactions_callback, &td);
   if (rpmtsRun(trans->ts, NULL, probFilter) > 0) {
     rpmps ps = rpmtsProblems(trans->ts);
@@ -3005,6 +3006,7 @@ Trans_run(trans, data, ...)
     ps = rpmpsFree(ps);
   }
   rpmtsEmpty(trans->ts);
+  rpmtsFree(trans->ts);
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
