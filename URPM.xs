@@ -2640,6 +2640,7 @@ Db_open(prefix="", write_perm=0)
   } else {
     RETVAL = NULL;
     rpmtsFree(db->ts);
+    free(db);
   }
   OUTPUT:
   RETVAL
