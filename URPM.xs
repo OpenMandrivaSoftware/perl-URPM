@@ -2729,10 +2729,10 @@ Db_traverse_tag(db,tag,names,callback)
     else if (!strcmp(tag, "group"))
       rpmtag = RPMTAG_GROUP;
     else if (!strcmp(tag, "triggeredby"))
-      rpmtag = RPMTAG_BASENAMES;
+      rpmtag = RPMTAG_TRIGGERNAME;
     else if (!strcmp(tag, "path"))
       rpmtag = RPMTAG_BASENAMES;
-    else croak("unknown tag");
+    else croak("unknown tag [%s]", tag);
 
     for (i = 0; i <= len; ++i) {
       STRLEN str_len;
