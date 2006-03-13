@@ -46,12 +46,17 @@ rpm: rpmdist
 **MM**
 }
 
+my $ccflags = '-Wall -fno-strict-aliasing';
+if ($version =~ /^4\.(?:[5-9]\.|\d\d)/) {
+    $ccflags .= ' -DRPM_CALLBACK_LONGLONG';
+}
+
 WriteMakefile(
     NAME	=> 'URPM',
     PREREQ_PM	=> {
 	'MDV::Packdrakeng' => '1.00',
     },
-    CCFLAGS	=> '-Wall -fno-strict-aliasing',
+    CCFLAGS	=> $ccflags,
     VERSION_FROM	=> 'URPM.pm',
     LIBS	=> [ '-lrpm -lrpmio -lrpmdb -lrpmbuild -lpopt -lz' ],
     INC		=> '-I/usr/include/rpm',
