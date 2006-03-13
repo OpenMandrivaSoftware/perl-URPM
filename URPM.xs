@@ -1275,56 +1275,60 @@ static void *rpmRunTransactions_callback(const void *h,
   char *callback_subtype = NULL;
 
   switch (what) {
-  case RPMCALLBACK_INST_OPEN_FILE:
-    callback = td->callback_open; callback_type = "open"; break;
-
-  case RPMCALLBACK_INST_CLOSE_FILE:
-    callback = td->callback_close; callback_type = "close"; break;
-
-  case RPMCALLBACK_TRANS_START:
-  case RPMCALLBACK_TRANS_PROGRESS:
-  case RPMCALLBACK_TRANS_STOP:
-    callback = td->callback_trans; callback_type = "trans"; break;
-
-  case RPMCALLBACK_UNINST_START:
-  case RPMCALLBACK_UNINST_PROGRESS:
-  case RPMCALLBACK_UNINST_STOP:
-    callback = td->callback_uninst; callback_type = "uninst"; break;
-
-  case RPMCALLBACK_INST_START:
-  case RPMCALLBACK_INST_PROGRESS:
-    callback = td->callback_inst; callback_type = "inst"; break;
-
-  default:
-    break;
+    case RPMCALLBACK_INST_OPEN_FILE:
+      callback = td->callback_open;
+      callback_type = "open";
+      break;
+    case RPMCALLBACK_INST_CLOSE_FILE:
+      callback = td->callback_close;
+      callback_type = "close";
+      break;
+    case RPMCALLBACK_TRANS_START:
+    case RPMCALLBACK_TRANS_PROGRESS:
+    case RPMCALLBACK_TRANS_STOP:
+      callback = td->callback_trans;
+      callback_type = "trans";
+      break;
+    case RPMCALLBACK_UNINST_START:
+    case RPMCALLBACK_UNINST_PROGRESS:
+    case RPMCALLBACK_UNINST_STOP:
+      callback = td->callback_uninst;
+      callback_type = "uninst";
+      break;
+    case RPMCALLBACK_INST_START:
+    case RPMCALLBACK_INST_PROGRESS:
+      callback = td->callback_inst;
+      callback_type = "inst";
+      break;
+    default:
+      break;
   }
 
   if (callback != NULL) {
     switch (what) {
-    case RPMCALLBACK_TRANS_START:
-    case RPMCALLBACK_UNINST_START:
-    case RPMCALLBACK_INST_START:
-      callback_subtype = "start"; break;
-      gettimeofday(&tprev, NULL);
-
-    case RPMCALLBACK_TRANS_PROGRESS:
-    case RPMCALLBACK_UNINST_PROGRESS:
-    case RPMCALLBACK_INST_PROGRESS:
-      callback_subtype = "progress";
-      gettimeofday(&tcurr, NULL);
-      delta = 1000000 * (tcurr.tv_sec - tprev.tv_sec) + (tcurr.tv_usec - tprev.tv_usec);
-      if (delta < td->min_delta && amount < total - 1)
-	callback = NULL; /* avoid calling too often a given callback */
-      else
-	tprev = tcurr;
-      break;
-
-    case RPMCALLBACK_TRANS_STOP:
-    case RPMCALLBACK_UNINST_STOP:
-      callback_subtype = "stop"; break;
-
-    default:
-      break;
+      case RPMCALLBACK_TRANS_START:
+      case RPMCALLBACK_UNINST_START:
+      case RPMCALLBACK_INST_START:
+	callback_subtype = "start";
+	gettimeofday(&tprev, NULL);
+	break;
+      case RPMCALLBACK_TRANS_PROGRESS:
+      case RPMCALLBACK_UNINST_PROGRESS:
+      case RPMCALLBACK_INST_PROGRESS:
+	callback_subtype = "progress";
+	gettimeofday(&tcurr, NULL);
+	delta = 1000000 * (tcurr.tv_sec - tprev.tv_sec) + (tcurr.tv_usec - tprev.tv_usec);
+	if (delta < td->min_delta && amount < total - 1)
+	  callback = NULL; /* avoid calling too often a given callback */
+	else
+	  tprev = tcurr;
+	break;
+      case RPMCALLBACK_TRANS_STOP:
+      case RPMCALLBACK_UNINST_STOP:
+	callback_subtype = "stop";
+	break;
+      default:
+	break;
     }
 
     if (callback != NULL) {
