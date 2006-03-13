@@ -1258,10 +1258,17 @@ read_config_files(int force) {
   }
 }
 
+#ifdef RPM_CALLBACK_LONGLONG
+/* That's for rpm >= 4.4.5 */
+# define RPM_CALLBACK_AMOUNT_TYPE unsigned long long
+#else
+# define RPM_CALLBACK_AMOUNT_TYPE unsigned long
+#endif
+
 static void *rpmRunTransactions_callback(const void *h,
 					 const rpmCallbackType what,
-					 const unsigned long amount,
-					 const unsigned long total,
+					 const RPM_CALLBACK_AMOUNT_TYPE amount,
+					 const RPM_CALLBACK_AMOUNT_TYPE total,
 					 const void * pkgKey,
 					 void * data) {
   static struct timeval tprev;
