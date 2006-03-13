@@ -1274,6 +1274,9 @@ static void *rpmRunTransactions_callback(const void *h,
   char *callback_type = NULL;
   char *callback_subtype = NULL;
 
+  if (!td)
+    return NULL;
+
   switch (what) {
     case RPMCALLBACK_INST_OPEN_FILE:
       callback = td->callback_open;
