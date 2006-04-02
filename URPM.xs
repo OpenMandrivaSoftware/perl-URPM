@@ -619,7 +619,7 @@ return_list_tag(URPM__Package pkg, int_32 tag_name) {
 
     if (list) {
       if (tag_name == RPMTAG_ARCH) {
-	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : (char *) list, 0)));
+	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? (char *) list : "src", 0)));
       } else
 	switch (type) {
 	  case RPM_NULL_TYPE:
@@ -868,7 +868,7 @@ pack_header(URPM__Package pkg) {
       char *name = get_name(pkg->h, RPMTAG_NAME);
       char *version = get_name(pkg->h, RPMTAG_VERSION);
       char *release = get_name(pkg->h, RPMTAG_RELEASE);
-      char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(pkg->h, RPMTAG_ARCH);
+      char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
       char *filename = get_name(pkg->h, FILENAME_TAG);
 
       p += snprintf(buff, sizeof(buff), "%s-%s-%s.%s@%d@%d@%s@", name, version, release, arch,
@@ -1454,7 +1454,7 @@ Pkg_arch(pkg)
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     XPUSHs(sv_2mortal(newSVpv(arch, eos-arch)));
   } else if (pkg->h) {
-    XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(pkg->h, RPMTAG_ARCH), 0)));
+    XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src", 0)));
   }
 
 int
@@ -1470,7 +1470,7 @@ Pkg_is_arch_compat(pkg)
     *eos = 0;
     RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
     *eos = '@';
-  } else if (pkg->h && !headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE)) {
+  } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, get_name(pkg->h, RPMTAG_ARCH));
   } else {
     RETVAL = 0;
@@ -1619,7 +1619,7 @@ Pkg_fullname(pkg)
     char *name = get_name(pkg->h, RPMTAG_NAME);
     char *version = get_name(pkg->h, RPMTAG_VERSION);
     char *release = get_name(pkg->h, RPMTAG_RELEASE);
-    char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(pkg->h, RPMTAG_ARCH);
+    char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
 
     if (gimme == G_SCALAR) {
       XPUSHs(sv_2mortal(newSVpvf("%s-%s-%s.%s", name, version, release, arch)));
@@ -1689,7 +1689,7 @@ Pkg_compare_pkg(lpkg, rpkg)
       lepoch = get_int(lpkg->h, RPMTAG_EPOCH);
       lversion = get_name(lpkg->h, RPMTAG_VERSION);
       lrelease = get_name(lpkg->h, RPMTAG_RELEASE);
-      larch = headerIsEntry(lpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(lpkg->h, RPMTAG_ARCH);
+      larch = headerIsEntry(lpkg->h, RPMTAG_SOURCERPM) ? get_name(lpkg->h, RPMTAG_ARCH) : "src";
     } else croak("undefined package");
     if (rpkg->info) {
       char *s;
@@ -1709,7 +1709,7 @@ Pkg_compare_pkg(lpkg, rpkg)
       repoch = get_int(rpkg->h, RPMTAG_EPOCH);
       rversion = get_name(rpkg->h, RPMTAG_VERSION);
       rrelease = get_name(rpkg->h, RPMTAG_RELEASE);
-      rarch = headerIsEntry(rpkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(rpkg->h, RPMTAG_ARCH);
+      rarch = headerIsEntry(rpkg->h, RPMTAG_SOURCERPM) ? get_name(rpkg->h, RPMTAG_ARCH) : "src";
     } else {
       /* restore info string modified */
       if (lpkg->info) {
@@ -1919,7 +1919,7 @@ Pkg_header_filename(pkg)
     char *name = get_name(pkg->h, RPMTAG_NAME);
     char *version = get_name(pkg->h, RPMTAG_VERSION);
     char *release = get_name(pkg->h, RPMTAG_RELEASE);
-    char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE) ? "src" : get_name(pkg->h, RPMTAG_ARCH);
+    char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
     char *filename = get_name(pkg->h, FILENAME_TAG);
 
     p += snprintf(buff, sizeof(buff), "%s-%s-%s.%s:", name, version, release, arch);
@@ -3681,14 +3681,14 @@ Urpm_spec2srcheader(specfile)
 /* Do not verify whether sources exist */
 #define SPEC_FORCE 1
   if (!parseSpec(ts, specfile, "/", NULL, 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE)) {
-    int_32 one = 1;
+    const char *zero = "";
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
     if (! spec->sourceHeader)
       initSourceHeader(spec);
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
-    headerAddEntry(spec->sourceHeader, RPMTAG_SOURCEPACKAGE, RPM_INT32_TYPE, &one, 1);
+    headerAddEntry(spec->sourceHeader, RPMTAG_SOURCERPM, RPM_INT32_TYPE, &zero, 1);
     pkg->h = headerLink(spec->sourceHeader);
     sv_pkg = sv_newmortal();
     sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
