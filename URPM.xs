@@ -2889,6 +2889,36 @@ Trans_remove(trans, name)
   OUTPUT:
   RETVAL
 
+int
+Trans_traverse(trans, callback)
+  URPM::Transaction trans
+  SV *callback
+  PREINIT:
+  rpmdbMatchIterator mi;
+  Header h;
+  int c = 0;
+  CODE:
+  mi = rpmtsInitIterator(trans->ts, RPMDBI_PACKAGES, NULL, 0);
+  while ((h = rpmdbNextIterator(mi))) {
+    if (SvROK(callback)) {
+      dSP;
+      URPM__Package pkg = calloc(1, sizeof(struct s_Package));
+      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
+      pkg->h = h;
+      PUSHMARK(SP);
+      XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
+      PUTBACK;
+      call_sv(callback, G_DISCARD | G_SCALAR);
+      SPAGAIN;
+      pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
+    }
+    ++c;
+  }
+  rpmdbFreeIterator(mi);
+  RETVAL = c;
+  OUTPUT:
+  RETVAL
+
 void
 Trans_check(trans, ...)
   URPM::Transaction trans

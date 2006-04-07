@@ -672,6 +672,11 @@ Recognized options are:
 
 They roughly correspond to command-line options to rpm(1).
 
+=item $trans->traverse($callback)
+
+Executes the specified callback (a code reference) for each package in the
+transaction, passing a C<URPM::Package> object as argument the callback.
+
 =back
 
 =head2 Macro handling functions
