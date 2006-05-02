@@ -1,3 +1,16 @@
+2006-04-07 12:07  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM.xs: Add function to traverse transactions
+
+2006-04-03 01:02  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: RPMTAG_SOURCEPACKAGE is going to be obsolete. Replace it
+	  by RPMTAG_SOURCERPM.
+
+2006-03-15 13:42  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.40
+
 2006-03-13 17:51  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* Makefile.PL: Get version comparison right
