@@ -63,7 +63,7 @@ hdlist files and manage them in memory.
 
 %changelog
 * Mon May 22 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.42-1mdk
-- Fix FD leak (Pascal Terjan, #22632)
+- Fix FD leak (Pascal Terjan)
 
 * Tue May 02 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.41-1mdk
 - Use more recent defines from the rpmlib
