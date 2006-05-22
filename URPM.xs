@@ -3453,6 +3453,7 @@ Urpm_verify_signature(filename)
     rpmtsOpenDB(ts, O_RDONLY);
     rpmtsSetVSFlags(ts, RPMVSF_DEFAULT);
     rc = rpmReadPackageFile(ts, fd, filename, &h);
+    fdClose(fd);
     *result = '\0';
     switch(rc) {
       case RPMRC_OK:
