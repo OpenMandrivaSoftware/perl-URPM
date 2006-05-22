@@ -1,3 +1,11 @@
+2006-05-22 12:22  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Patch by Pascal Terjan to fix a FD leak (bug #22632)
+
+2006-05-02 10:33  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.41
+
 2006-04-07 12:07  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.pm, URPM.xs: Add function to traverse transactions

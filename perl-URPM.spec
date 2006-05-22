@@ -5,7 +5,7 @@
 
 %define name perl-URPM
 %define real_name URPM
-%define version 1.41
+%define version 1.42
 %define release %mkrel 1
 
 %define group %(perl -e 'printf "%%s\\n", "%_vendor" =~ /\\bmandr/i ? "Development/Perl" : "Applications/CPAN"')
@@ -62,6 +62,9 @@ hdlist files and manage them in memory.
 %{compat_perl_vendorarch}/auto/URPM/URPM.so
 
 %changelog
+* Mon May 22 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.42-1mdk
+- Fix FD leak (Pascal Terjan)
+
 * Tue May 02 2006 Rafael Garcia-Suarez <rgarciasuarez@mandriva.com> 1.41-1mdk
 - Use more recent defines from the rpmlib
 - Add a function to traverse transactions
