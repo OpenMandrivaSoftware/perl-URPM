@@ -1,3 +1,21 @@
+2006-05-23 23:32  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.xs: - fix urpmi .spec: aka ensure the rpm config is read
+	  with all macros before parsing a spec
+
+2006-05-22 15:43  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* perl-URPM.spec: Don't clobber rpm's changelog with too many
+	  details, there is a real changelog for that
+
+2006-05-22 15:32  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* perl-URPM.spec: add bug reference in 1.42-1mdk's changelog
+
+2006-05-22 13:41  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, perl-URPM.spec: 1.42
+
 2006-05-22 12:22  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.xs: Patch by Pascal Terjan to fix a FD leak (bug #22632)
