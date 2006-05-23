@@ -3707,6 +3707,8 @@ Urpm_spec2srcheader(specfile)
     URPM__Package pkg;
     Spec spec = NULL;
   PPCODE:
+/* ensure the config is in memory with all macro */
+  read_config_files(0);
 /* Do not verify architecture */
 #define SPEC_ANYARCH 1
 /* Do not verify whether sources exist */
