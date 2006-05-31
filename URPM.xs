@@ -26,6 +26,7 @@
 #undef Fflush
 #undef Mkdir
 #undef Stat
+#define _RPMPS_INTERNAL
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
 #include <rpm/rpmio.h>
@@ -2819,6 +2820,7 @@ Trans_add(trans, pkg, ...)
   if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL) {
     int update = 0;
     rpmRelocation *relocations = NULL;
+    rpmRelocation relptr = NULL;
     /* compability mode with older interface of add */
     if (items == 3) {
       update = SvIV(ST(2));
@@ -2838,14 +2840,15 @@ Trans_add(trans, pkg, ...)
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
 	      if (e != NULL && *e != NULL) {
-		relocations[j].oldPath = SvPV_nolen(*e);
+                relptr = *(relocations + j);
+                relptr->oldPath = SvPV_nolen(*e);
 	      }
 	    }
 	  }
 	}
       }
     }
-    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (void *)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
+    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
     free(relocations);
   } else RETVAL = 0;
