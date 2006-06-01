@@ -26,7 +26,9 @@
 #undef Fflush
 #undef Mkdir
 #undef Stat
-#define _RPMPS_INTERNAL
+#ifdef RPM_446
+#   define _RPMPS_INTERNAL
+#endif
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
 #include <rpm/rpmio.h>
@@ -2820,7 +2822,6 @@ Trans_add(trans, pkg, ...)
   if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL) {
     int update = 0;
     rpmRelocation *relocations = NULL;
-    rpmRelocation relptr = NULL;
     /* compability mode with older interface of add */
     if (items == 3) {
       update = SvIV(ST(2));
@@ -2840,8 +2841,12 @@ Trans_add(trans, pkg, ...)
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
 	      if (e != NULL && *e != NULL) {
-                relptr = *(relocations + j);
+#ifdef RPM_446
+		rpmRelocation relptr = relocations[j];
                 relptr->oldPath = SvPV_nolen(*e);
+#else
+                relocations[j].oldPath = SvPV_nolen(*e);
+#endif
 	      }
 	    }
 	  }

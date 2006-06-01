@@ -50,6 +50,9 @@ my $ccflags = '-Wall -fno-strict-aliasing';
 if ($version =~ /^4\.(4\.[5-9]$|4\.\d\d|[5-9]\.|\d\d)/) {
     $ccflags .= ' -DRPM_CALLBACK_LONGLONG';
 }
+if ($version eq '4.4.6') {
+    $ccflags .= ' -DRPM_446';
+}
 
 WriteMakefile(
     NAME	=> 'URPM',
