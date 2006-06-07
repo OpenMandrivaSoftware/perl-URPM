@@ -26,12 +26,22 @@ print "Found RPM version $version\n";
 my $rpmtopdir = `$rpm_path --eval '%{_topdir}'`;
 chomp $rpmtopdir;
 
+# to generate the ChangeLog depending on the checkout layout
+my $commonusername = "../common/";
+-d $commonusername or do {
+    $commonusername = "../../common/";
+    -d $commonusername or do {
+	$commonusername = "../../../common/";
+	-d $commonusername or $commonusername = "";
+    };
+};
+
 sub MY::postamble {
     <<"**MM**";
 .PHONY: ChangeLog rpmdist srpm rpm
 
 ChangeLog:
-	cvs2cl -W 400 -I ChangeLog --accum -U ../common/username
+	svn2cl --accum --strip-prefix=soft/rpm/perl-URPM/trunk --authors ${commonusername}username.xml
 	rm -f *.bak
 
 rpmdist: dist
