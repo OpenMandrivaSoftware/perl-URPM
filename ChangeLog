@@ -1,8 +1,21 @@
-2006-06-01 11:47  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+2006-06-12 10:29  rafael
 
-	* Makefile.PL, URPM.xs: It's nice to be able to compile with rpm
-	  4.4.6, but it's nice to be able to
-	  compile with older rpms too.
+	* URPM.xs: Fix passing of rpmRelocation structure with new layout
+	  in 4.4.6
+
+2006-06-12 10:20  rafael
+
+	* Makefile.PL: Fix rpm version detection. Generate ChangeLog under
+	  C locale.
+
+2006-06-07 09:41  rafael
+
+	* .cvsignore: Remove cvsignore file
+
+2006-06-07 09:39  rafael
+
+	* ChangeLog, Makefile.PL: Use svn2cl to generate ChangeLog, and
+	  regenerate it
 
 2006-05-31 21:10  Olivier Thauvin <thauvin at aerov.jussieu.fr>
 
