@@ -2853,7 +2853,11 @@ Trans_add(trans, pkg, ...)
 	}
       }
     }
+#ifdef RPM_446
+    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(pkg->flag & FLAG_ID)), update, *relocations) == 0;
+#else
     RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
+#endif
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
     free(relocations);
   } else RETVAL = 0;
