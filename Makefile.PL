@@ -17,6 +17,7 @@ unless (defined $rpm_path) {
 defined $rpm_path or die "Can't find rpm on this system\n";
 
 my $version = `LC_ALL=C $rpm_path --version`;
+chomp $version;
 $version =~ s/RPM version //;
 $version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/ 
     or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
@@ -41,7 +42,7 @@ sub MY::postamble {
 .PHONY: ChangeLog rpmdist srpm rpm
 
 ChangeLog:
-	svn2cl --accum --strip-prefix=soft/rpm/perl-URPM/trunk --authors ${commonusername}username.xml
+	LC_ALL=C svn2cl --accum --strip-prefix=soft/rpm/perl-URPM/trunk --authors ${commonusername}username.xml
 	rm -f *.bak
 
 rpmdist: dist
