@@ -364,7 +364,8 @@ specfile.
 
 =item open($prefix, $write_perm)
 
-Returns a new C<URPM::DB> object pointing on the local RPM database.
+Returns a new C<URPM::DB> object pointing on the local RPM database (or
+C<undef> on failure).
 
 $prefix defaults to C<""> and indicates the RPM DB root directory prefix if
 any. (See the B<--root> option to rpm(1)).

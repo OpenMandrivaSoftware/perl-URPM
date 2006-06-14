@@ -64,7 +64,8 @@ sub parse_pubkeys {
     my ($block, $content);
 
     my $db = $options{db};
-    $db ||= URPM::DB::open($options{root});
+    $db ||= URPM::DB::open($options{root})
+	or die "Can't open RPM DB, aborting\n";
 
     $db->traverse_tag('name', [ 'gpg-pubkey' ], sub {
 	    my ($p) = @_;
@@ -97,7 +98,8 @@ sub import_needed_pubkeys {
 
     #- use the same database handle to avoid re-opening multiple times the database.
     my $db = $options{db};
-    $db ||= URPM::DB::open($options{root}, 1);
+    $db ||= URPM::DB::open($options{root}, 1)
+	or die "Can't open RPM DB, aborting\n";
 
     #- assume $l is a reference to an array containing all the keys to import
     #- if needed.
