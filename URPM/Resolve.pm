@@ -931,6 +931,7 @@ sub compute_installed_flags {
 	#- compute flags.
 	foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
 	    my $pkg = $urpm->{depslist}[$_];
+	    next if !defined $pkg;
 	    $pkg->is_arch_compat && $pkg->name eq $p->name or next;
 	    #- compute only installed and upgrade flags.
 	    $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
