@@ -1736,6 +1736,11 @@ Pkg_compare_pkg(lpkg, rpkg)
 	  if (eorarch) *eorarch = 0; rscore = rpmMachineScore(RPM_MACHTABLE_INSTARCH, rarch);
 	  if (lscore == 0) {
 	    if (rscore == 0)
+#if 0
+              /* Nanar: TODO check this 
+               * hu ?? what is the goal of strcmp, some of arch are equivalent */
+              compare = 0
+#endif
 	      compare = strcmp(larch, rarch);
 	    else
 	      compare = -1;
