@@ -68,7 +68,7 @@ sub find_chosen_packages {
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this package is better than a possibly previously chosen package.
 	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
-	    if ($strict_arch) {
+	    if ($strict_arch && $pkg->arch ne 'src') {
 		my $n = $pkg->name;
 		defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
 		$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
@@ -88,7 +88,7 @@ sub find_chosen_packages {
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
-		    if ($strict_arch) {
+		    if ($strict_arch && $pkg->arch ne 'src') {
 			my $n = $pkg->name;
 			defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
 			$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
