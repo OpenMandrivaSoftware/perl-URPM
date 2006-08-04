@@ -3439,6 +3439,7 @@ Urpm_verify_rpm(filename, ...)
     } else {
       RETVAL = 1;
     }
+    fdClose(fd);
     rpmtsFree(ts);
   }
   rpmlogSetMask(oldlogmask);
