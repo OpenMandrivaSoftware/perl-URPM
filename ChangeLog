@@ -1,21 +1,65 @@
-2006-06-12 10:29  rafael
+2006-08-07 14:30  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.xs: - cleanup useless imported rpm dcl
+
+2006-08-07 14:25  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.xs: - remove useless declaration
+
+2006-08-04 09:41  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: Fix a FD leak (patch by Pascal Terjan, bug #24112)
+
+2006-08-01 13:21  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: strict-arch doesn't apply to src packages
+
+2006-07-25 21:50  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.xs: - add comment into code, need review
+
+2006-07-04 12:35  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: One might have an undefined package in the
+	  depslist (not sure why)
+
+2006-06-14 10:08  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.pm, URPM/Signature.pm: Verify if we can open the rpmdb, and
+	  abort if we can't (bug #22527)
+
+2006-06-12 10:41  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM.xs: That wasn't actually necessary
+
+2006-06-12 10:31  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* ChangeLog, URPM.pm, perl-URPM.spec: Bump version number
+
+2006-06-12 10:29  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM.xs: Fix passing of rpmRelocation structure with new layout
 	  in 4.4.6
 
-2006-06-12 10:20  rafael
+2006-06-12 10:20  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* Makefile.PL: Fix rpm version detection. Generate ChangeLog under
 	  C locale.
 
-2006-06-07 09:41  rafael
+2006-06-07 09:41  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* .cvsignore: Remove cvsignore file
 
-2006-06-07 09:39  rafael
+2006-06-07 09:39  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* ChangeLog, Makefile.PL: Use svn2cl to generate ChangeLog, and
 	  regenerate it
+
+2006-06-01 11:47  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* Makefile.PL, URPM.xs: It's nice to be able to compile with rpm
+	  4.4.6, but it's nice to be able to
+	  compile with older rpms too.
 
 2006-05-31 21:10  Olivier Thauvin <thauvin at aerov.jussieu.fr>
 
