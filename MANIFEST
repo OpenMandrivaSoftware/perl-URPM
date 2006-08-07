@@ -14,6 +14,5 @@ t/parse.t
 t/rpmdb.t
 t/synthesis.t
 ChangeLog
-perl-URPM.spec
 META.yml                                 Module meta-data (added by MakeMaker)
 test-rpm.spec
