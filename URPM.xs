@@ -101,12 +101,6 @@ typedef struct s_Package* URPM__Package;
      1 for rpm 4.2 and better new approach. */
 #define PROMOTE_EPOCH_SENSE       1
 
-/* these are in rpmlib but not in rpmlib.h */
-int readLead(FD_t fd, struct rpmlead *lead);
-/* Importing rpm hidden functions,
-     Does RedHat try to force using their fucking functions using char **
-     as direct mapping of rpm command line options ? */
-
 /* almost direct importation of rpmio_internal.h */
 
 /** \ingroup rpmio
