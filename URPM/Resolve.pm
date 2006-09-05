@@ -112,7 +112,8 @@ sub find_chosen_packages {
 	#- required).
 	#- If there is no preference, choose the first one by default (higher
 	#- probability of being chosen) and ask the user.
-	#- Takes better architectures into account.
+	#- Packages with more compatibles architectures are always preferred.
+	#- Puts the results in @chosen. Other are left unordered.
 	foreach my $p (values(%packages)) {
 	    unless ($p->flag_upgrade || $p->flag_installed) {
 		#- assume for this small algorithm package to be upgradable.
@@ -144,10 +145,14 @@ sub find_chosen_packages {
 	    push @chosen, $p;
 	}
 
-	#- if several packages are installed, trim the choices.
-	if (!$urpm->{options}{morechoices} && $install && @chosen > 1) { @chosen = ($chosen[0]) }
+	#- if several packages were selected to match a requested installation,
+	#- and if --more-choices wasn't given, trim the choices to the first one.
+	if (!$urpm->{options}{morechoices} && $install && @chosen > 1) {
+	    return ($chosen[0]);
+	}
 
-	#- packages that require locales-xxx when the corresponding locales are
+	#- Now we split @chosen in priority lists depending on locale.
+	#- Packages that require locales-xxx when the corresponding locales are
 	#- already installed should be preferred over packages that require locales
 	#- which are not installed.
 	foreach (@chosen) {
