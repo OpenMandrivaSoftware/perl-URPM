@@ -145,10 +145,28 @@ sub find_chosen_packages {
 	    push @chosen, $p;
 	}
 
+	#- return immediately if there is only one chosen package
+	if (@chosen == 1) { return @chosen }
+
 	#- if several packages were selected to match a requested installation,
 	#- and if --more-choices wasn't given, trim the choices to the first one.
 	if (!$urpm->{options}{morechoices} && $install && @chosen > 1) {
 	    return ($chosen[0]);
+	}
+
+	#- prefer kernel-source-stripped over kernel-source
+	{
+	    my (@k_chosen, $stripped_kernel);
+	    foreach my $p (@chosen) {
+		warn "*** ".$p->name;
+		if ($p->name =~ /^kernel-source-stripped/) { #- fast, but unportable
+		    unshift @k_chosen, $p;
+		    $stripped_kernel = 1;
+		} else {
+		    push @k_chosen, $p;
+		}
+	    }
+	    return @k_chosen if $stripped_kernel;
 	}
 
 	#- Now we split @chosen in priority lists depending on locale.
