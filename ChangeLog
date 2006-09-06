@@ -1,3 +1,33 @@
+2006-09-06 09:15  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: Oops, remove debug code
+
+2006-09-06 09:13  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: prefer kernel-source-stripped over kernel-source
+
+2006-09-05 16:14  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: Micro-optimisation, and make comments more
+	  explicit
+
+2006-08-07 14:44  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* ChangeLog, URPM.pm: Bump version, regen changelog
+
+2006-08-07 14:40  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* MANIFEST, perl-URPM.spec: Remove perl-URPM.spec, checked in in
+	  repsys
+
+2006-08-07 14:30  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.xs: - cleanup useless imported rpm dcl
+
+2006-08-07 14:25  Olivier Thauvin <thauvin at aerov.jussieu.fr>
+
+	* URPM.xs: - remove useless declaration
+
 2006-08-07 14:30  Olivier Thauvin <thauvin at aerov.jussieu.fr>
 
 	* URPM.xs: - cleanup useless imported rpm dcl
