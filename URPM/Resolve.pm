@@ -158,7 +158,6 @@ sub find_chosen_packages {
 	{
 	    my (@k_chosen, $stripped_kernel);
 	    foreach my $p (@chosen) {
-		warn "*** ".$p->name;
 		if ($p->name =~ /^kernel-source-stripped/) { #- fast, but unportable
 		    unshift @k_chosen, $p;
 		    $stripped_kernel = 1;
