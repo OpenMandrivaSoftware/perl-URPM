@@ -529,11 +529,8 @@ sub build_base_files {
 
 our $MAKEDELTARPM = '/usr/bin/makedeltarpm';
 
-=item make_delta_rpm($old_rpm_file, $new_rpm_file)
-
-Creates a delta rpm in the current directory.
-
-=cut
+#- make_delta_rpm($old_rpm_file, $new_rpm_file)
+# Creates a delta rpm in the current directory.
 
 sub make_delta_rpm ($$) {
     @_ == 2 or return 0;

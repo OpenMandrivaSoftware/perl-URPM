@@ -11,6 +11,7 @@ URPM/Signature.pm
 t/00prepare.t
 t/fatal.t
 t/parse.t
+t/pod.t
 t/rpmdb.t
 t/synthesis.t
 ChangeLog
