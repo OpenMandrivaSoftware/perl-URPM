@@ -542,12 +542,12 @@ sub resolve_requested {
 				      });
 		}
 		if ($pkg->flag_installed && !$pkg->flag_upgrade) {
-		    my $allow;
-		    #- the same or a more recent package is installed,
+		    my $allow = 1;
 		    $db->traverse_tag('name', [ $pkg->name ], sub {
-					  my ($p) = @_;
-					  $allow ||= $pkg->compare_pkg($p) < 0;
-				      });
+			    my ($p) = @_;
+			    #- allow if a less recent package is installed,
+			    $allow &&= $pkg->compare_pkg($p) > 0;
+			});
 		    #- if nothing has been found, just ignore it.
 		    $allow or next;
 		}
