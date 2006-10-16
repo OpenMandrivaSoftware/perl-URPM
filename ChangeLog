@@ -1,3 +1,20 @@
+2006-10-16 10:11  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: Patch by Pixel to ignore self-obsoletes
+
+2006-09-21 09:49  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* URPM/Resolve.pm: Invert bogus check
+
+2006-09-07 09:12  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* MANIFEST, URPM/Build.pm, t/pod.t: Add POD test, remove sole pod
+	  fragment in URPM::Build
+
+2006-09-06 11:37  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
+
+	* ChangeLog, URPM.pm: Bump version to 1.46
+
 2006-09-06 09:15  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM/Resolve.pm: Oops, remove debug code
