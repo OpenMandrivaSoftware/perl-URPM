@@ -571,8 +571,14 @@ sub resolve_requested {
 	    if ($pkg->arch ne 'src' && !$pkg->flag_disable_obsolete) {
 		my (%diff_provides);
 
+		my $first;
 		foreach ($pkg->name . " < " . $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release, $pkg->obsoletes) {
 		    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
+			if ($first++ && $n eq $pkg->name) {
+			    #- ignore if this package obsoletes itself
+			    #- otherwise this can cause havoc if: to_install=v3, installed=v2, v3 obsoletes < v2
+			    next;
+			}
 			#- populate avoided entries according to what is selected.
 			foreach (keys %{$urpm->{provides}{$n} || {}}) {
 			    my $p = $urpm->{depslist}[$_];
