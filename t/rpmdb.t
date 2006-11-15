@@ -40,6 +40,8 @@ is($pkg_perl, $pkg_perl_extern, '... with the correct fullname');
 my @all_pkgs_sorted = sort { $a cmp $b } @all_pkgs;
 my $bad_pkgs = 0;
 foreach (0..$#all_pkgs_sorted) {
-    $all_pkgs_sorted[$_] eq $all_pkgs_extern[$_] or ++$bad_pkgs;
+    $all_pkgs_sorted[$_] eq $all_pkgs_extern[$_] and next;
+    diag($all_pkgs_extern[$_] . " vs " . $all_pkgs_sorted[$_]);
+    ++$bad_pkgs;
 }
 is($bad_pkgs, 0, 'no mismatch between package lists');
