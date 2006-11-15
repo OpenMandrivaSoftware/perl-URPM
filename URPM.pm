@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.47';
+our $VERSION = '1.48';
 
 URPM->bootstrap($VERSION);
 
@@ -24,7 +24,7 @@ sub new {
     $self;
 }
 
-sub set_nofatal { $_[0]->{nofatal} = $_[1] }
+sub set_nofatal { $_[0]{nofatal} = $_[1] }
 
 sub search {
     my ($urpm, $name, %options) = @_;
@@ -81,7 +81,7 @@ sub search {
 sub build_listid {
     my ($urpm, $start, $end, $listid) = @_;
 
-    @{$listid || []} > 0 ? @{$listid} :
+    @{$listid || []} > 0 ? @$listid :
         (($start || 0) .. (defined($end) ? $end : $#{$urpm->{depslist}}));
 }
 
@@ -268,7 +268,7 @@ epoch C<== 0>.
 B<Warning>: $nopromoteepoch actually defaults to 1, so if you're going to
 pass a variable, make sure undef is treated like 1, not 0.
 
-=item $urpm->parse_synthesis($file, [ callback => sub {...} ])
+=item $urpm->parse_synthesis($file [, callback => sub {...} ])
 
 This method gets the B<depslist> and the B<provides> from a synthesis file
 and adds them to the URPM object.
