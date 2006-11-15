@@ -42,6 +42,4 @@ my $bad_pkgs = 0;
 foreach (0..$#all_pkgs_sorted) {
     $all_pkgs_sorted[$_] eq $all_pkgs_extern[$_] or ++$bad_pkgs;
 }
-warn "# ".@all_pkgs_extern[0..3]."\n";
-warn "# ".@all_pkgs_sorted[0..3]."\n";
 is($bad_pkgs, 0, 'no mismatch between package lists');
