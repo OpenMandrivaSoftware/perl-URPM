@@ -2992,7 +2992,7 @@ Urpm_ranges_overlap(a, b, b_nopromote=1)
   RETVAL
 
 void
-Urpm_parse_synthesis(urpm, filename, ...)
+Urpm_parse_synthesis__XS(urpm, filename, ...)
   SV *urpm
   char *filename
   PPCODE:
@@ -3066,7 +3066,7 @@ Urpm_parse_synthesis(urpm, filename, ...)
   } else croak("first argument should be a reference to a HASH");
 
 void
-Urpm_parse_hdlist(urpm, filename, ...)
+Urpm_parse_hdlist__XS(urpm, filename, ...)
   SV *urpm
   char *filename
   PPCODE:

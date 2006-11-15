@@ -158,6 +158,23 @@ sub traverse_tag {
     $count;
 }
 
+sub parse_hdlist_or_synthesis {
+    my ($parse_func, $urpm, $file, %options) = @_;
+
+    my $previous_indice = @{$urpm->{depslist}};
+    if (my ($start, $end) = $parse_func->($urpm, $file, %options)) {
+	($start, $end);
+    } else {
+	#- parse_hdlist__XS may have added some pkgs to {depslist},
+	#- but we don't want those pkgs since reading hdlist failed later.
+	#- so we need to drop them
+	splice(@{$urpm->{depslist}}, $previous_indice);
+	();
+    }
+}
+sub parse_synthesis { parse_hdlist_or_synthesis(\&parse_synthesis__XS, @_) }
+sub parse_hdlist { parse_hdlist_or_synthesis(\&parse_hdlist__XS, @_) }
+
 sub add_macro {
     my ($s) = @_;
     #- quote for rpmlib, *sigh*
