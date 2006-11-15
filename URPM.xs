@@ -879,7 +879,7 @@ update_provides_files(URPM__Package pkg, HV *provides) {
 }
 
 int
-open_archive(char *filename, pid_t *pid) {
+open_archive(char *filename, pid_t *pid, int *empty_archive) {
   int fd;
   struct {
     char header[4];
@@ -893,10 +893,13 @@ open_archive(char *filename, pid_t *pid) {
 
   fd = open(filename, O_RDONLY);
   if (fd >= 0) {
-    lseek(fd, -(int)sizeof(buf), SEEK_END);
+    int pos = lseek(fd, -(int)sizeof(buf), SEEK_END);
     if (read(fd, &buf, sizeof(buf)) != sizeof(buf) || strncmp(buf.header, "cz[0", 4) || strncmp(buf.trailer, "0]cz", 4)) {
       /* this is not an archive, open it without magic, but first rewind at begin of file */
       lseek(fd, 0, SEEK_SET);
+    } else if (pos == 0) {
+      *empty_archive = 1;
+      fd = -1;
     } else {
       /* this is an archive, create a pipe and fork for reading with uncompress defined inside */
       int fdno[2];
@@ -3045,9 +3048,9 @@ Urpm_parse_synthesis(urpm, filename, ...)
 	    p = &buff[buff_len-(p-buff)];
 	  }
 	}
-	gzclose(f);
+	int ok = gzclose(f) == 0;
 	SPAGAIN;
-	if (av_len(depslist) >= start_id) {
+	if (ok) {
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	}
@@ -3076,13 +3079,17 @@ Urpm_parse_hdlist(urpm, filename, ...)
     if (depslist != NULL) {
       pid_t pid;
       int d;
+      int empty_archive = 0;
       FD_t fd;
 
-      d = open_archive(filename, &pid);
+      d = open_archive(filename, &pid, &empty_archive);
       fd = fdDup(d);
       close(d);
 
-      if (fdFileno(fd) >= 0) {
+      if (empty_archive) {
+	  XPUSHs(sv_2mortal(newSViv(1 + av_len(depslist))));
+	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
+      } else if (fdFileno(fd) >= 0) {
 	Header header;
 	int start_id = 1 + av_len(depslist);
 	int packing = 0;
@@ -3141,14 +3148,18 @@ Urpm_parse_hdlist(urpm, filename, ...)
 	    }
 	  }
 	} while (header != NULL);
-	fdClose(fd);
+
+	int ok = fdClose(fd) == 0;
+
 	if (pid) {
 	  kill(pid, SIGTERM);
-	  waitpid(pid, NULL, 0);
+	  int status;
+	  int rc = waitpid(pid, &status, 0);
+	  ok = rc != -1 && WEXITSTATUS(status) != 1; /* in our standard case, gzip will exit with status code 2, meaning "decompression OK, trailing garbage ignored" */
 	  pid = 0;
 	}
 	SPAGAIN;
-	if (av_len(depslist) >= start_id) {
+	if (ok) {
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
 	}
