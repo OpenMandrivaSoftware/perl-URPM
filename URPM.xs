@@ -3157,6 +3157,8 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	  int rc = waitpid(pid, &status, 0);
 	  ok = rc != -1 && WEXITSTATUS(status) != 1; /* in our standard case, gzip will exit with status code 2, meaning "decompression OK, trailing garbage ignored" */
 	  pid = 0;
+	} else if (!empty_archive) {
+	  ok = av_len(depslist) >= start_id;
 	}
 	SPAGAIN;
 	if (ok) {
