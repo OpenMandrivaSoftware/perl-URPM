@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 35;
+use Test::More tests => 39;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
@@ -32,6 +32,22 @@ TODO: {
     is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
 	q/get headers from parsing rpm/);
 }
+
+system('touch t/headers/empty');
+is(URPM->new->parse_hdlist('t/headers/empty'), undef, 'empty header');
+system('echo FOO > t/headers/bad');
+is(URPM->new->parse_hdlist('t/headers/bad'), undef, 'bad rpm header');
+
+$a->build_hdlist(
+    start  => 0,
+    end    => -1,
+    hdlist => 't/empty_hdlist.cz',
+);
+ok(-f 't/empty_hdlist.cz');
+
+($start, $end) = URPM->new->parse_hdlist('t/empty_hdlist.cz');
+is("$start $end", "0 -1", 'empty hdlist');
+
 
 $a->build_hdlist(
     start  => 0,
