@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 29;
+use Test::More tests => 35;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
@@ -44,6 +44,7 @@ ok(-f 'hdlist.cz');
 
 my $b = new URPM;
 ($start, $end) = $b->parse_hdlist('hdlist.cz', keep_all_tags => 1);
+is("$start $end", "0 0", 'parse_hdlist');
 ok(@{$b->{depslist}} == 1);
 $pkg = $b->{depslist}[0];
 ok($pkg);
@@ -52,6 +53,17 @@ is($pkg->get_tag(1001), '1.0', 'version');
 is($pkg->get_tag(1002), '1mdk', 'release');
 is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
     q/get headers from hdlist/);
+
+my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "t/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
+						    dir => 't/headers') ] };
+is($@, '', 'parse_rpms_build_headers');
+is(int @$headers, 1, 'parse_rpms_build_headers');
+ok(@{$b->{depslist}} == 2);
+($start, $end) = eval { $b->parse_headers(dir => "t/headers", headers => $headers) };
+is($@, '', 'parse_headers');
+is("$start $end", "2 2", 'parse_headers');
+
+
 
 # Version comparison
 ok(URPM::rpmvercmp("1-1mdk",     "1-1mdk") ==  0, "Same value = 0");

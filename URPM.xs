@@ -3077,7 +3077,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
 
     if (depslist != NULL) {
-      pid_t pid;
+      pid_t pid = 0;
       int d;
       int empty_archive = 0;
       FD_t fd;
