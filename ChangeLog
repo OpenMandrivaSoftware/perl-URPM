@@ -1,3 +1,95 @@
+2006-11-21 07:54  Pixel <pixel at mandriva.com>
+
+	* URPM/Resolve.pm: resolve_rejected: nodeps is also recognised
+	  (through backtrack_selected)
+
+2006-11-17 17:46  Pixel <pixel at mandriva.com>
+
+	* URPM/Build.pm: parse_rpms_build_headers: allow asking for
+	  packing (fixes an error in urpmi)
+
+2006-11-17 16:43  Pixel <pixel at mandriva.com>
+
+	* t/parse.t: add some tests on empty header, buggy header, empty
+	  hdlist
+
+2006-11-17 16:42  Pixel <pixel at mandriva.com>
+
+	* URPM.xs: at least one good header is needed for non compressed
+	  hdlist and non empty file
+	* URPM/Build.pm: allow building empty hdlist & synthesis
+
+2006-11-17 16:25  Pixel <pixel at mandriva.com>
+
+	* URPM.xs, t/parse.t: - parse_hdlist on a simple header was broken
+	  because pid was left unset,
+	  - add some tests for this
+
+2006-11-15 12:21  Pixel <pixel at mandriva.com>
+
+	* t/rpmdb.t: do display on which pkgs the 2 sorted lists disagree
+
+2006-11-15 11:49  Pixel <pixel at mandriva.com>
+
+	* URPM.pm, URPM.xs: add a wrapper in perl around parse_hdlist and
+	  parse_synthesis
+
+2006-11-15 11:47  Pixel <pixel at mandriva.com>
+
+	* t/rpmdb.t: remove debug stuff
+
+2006-11-15 11:28  Pixel <pixel at mandriva.com>
+
+	* URPM.pm: make the prototype of parse_synthesis more clear in the
+	  pod
+
+2006-11-15 11:14  Pixel <pixel at mandriva.com>
+
+	* URPM.xs: parse_synthesis, parse_hdlist: handle gzip error status
+	  instead of relying on
+	  wether we did read at least one header. This allow "empty"
+	  hdlist/synthesis.
+	  But it means it is getting stricter, and the headers added to
+	  {depslist} would
+	  need to be removed if an error occured. Alas i don't know how to
+	  do it (a
+	  simple splice) in XS. If no better solution, i'll create a
+	  wrapper function in
+	  perl.
+
+2006-11-10 14:18  Pixel <pixel at mandriva.com>
+
+	* URPM/Build.pm: use the documented way to call ->parse_hdlist,
+	  not the deprecated one
+
+2006-11-09 15:05  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM/Resolve.pm: (find_chosen_packages) default to strict-arch
+	  on 64bits
+
+2006-11-07 13:27  Pixel <pixel at mandriva.com>
+
+	* ChangeLog, URPM.pm: new release, no real change except
+	  perl_checker compliant
+
+2006-11-03 15:41  Pixel <pixel at mandriva.com>
+
+	* URPM/Resolve.pm: perl_checker compliance
+
+2006-11-03 15:21  Pixel <pixel at mandriva.com>
+
+	* .perl_checker, URPM.pm, URPM/.perl_checker, URPM/Build.pm,
+	  URPM/Resolve.pm: perl_checker compliance
+
+2006-11-03 15:41  Pixel <pixel at mandriva.com>
+
+	* URPM/Resolve.pm: perl_checker compliance
+
+2006-11-03 15:21  Pixel <pixel at mandriva.com>
+
+	* .perl_checker, URPM.pm, URPM/.perl_checker, URPM/Build.pm,
+	  URPM/Resolve.pm: perl_checker compliance
+
 2006-10-16 10:11  Rafael Garcia-Suarez <rgarciasuarez at mandriva.com>
 
 	* URPM/Resolve.pm: Patch by Pixel to ignore self-obsoletes
