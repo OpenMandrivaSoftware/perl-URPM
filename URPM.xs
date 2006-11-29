@@ -2692,7 +2692,7 @@ Trans_add(trans, pkg, ...)
 #ifdef RPM_446
 	    relocations = calloc(j + 1, sizeof(*relocations));
 #else
-	    relocations = calloc(2 + av_len(excludepath), sizeof(rpmRelocation));
+	    relocations = calloc(j + 1, sizeof(rpmRelocation));
 #endif
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
