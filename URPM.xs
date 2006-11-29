@@ -2690,7 +2690,7 @@ Trans_add(trans, pkg, ...)
 	    AV *excludepath = (AV*)SvRV(ST(i+1));
 	    I32 j = 1 + av_len(excludepath);
 #ifdef RPM_446
-	    relocations = calloc(j + 2, sizeof(*relocations));
+	    relocations = calloc(j + 1, sizeof(*relocations));
 #else
 	    relocations = calloc(2 + av_len(excludepath), sizeof(rpmRelocation));
 #endif
