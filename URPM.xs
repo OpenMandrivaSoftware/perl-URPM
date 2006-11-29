@@ -2669,7 +2669,11 @@ Trans_add(trans, pkg, ...)
   CODE:
   if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL) {
     int update = 0;
+#ifdef RPM_446
+    rpmRelocation  relocations = NULL;
+#else
     rpmRelocation *relocations = NULL;
+#endif
     /* compability mode with older interface of add */
     if (items == 3) {
       update = SvIV(ST(2));
@@ -2689,19 +2693,14 @@ Trans_add(trans, pkg, ...)
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
 	      if (e != NULL && *e != NULL) {
-#ifdef RPM_446
-		rpmRelocation relptr = relocations[j];
-                relptr->oldPath = SvPV_nolen(*e);
-#else
                 relocations[j].oldPath = SvPV_nolen(*e);
-#endif
 	      }
 	    }
 	  }
 	}
       }
     }
-    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(pkg->flag & FLAG_ID)), update, *relocations) == 0;
+    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
     free(relocations);
   } else RETVAL = 0;
