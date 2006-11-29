@@ -2689,7 +2689,11 @@ Trans_add(trans, pkg, ...)
 	  if (SvROK(ST(i+1)) && SvTYPE(SvRV(ST(i+1))) == SVt_PVAV) {
 	    AV *excludepath = (AV*)SvRV(ST(i+1));
 	    I32 j = 1 + av_len(excludepath);
+#ifdef RPM_446
+	    relocations = calloc(j + 2, sizeof(*relocations));
+#else
 	    relocations = calloc(2 + av_len(excludepath), sizeof(rpmRelocation));
+#endif
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
 	      relocations[j].newPath = NULL;
