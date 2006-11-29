@@ -2696,7 +2696,6 @@ Trans_add(trans, pkg, ...)
 #endif
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
-	      relocations[j].newPath = NULL;
 	      if (e != NULL && *e != NULL) {
                 relocations[j].oldPath = SvPV_nolen(*e);
 	      }
