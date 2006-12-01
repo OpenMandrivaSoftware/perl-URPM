@@ -3327,7 +3327,7 @@ Urpm_verify_signature(filename)
     *result = '\0';
     switch(rc) {
       case RPMRC_OK:
-	{
+	if (h) {
 	  char *fmtsig = headerSprintf(
 	      h,
 	      "%|DSAHEADER?{%{DSAHEADER:pgpsig}}:{%|RSAHEADER?{%{RSAHEADER:pgpsig}}:"
@@ -3335,7 +3335,7 @@ Urpm_verify_signature(filename)
 	      rpmTagTable, rpmHeaderFormats, NULL);
 	  snprintf(result, sizeof(result), "OK (%s)", fmtsig);
 	  free(fmtsig);
-	}
+	} else snprintf(result, sizeof(result), "NOT OK (bad rpm): %s", rpmErrorString());
 	break;
       case RPMRC_NOTFOUND:
 	snprintf(result, sizeof(result), "NOT OK (signature not found): %s", rpmErrorString());
