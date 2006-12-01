@@ -1031,7 +1031,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	close(d);
 	ts = rpmtsCreate();
 	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES | vsflags);
-	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0) {
+	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0 && header) {
 	  struct stat sb;
 	  char *basename;
 	  int_32 size;
