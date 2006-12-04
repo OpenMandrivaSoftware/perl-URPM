@@ -3031,7 +3031,8 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	memset(&pkg, 0, sizeof(struct s_Package));
 	buff[sizeof(buff)-1] = 0;
 	p = buff;
-	while ((buff_len = gzread(f, p, sizeof(buff)-1-(p-buff)) + (p-buff)) != 0) {
+	while ((buff_len = gzread(f, p, sizeof(buff)-1-(p-buff))) >= 0 &&
+	       (buff_len += p-buff)) {
 	  p = buff;
 	  if ((eol = strchr(p, '\n')) != NULL) {
 	    do {
@@ -3047,7 +3048,9 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	    parse_line(depslist, provides, &pkg, p, urpm, callback);
 	    break;
 	  } else {
+	    /* move the remaining non-complete-line at beginning */
 	    memmove(buff, p, buff_len-(p-buff));
+	    /* point to the end of the non-complete-line */
 	    p = &buff[buff_len-(p-buff)];
 	  }
 	}
