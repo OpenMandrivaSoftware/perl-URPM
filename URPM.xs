@@ -3033,6 +3033,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	p = buff;
 	while ((buff_len = gzread(f, p, sizeof(buff)-1-(p-buff))) >= 0 &&
 	       (buff_len += p-buff)) {
+	  buff[buff_len] = 0;
 	  p = buff;
 	  if ((eol = strchr(p, '\n')) != NULL) {
 	    do {
