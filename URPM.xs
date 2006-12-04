@@ -979,14 +979,16 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
   return sv_pkg != NULL;
 }
 
-static void
+static int
 parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, SV *callback) {
   SV *sv_pkg;
   URPM__Package _pkg;
   char *tag, *data;
   int data_len;
 
-  if ((tag = strchr(buff, '@')) != NULL && (data = strchr(tag+1, '@')) != NULL) {
+  if (buff[0] == 0) {
+    return 1;
+  } else if ((tag = buff)[0] == '@' && (data = strchr(tag+1, '@')) != NULL) {
     *tag++ = *data++ = 0;
     data_len = 1+strlen(data);
     if (!strcmp(tag, "info")) {
@@ -1011,6 +1013,10 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, 
     } else if (!strcmp(tag, "summary")) {
       free(pkg->summary); pkg->summary = memcpy(malloc(data_len), data, data_len);
     }
+    return 1;
+  } else {
+    fprintf(stderr, "bad line <%s>\n", buff);
+    return 0;
   }
 }
 
@@ -3031,6 +3037,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	memset(&pkg, 0, sizeof(struct s_Package));
 	buff[sizeof(buff)-1] = 0;
 	p = buff;
+	int ok = 1;
 	while ((buff_len = gzread(f, p, sizeof(buff)-1-(p-buff))) >= 0 &&
 	       (buff_len += p-buff)) {
 	  buff[buff_len] = 0;
@@ -3038,15 +3045,17 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	  if ((eol = strchr(p, '\n')) != NULL) {
 	    do {
 	      *eol++ = 0;
-	      parse_line(depslist, provides, &pkg, p, urpm, callback);
+	      if (!parse_line(depslist, provides, &pkg, p, urpm, callback)) { ok = 0; break; }
 	      p = eol;
 	    } while ((eol = strchr(p, '\n')) != NULL);
 	  } else {
 	    /* a line larger than sizeof(buff) has been encountered, bad file problably */
+	    fprintf(stderr, "invalid line <%s>\n", p);
+	    ok = 0;
 	    break;
 	  }
 	  if (gzeof(f)) {
-	    parse_line(depslist, provides, &pkg, p, urpm, callback);
+	    if (!parse_line(depslist, provides, &pkg, p, urpm, callback)) ok = 0;
 	    break;
 	  } else {
 	    /* move the remaining non-complete-line at beginning */
@@ -3055,7 +3064,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	    p = &buff[buff_len-(p-buff)];
 	  }
 	}
-	int ok = gzclose(f) == 0;
+	if (gzclose(f) != 0) ok = 0;
 	SPAGAIN;
 	if (ok) {
 	  XPUSHs(sv_2mortal(newSViv(start_id)));

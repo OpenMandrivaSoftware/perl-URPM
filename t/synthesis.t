@@ -2,19 +2,19 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 86;
+use Test::More tests => 88;
 use URPM;
 
 my $file1 = 'synthesis.sample.cz';
 
 open my $f, "| gzip -9 >$file1";
-print $f q{
-glibc-devel@provides@glibc-devel == 6:2.2.4-25mdk
-glibc-devel@requires@/sbin/install-info@glibc == 2.2.4@kernel-headers@kernel-headers >= 2.2.1@/bin/sh@/bin/sh@/bin/sh@rpmlib(PayloadFilesHavePrefix) <= 4.0-1@rpmlib(CompressedFileNames) <= 3.0.4-1
-glibc-devel@conflicts@texinfo < 3.11@gcc < 2.96-0.50mdk
-glibc-devel@obsoletes@libc-debug@libc-headers@libc-devel@linuxthreads-devel@glibc-debug
-glibc-devel@info@glibc-devel-2.2.4-25mdk.i586@6@45692097@Development/C
-};
+print $f <<'EOF';
+@provides@glibc-devel == 6:2.2.4-25mdk
+@requires@/sbin/install-info@glibc == 2.2.4@kernel-headers@kernel-headers >= 2.2.1@/bin/sh@/bin/sh@/bin/sh@rpmlib(PayloadFilesHavePrefix) <= 4.0-1@rpmlib(CompressedFileNames) <= 3.0.4-1
+@conflicts@texinfo < 3.11@gcc < 2.96-0.50mdk
+@obsoletes@libc-debug@libc-headers@libc-devel@linuxthreads-devel@glibc-debug
+@info@glibc-devel-2.2.4-25mdk.i586@6@45692097@Development/C
+EOF
 close $f;
 
 END { unlink $file1 }
@@ -22,9 +22,16 @@ END { unlink $file1 }
 my $a = new URPM;
 ok($a);
 
-my ($first, $end) = $a->parse_synthesis($file1);
+my ($first, $end);
+
+($first, $end) = URPM->new->parse_synthesis('t/empty_synthesis.cz');
+is("$first $end", "0 -1", 'parse empty synthesis');
+
+is(URPM->new->parse_synthesis('t/buggy_synthesis.cz'), undef, 'parse buggy synthesis');
+
+($first, $end) = $a->parse_synthesis($file1);
 ok($first == 0 && $end == 0);
-ok(@{$a->{depslist}} == 1);
+is(int @{$a->{depslist}}, 1);
 ok(keys(%{$a->{provides}}) == 3);
 ok(defined $a->{provides}{'glibc-devel'});
 ok(exists $a->{provides}{'/bin/sh'});
