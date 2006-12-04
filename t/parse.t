@@ -16,7 +16,7 @@ URPM::setVerbosity(2);
 my $a = new URPM;
 ok($a);
 
-END { unlink 'hdlist.cz' }
+END { unlink 'hdlist.cz', 't/empty_hdlist.cz' }
 
 my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "t/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
 ok(@{$a->{depslist}} == 1);
