@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.51';
+our $VERSION = '1.52';
 
 URPM->bootstrap($VERSION);
 
@@ -168,6 +168,7 @@ sub parse_hdlist_or_synthesis {
 	#- parse_hdlist__XS may have added some pkgs to {depslist},
 	#- but we don't want those pkgs since reading hdlist failed later.
 	#- so we need to drop them
+	#- FIXME: {provides} would need to be reverted too!
 	splice(@{$urpm->{depslist}}, $previous_indice);
 	();
     }

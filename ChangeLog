@@ -1,3 +1,83 @@
+2006-12-04 10:28  Pixel <pixel at mandriva.com>
+
+	* URPM.xs: correctly set "\0"
+
+2006-12-04 10:23  Pixel <pixel at mandriva.com>
+
+	* t/parse.t: remove temp file
+
+2006-12-04 09:43  Pixel <pixel at mandriva.com>
+
+	* URPM.xs: correctly handle gzread error code
+
+2006-12-01 16:21  Pixel <pixel at mandriva.com>
+
+	* URPM.xs: rpmReadPackageFile() can return ok but no header :-/
+
+2006-12-01 16:14  Pixel <pixel at mandriva.com>
+
+	* URPM.pm, URPM.xs: rpmReadPackageFile() can return ok but no
+	  header :-/
+
+2006-11-29 22:24  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM.xs: (Trans_add) factorize size to allocate
+
+2006-11-29 22:23  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM.xs: (Trans_add) adjust allocated memory
+
+2006-11-29 22:22  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM.xs: (Trans_add) remove guard, proper fix is now enough
+
+2006-11-29 22:21  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM.xs: (Trans_add) fix segfault on ia32 (when one replace
+	  "struct foobar" by
+	  "foobar*", he should expect sizeof() to *slightly* differ in
+	  results)
+
+2006-11-29 17:08  Pixel <pixel at mandriva.com>
+
+	* URPM.pm: 1.50 new release
+
+2006-11-29 16:59  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM.xs: (Trans_add) fix segfault when using --excludepath
+
+2006-11-29 15:36  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM.xs: (Trans_add) fix the segfault when using --excludepath
+	  (introduced in
+	  r32435:32440). however, using --excludepath will still
+	  segfaults, but
+	  later, in rpmtsAddInstallElement() ...
+
+2006-11-29 13:56  Thierry Vignaud <tvignaud at mandriva.com>
+
+	* URPM.xs: (Trans_add) fix segfault
+
+2006-11-24 10:12  Pixel <pixel at mandriva.com>
+
+	* URPM.pm, URPM/Resolve.pm: strict-arch should not imply that
+	  noarch can't upgrade the real arch (#22558)
+
+2006-11-21 07:59  Pixel <pixel at mandriva.com>
+
+	* ChangeLog: - default to strict-arch on 64bits (tvignaud)
+	  - handle empty hdlist.cz/synthesis.cz (in build_hdlist,
+	  build_synthesis, parse_hdlist, parse_synthesis)
+	  - parse_rpms_build_headers: allow asking for packing (and so
+	  fixing an error in urpmi)
+	  - documentation & comments enhancement
+	  - release 1.48
+
+2006-11-21 07:54  Pixel <pixel at mandriva.com>
+
+	* URPM/Resolve.pm: resolve_rejected: nodeps is also recognised
+	  (through backtrack_selected)
+
 2006-11-21 07:54  Pixel <pixel at mandriva.com>
 
 	* URPM/Resolve.pm: resolve_rejected: nodeps is also recognised
