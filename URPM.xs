@@ -2156,9 +2156,9 @@ Pkg_update_header(pkg, filename, ...)
       char *s = SvPV(ST(i), len);
 
       if (len == 7 && !memcmp(s, "packing", 7)) {
-	packing = SvIV(ST(i + 1));
+	packing = SvTRUE(ST(i + 1));
       } else if (len == 13 && !memcmp(s, "keep_all_tags", 13)) {
-	keep_all_tags = SvIV(ST(i+1));
+	keep_all_tags = SvTRUE(ST(i+1));
       }
     }
   }
@@ -3113,7 +3113,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 
 	/* compability mode with older interface of parse_hdlist */
 	if (items == 3) {
-	  packing = SvIV(ST(2));
+	  packing = SvTRUE(ST(2));
 	} else if (items > 3) {
 	  int i;
 	  for (i = 2; i < items-1; i+=2) {
@@ -3121,7 +3121,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	    char *s = SvPV(ST(i), len);
 
 	    if (len == 7 && !memcmp(s, "packing", 7)) {
-	      packing = SvIV(ST(i+1));
+	      packing = SvTRUE(ST(i+1));
 	    } else if (len == 8 && !memcmp(s, "callback", 8)) {
 	      if (SvROK(ST(i+1))) callback = ST(i+1);
 	    }
@@ -3210,7 +3210,7 @@ Urpm_parse_rpm(urpm, filename, ...)
 
       /* compability mode with older interface of parse_hdlist */
       if (items == 3) {
-	packing = SvIV(ST(2));
+	packing = SvTRUE(ST(2));
       } else if (items > 3) {
 	int i;
 	for (i = 2; i < items-1; i+=2) {
@@ -3218,9 +3218,9 @@ Urpm_parse_rpm(urpm, filename, ...)
 	  char *s = SvPV(ST(i), len);
 
 	  if (len == 7 && !memcmp(s, "packing", 7)) {
-	    packing = SvIV(ST(i + 1));
+	    packing = SvTRUE(ST(i + 1));
 	  } else if (len == 13 && !memcmp(s, "keep_all_tags", 13)) {
-	    keep_all_tags = SvIV(ST(i+1));
+	    keep_all_tags = SvTRUE(ST(i+1));
 	  } else if (len == 8 && !memcmp(s, "callback", 8)) {
 	    if (SvROK(ST(i+1))) callback = ST(i+1);
 	  } else if (len == 5) {
