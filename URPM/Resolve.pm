@@ -3,6 +3,7 @@ package URPM;
 # $Id$
 
 use strict;
+use Config;
 
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 
@@ -58,7 +59,7 @@ sub find_chosen_packages {
     my ($urpm, $db, $state, $dep) = @_;
     my %packages;
     my %installed_arch;
-    my $strict_arch = $urpm->{options}{'strict-arch'};
+    my $strict_arch = defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /a86_64|sparc64|ppc64/;
 
     #- search for possible packages, try to be as fast as possible, backtrack can be longer.
     foreach (split /\|/, $dep) {
@@ -68,7 +69,7 @@ sub find_chosen_packages {
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this package is better than a possibly previously chosen package.
 	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
-	    if ($strict_arch && $pkg->arch ne 'src') {
+	    if ($strict_arch && $pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
 		my $n = $pkg->name;
 		defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
 		$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
@@ -88,7 +89,7 @@ sub find_chosen_packages {
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
-		    if ($strict_arch && $pkg->arch ne 'src') {
+		    if ($strict_arch && $pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
 			my $n = $pkg->name;
 			defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
 			$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
@@ -151,7 +152,7 @@ sub find_chosen_packages {
 	#- if several packages were selected to match a requested installation,
 	#- and if --more-choices wasn't given, trim the choices to the first one.
 	if (!$urpm->{options}{morechoices} && $install && @chosen > 1) {
-	    return ($chosen[0]);
+	    return $chosen[0];
 	}
 
 	#- prefer kernel-source-stripped over kernel-source
@@ -464,6 +465,7 @@ sub resolve_rejected {
 #-   keep_requested_flag :
 #-   keep_unrequested_dependencies :
 #-   keep :
+#-   nodeps :
 sub resolve_requested {
     my ($urpm, $db, $state, $requested, %options) = @_;
     my ($dep, @diff_provides, @properties, @selected);
@@ -507,22 +509,30 @@ sub resolve_requested {
 	    #- packages. If multiple packages are possible, simply ask the user which
 	    #- one to choose; else take the first one available.
 	    if (!@chosen) {
+		$urpm->{debug_URPM}("no packages match $dep->{required}") if $urpm->{debug_URPM};
 		unshift @properties, $urpm->backtrack_selected($db, $state, $dep, %options);
 		next; #- backtrack code choose to continue with same package or completely new strategy.
 	    } elsif ($options{callback_choices} && @chosen > 1) {
+		my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
+		$urpm->{debug_URPM}("replacing $dep->{required} with " . join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
 		unshift @properties, map {
 		    +{
 			required => $_->id,
 			choices => $dep->{required},
 			exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 			exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
-		    }
-		} grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
+		    };
+		} @l;
 		next; #- always redo according to choices.
 	    }
 
 	    #- now do the real work, select the package.
-	    my ($pkg) = @chosen;
+	    my $pkg = shift @chosen;
+	    if ($urpm->{debug_URPM} && $pkg->name ne $dep->{required} && $pkg->id ne $dep->{required}) {
+		$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for $dep->{required}");
+		@chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @chosen));
+	    }
+
 	    #- cancel flag if this package should be cancelled but too late (typically keep options).
 	    my @keep;
 
@@ -531,15 +541,16 @@ sub resolve_requested {
 	    if ($pkg->arch eq 'src') {
 		$pkg->set_flag_upgrade;
 	    } else {
-		unless ($pkg->flag_upgrade || $pkg->flag_installed) {
+		if (!$pkg->flag_upgrade && !$pkg->flag_installed) {
 		    #- assume for this small algorithm package to be upgradable.
-		    $pkg->set_flag_upgrade;
+		    my $upgrade = 1;
 		    $db->traverse_tag('name', [ $pkg->name ], sub {
 					  my ($p) = @_;
 					  #- there is at least one package installed (whatever its version).
 					  $pkg->set_flag_installed;
-					  $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
+					  $upgrade &&= $pkg->compare_pkg($p) > 0;
 				      });
+		    $pkg->set_flag_upgrade($upgrade);
 		}
 		if ($pkg->flag_installed && !$pkg->flag_upgrade) {
 		    my $allow = 1;
@@ -624,7 +635,7 @@ sub resolve_requested {
 					    #- non-installed ones) could be unselected by the following
 					    #- operation, remember them, to warn the user
 					    my @unselected_uninstalled = grep {
-						!$_->flag_installed
+						!$_->flag_installed;
 					    } $urpm->disable_selected($db, $state, $pkg);
 					    $state->{unselected_uninstalled} = \@unselected_uninstalled;
 					}
@@ -665,10 +676,13 @@ sub resolve_requested {
 	    }
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
-	    unshift @properties, map { +{ required => $_, from => $pkg,
+	    if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg)) {
+		$urpm->{debug_URPM}("adding require " . join(',', sort @l) . " for " . $pkg->fullname) if $urpm->{debug_URPM};
+		unshift @properties, map { +{ required => $_, from => $pkg,
 					  exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
 					  exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
-					} } $urpm->unsatisfied_requires($db, $state, $pkg);
+					} } @l;
+	    }
 
 	    #- keep in mind what is requiring each item (for unselect to work).
 	    foreach ($pkg->requires_nosense) {
@@ -815,7 +829,7 @@ sub resolve_requested {
 				  }
 			      });
 	}
-    } while (@diff_provides || @properties);
+    } while @diff_provides || @properties;
 
     #- return what has been selected by this call (not all selected hash which may be not empty
     #- previously. avoid returning rejected packages which weren't selectable.
