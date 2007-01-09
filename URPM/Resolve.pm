@@ -509,12 +509,13 @@ sub resolve_requested {
 	    #- packages. If multiple packages are possible, simply ask the user which
 	    #- one to choose; else take the first one available.
 	    if (!@chosen) {
-		$urpm->{debug_URPM}("no packages match $dep->{required}") if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("no packages match " . _id_to_name($dep->{required})) if $urpm->{debug_URPM};
 		unshift @properties, $urpm->backtrack_selected($db, $state, $dep, %options);
 		next; #- backtrack code choose to continue with same package or completely new strategy.
 	    } elsif ($options{callback_choices} && @chosen > 1) {
 		my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
-		$urpm->{debug_URPM}("replacing $dep->{required} with " . join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("replacing " . _id_to_name($dep->{required}) . " with " . 
+				    join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
 		unshift @properties, map {
 		    +{
 			required => $_->id,
@@ -528,8 +529,8 @@ sub resolve_requested {
 
 	    #- now do the real work, select the package.
 	    my $pkg = shift @chosen;
-	    if ($urpm->{debug_URPM} && $pkg->name ne $dep->{required} && $pkg->id ne $dep->{required}) {
-		$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for $dep->{required}");
+	    if ($urpm->{debug_URPM} && $pkg->name ne _id_to_name($dep->{required})) {
+		$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _id_to_name($dep->{required}));
 		@chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @chosen));
 	    }
 
@@ -553,14 +554,7 @@ sub resolve_requested {
 		    $pkg->set_flag_upgrade($upgrade);
 		}
 		if ($pkg->flag_installed && !$pkg->flag_upgrade) {
-		    my $allow = 1;
-		    $db->traverse_tag('name', [ $pkg->name ], sub {
-			    my ($p) = @_;
-			    #- allow if a less recent package is installed,
-			    $allow &&= $pkg->compare_pkg($p) > 0;
-			});
-		    #- if nothing has been found, just ignore it.
-		    $allow or next;
+		    _no_more_recent_installed_and_providing($urpm, $db, $pkg, $dep->{required}) or next;
 		}
 	    }
 
@@ -834,6 +828,37 @@ sub resolve_requested {
     #- return what has been selected by this call (not all selected hash which may be not empty
     #- previously. avoid returning rejected packages which weren't selectable.
     grep { exists $state->{selected}{$_->id} } @selected;
+}
+
+sub _id_to_name {
+    my ($urpm, $dep) = @_;
+    if ($dep =~ /^\d+/) {
+	my $pkg = $urpm->{depslist}[$dep];
+	$pkg && $pkg->name;
+    } else {
+	$dep;
+    }
+}
+
+sub _no_more_recent_installed_and_providing {
+    my ($urpm, $db, $pkg, $required) = @_;
+
+    my $allow = 1;
+    $db->traverse_tag('name', [ $pkg->name ], sub {
+	my ($p) = @_;
+	#- allow if a less recent package is installed,
+	if ($allow && $pkg->compare_pkg($p) <= 0) {
+	    if ($p->provides_overlap($required)) {
+		$urpm->{debug_URPM}("not selecting " . $pkg->fullname . " since the more recent " . $p->fullname . " is installed") if $urpm->{debug_URPM};
+		$allow = 0;
+	    } else {
+		$urpm->{debug_URPM}("the more recent " . $p->fullname . 
+		  " is installed, but does not provide $required whereas " . 
+		    $pkg->fullname . " does") if $urpm->{debug_URPM};
+	    }
+	}
+    });
+    $allow;
 }
 
 #- do the opposite of the above, unselect a package and extend
