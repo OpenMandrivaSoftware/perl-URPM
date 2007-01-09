@@ -509,7 +509,7 @@ sub resolve_requested {
 	    #- packages. If multiple packages are possible, simply ask the user which
 	    #- one to choose; else take the first one available.
 	    if (!@chosen) {
-		$urpm->{debug_URPM}("no packages match " . _id_to_name($urpm, $dep->{required})) if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("no packages match " . _id_to_name($urpm, $dep->{required}) . " (it may be in skip.list)") if $urpm->{debug_URPM};
 		unshift @properties, $urpm->backtrack_selected($db, $state, $dep, %options);
 		next; #- backtrack code choose to continue with same package or completely new strategy.
 	    } elsif ($options{callback_choices} && @chosen > 1) {
