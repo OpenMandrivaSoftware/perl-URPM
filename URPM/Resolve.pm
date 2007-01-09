@@ -106,8 +106,6 @@ sub find_chosen_packages {
     }
 
     if (keys(%packages) > 1) {
-	my ($mode, @chosen, @chosen_good_locales, @chosen_bad_locales, @chosen_other, @chosen_other_en, $install);
-
 	#- packages should be preferred if one of their provides is referenced
 	#- in the "requested" hash, or if the package itself is requested (or
 	#- required).
@@ -117,32 +115,27 @@ sub find_chosen_packages {
 	#- Puts the results in @chosen. Other are left unordered.
 	foreach my $p (values(%packages)) {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $p);
-
-	    my $arch_score = ($p->is_arch_compat < min map { $_->is_arch_compat } @chosen) ? 10 : 0;
-	    if ($p->flag_requested && $p->flag_installed) {
-		$arch_score += 3;
-		$install = 1;
-	    } elsif ($p->flag_requested) {
-		$arch_score += 2;
-	    } elsif ($p->flag_installed) {
-		$arch_score += 1;
-	    }
-	    if ($mode > $arch_score) {
-		next;
-	    } elsif ($mode < $arch_score) {
-		@chosen = ();
-	    }
-	    $mode = $arch_score;
-
-	    push @chosen, $p;
 	}
+
+	my ($best, @other) = sort { 
+	    $a->[1] <=> $b->[1] #- we want the lowest (ie preferred arch)
+	      || $b->[2] <=> $a->[2]; #- and the higher
+	} map {
+	    my $score = 0;
+	    $score += 2 if $_->flag_requested;
+	    $score += 1 if $_->flag_installed;
+	    [ $_, $_->is_arch_compat, $score ];
+	} values %packages;
+
+	my @chosen_with_score = ($best, grep { $_->[1] == $best->[1] && $_->[2] == $best->[2] } @other);
+	my @chosen = map { $_->[0] } @chosen_with_score;
 
 	#- return immediately if there is only one chosen package
 	if (@chosen == 1) { return @chosen }
 
 	#- if several packages were selected to match a requested installation,
 	#- and if --more-choices wasn't given, trim the choices to the first one.
-	if (!$urpm->{options}{morechoices} && $install && @chosen > 1) {
+	if (!$urpm->{options}{morechoices} && @chosen > 1 && $chosen_with_score[0][2] == 3) {
 	    return $chosen[0];
 	}
 
@@ -159,6 +152,8 @@ sub find_chosen_packages {
 	    }
 	    return @k_chosen if $stripped_kernel;
 	}
+
+	my (@chosen_good_locales, @chosen_bad_locales, @chosen_other, @chosen_other_en);
 
 	#- Now we split @chosen in priority lists depending on locale.
 	#- Packages that require locales-xxx when the corresponding locales are
