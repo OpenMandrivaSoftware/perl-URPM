@@ -509,12 +509,12 @@ sub resolve_requested {
 	    #- packages. If multiple packages are possible, simply ask the user which
 	    #- one to choose; else take the first one available.
 	    if (!@chosen) {
-		$urpm->{debug_URPM}("no packages match " . _id_to_name($dep->{required})) if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("no packages match " . _id_to_name($urpm, $dep->{required})) if $urpm->{debug_URPM};
 		unshift @properties, $urpm->backtrack_selected($db, $state, $dep, %options);
 		next; #- backtrack code choose to continue with same package or completely new strategy.
 	    } elsif ($options{callback_choices} && @chosen > 1) {
 		my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
-		$urpm->{debug_URPM}("replacing " . _id_to_name($dep->{required}) . " with " . 
+		$urpm->{debug_URPM}("replacing " . _id_to_name($urpm, $dep->{required}) . " with " . 
 				    join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
 		unshift @properties, map {
 		    +{
@@ -529,8 +529,8 @@ sub resolve_requested {
 
 	    #- now do the real work, select the package.
 	    my $pkg = shift @chosen;
-	    if ($urpm->{debug_URPM} && $pkg->name ne _id_to_name($dep->{required})) {
-		$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _id_to_name($dep->{required}));
+	    if ($urpm->{debug_URPM} && $pkg->name ne _id_to_name($urpm, $dep->{required})) {
+		$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _id_to_name($urpm, $dep->{required}));
 		@chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @chosen));
 	    }
 
