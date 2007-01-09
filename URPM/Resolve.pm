@@ -123,7 +123,7 @@ sub find_chosen_packages {
 	} map {
 	    my $score = 0;
 	    $score += 2 if $_->flag_requested;
-	    $score += 1 if $_->flag_installed;
+	    $score += $_->flag_upgrade ? 1 : -1 if $_->flag_installed;
 	    [ $_, $_->is_arch_compat, $score ];
 	} values %packages;
 
@@ -648,7 +648,7 @@ sub resolve_requested {
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
 	    if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg)) {
-		$urpm->{debug_URPM}("adding require " . join(',', sort @l) . " for " . $pkg->fullname) if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("requiring " . join(',', sort @l) . " for " . $pkg->fullname) if $urpm->{debug_URPM};
 		unshift @properties, map { +{ required => $_, from => $pkg,
 					  exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
 					  exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
