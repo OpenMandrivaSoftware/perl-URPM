@@ -120,22 +120,20 @@ sub find_chosen_packages {
 
 	    my $arch_score = ($p->is_arch_compat < min map { $_->is_arch_compat } @chosen) ? 10 : 0;
 	    if ($p->flag_requested && $p->flag_installed) {
-		$mode < 3 + $arch_score and @chosen = ();
-		$mode = 3 + $arch_score;
+		$arch_score += 3;
 		$install = 1;
 	    } elsif ($p->flag_requested) {
-		$mode < 2 + $arch_score and @chosen = ();
-		$mode > 2 + $arch_score and next;
-		$mode = 2 + $arch_score;
+		$arch_score += 2;
 	    } elsif ($p->flag_installed) {
-		$mode < 1 + $arch_score and @chosen = ();
-		$mode > 1 + $arch_score and next;
-		$mode = 1 + $arch_score;
-	    } else {
-		$mode < $arch_score and @chosen = ();
-		$mode > $arch_score and next;
-		$mode = $arch_score;
+		$arch_score += 1;
 	    }
+	    if ($mode > $arch_score) {
+		next;
+	    } elsif ($mode < $arch_score) {
+		@chosen = ();
+	    }
+	    $mode = $arch_score;
+
 	    push @chosen, $p;
 	}
 
