@@ -135,7 +135,7 @@ sub find_chosen_packages {
 
 	#- if several packages were selected to match a requested installation,
 	#- and if --more-choices wasn't given, trim the choices to the first one.
-	if (!$urpm->{options}{morechoices} && @chosen > 1 && $chosen_with_score[0][2] == 3) {
+	if (!$urpm->{options}{morechoices} && $chosen_with_score[0][2] == 3) {
 	    return $chosen[0];
 	}
 
