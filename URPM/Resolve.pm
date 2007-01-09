@@ -116,15 +116,8 @@ sub find_chosen_packages {
 	#- Packages with more compatibles architectures are always preferred.
 	#- Puts the results in @chosen. Other are left unordered.
 	foreach my $p (values(%packages)) {
-	    unless ($p->flag_upgrade || $p->flag_installed) {
-		#- assume for this small algorithm package to be upgradable.
-		$p->set_flag_upgrade;
-		$db->traverse_tag('name', [ $p->name ], sub {
-		    my ($pp) = @_;
-		    $p->set_flag_installed;
-		    $p->flag_upgrade and $p->set_flag_upgrade($p->compare_pkg($pp) > 0);
-		});
-	    }
+	    _set_flag_installed_and_upgrade_if_no_newer($db, $p);
+
 	    my $arch_score = ($p->is_arch_compat < min map { $_->is_arch_compat } @chosen) ? 10 : 0;
 	    if ($p->flag_requested && $p->flag_installed) {
 		$mode < 3 + $arch_score and @chosen = ();
@@ -542,17 +535,8 @@ sub resolve_requested {
 	    if ($pkg->arch eq 'src') {
 		$pkg->set_flag_upgrade;
 	    } else {
-		if (!$pkg->flag_upgrade && !$pkg->flag_installed) {
-		    #- assume for this small algorithm package to be upgradable.
-		    my $upgrade = 1;
-		    $db->traverse_tag('name', [ $pkg->name ], sub {
-					  my ($p) = @_;
-					  #- there is at least one package installed (whatever its version).
-					  $pkg->set_flag_installed;
-					  $upgrade &&= $pkg->compare_pkg($p) > 0;
-				      });
-		    $pkg->set_flag_upgrade($upgrade);
-		}
+		_set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
+
 		if ($pkg->flag_installed && !$pkg->flag_upgrade) {
 		    _no_more_recent_installed_and_providing($urpm, $db, $pkg, $dep->{required}) or next;
 		}
@@ -838,6 +822,20 @@ sub _id_to_name {
     } else {
 	$dep;
     }
+}
+
+sub _set_flag_installed_and_upgrade_if_no_newer {
+    my ($db, $pkg) = @_;
+
+    !$pkg->flag_upgrade && !$pkg->flag_installed or return;
+
+    my $upgrade = 1;
+    $db->traverse_tag('name', [ $pkg->name ], sub {
+	my ($p) = @_;
+	$pkg->set_flag_installed;
+	$upgrade &&= $pkg->compare_pkg($p) > 0;
+    });
+    $pkg->set_flag_upgrade($upgrade);
 }
 
 sub _no_more_recent_installed_and_providing {
@@ -1153,17 +1151,9 @@ sub request_packages_to_upgrade {
     #- examine all obsoleter packages, compute installer and upgrade flag if needed.
     foreach my $pkg (@obsoleters) {
 	next if !$names{$pkg->name};
-	unless ($pkg->flag_upgrade || $pkg->flag_installed) {
-	    #- assume for this small algorithm package to be upgradable.
-	    $pkg->set_flag_upgrade;
-	    $db->traverse_tag(
-		'name', [ $pkg->name ], sub {
-		    my ($p) = @_;
-		    $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
-		    $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
-		},
-	    );
-	}
+
+	_set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
+
 	if ($pkg->flag_installed && !$pkg->flag_upgrade) {
 	    delete $names{$pkg->name};
 	} else {
