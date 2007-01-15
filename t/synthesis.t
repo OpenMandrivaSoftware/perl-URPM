@@ -5,6 +5,7 @@ use warnings ;
 use Test::More tests => 88;
 use URPM;
 
+chdir 't' if -d 't';
 my $file1 = 'synthesis.sample.cz';
 
 open my $f, "| gzip -9 >$file1";
@@ -24,10 +25,10 @@ ok($a);
 
 my ($first, $end);
 
-($first, $end) = URPM->new->parse_synthesis('t/empty_synthesis.cz');
+($first, $end) = URPM->new->parse_synthesis('empty_synthesis.cz');
 is("$first $end", "0 -1", 'parse empty synthesis');
 
-is(URPM->new->parse_synthesis('t/buggy_synthesis.cz'), undef, 'parse buggy synthesis');
+is(URPM->new->parse_synthesis('buggy_synthesis.cz'), undef, 'parse buggy synthesis');
 
 ($first, $end) = $a->parse_synthesis($file1);
 ok($first == 0 && $end == 0);
