@@ -10,15 +10,17 @@ use URPM;
 use URPM::Build;
 use URPM::Query;
 
+chdir 't' if -d 't';
+
 # shut up
 URPM::setVerbosity(2);
 
 my $a = new URPM;
 ok($a);
 
-END { unlink 'hdlist.cz', 't/empty_hdlist.cz' }
+END { system('rm -rf hdlist.cz empty_hdlist.cz headers') }
 
-my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "t/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
+my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
 ok(@{$a->{depslist}} == 1);
 my $pkg = $a->{depslist}[0];
 ok($pkg);
@@ -33,20 +35,20 @@ TODO: {
 	q/get headers from parsing rpm/);
 }
 
-mkdir 't/headers';
-system('touch t/headers/empty');
-is(URPM->new->parse_hdlist('t/headers/empty'), undef, 'empty header');
-system('echo FOO > t/headers/bad');
-is(URPM->new->parse_hdlist('t/headers/bad'), undef, 'bad rpm header');
+mkdir 'headers';
+system('touch headers/empty');
+is(URPM->new->parse_hdlist('headers/empty'), undef, 'empty header');
+system('echo FOO > headers/bad');
+is(URPM->new->parse_hdlist('headers/bad'), undef, 'bad rpm header');
 
 $a->build_hdlist(
     start  => 0,
     end    => -1,
-    hdlist => 't/empty_hdlist.cz',
+    hdlist => 'empty_hdlist.cz',
 );
-ok(-f 't/empty_hdlist.cz');
+ok(-f 'empty_hdlist.cz');
 
-($start, $end) = URPM->new->parse_hdlist('t/empty_hdlist.cz');
+($start, $end) = URPM->new->parse_hdlist('empty_hdlist.cz');
 is("$start $end", "0 -1", 'empty hdlist');
 
 
@@ -71,12 +73,12 @@ is($pkg->get_tag(1002), '1mdk', 'release');
 is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
     q/get headers from hdlist/);
 
-my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "t/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
-						    dir => 't/headers') ] };
+my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
+						    dir => 'headers') ] };
 is($@, '', 'parse_rpms_build_headers');
 is(int @$headers, 1, 'parse_rpms_build_headers');
 ok(@{$b->{depslist}} == 2);
-($start, $end) = eval { $b->parse_headers(dir => "t/headers", headers => $headers) };
+($start, $end) = eval { $b->parse_headers(dir => "headers", headers => $headers) };
 is($@, '', 'parse_headers');
 is("$start $end", "2 2", 'parse_headers');
 
@@ -101,7 +103,7 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
 }
 
 {
-    my $pkg = URPM::spec2srcheader("t/test-rpm.spec");
+    my $pkg = URPM::spec2srcheader("test-rpm.spec");
     ok(defined $pkg, "Parsing a spec works");
     is($pkg->get_tag(1000), 'test-rpm', 'parsed correctly');
     $pkg = URPM::spec2srcheader("doesnotexist.spec");
