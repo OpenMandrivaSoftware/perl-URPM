@@ -23,10 +23,6 @@ $version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/
     or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 print "Found RPM version $version\n";
 
-# directory where to build an rpm of this
-my $rpmtopdir = `$rpm_path --eval '%{_topdir}'`;
-chomp $rpmtopdir;
-
 # to generate the ChangeLog depending on the checkout layout
 my $commonusername = "../common/";
 -d $commonusername or do {
@@ -39,21 +35,11 @@ my $commonusername = "../common/";
 
 sub MY::postamble {
     <<"**MM**";
-.PHONY: ChangeLog rpmdist srpm rpm
+.PHONY: ChangeLog
 
 ChangeLog:
 	LC_ALL=C svn2cl --accum --strip-prefix=soft/rpm/perl-URPM/trunk --authors ${commonusername}username.xml
 	rm -f *.bak
-
-rpmdist: dist
-	cp -f perl-URPM.spec $rpmtopdir/SPECS
-	mv -f URPM-*.tar.bz2 $rpmtopdir/SOURCES
-
-srpm: rpmdist
-	rpmbuild -bs --clean --rmsource $rpmtopdir/SPECS/perl-URPM.spec
-
-rpm: rpmdist
-	rpmbuild -ba --clean --rmsource $rpmtopdir/SPECS/perl-URPM.spec
 **MM**
 }
 
