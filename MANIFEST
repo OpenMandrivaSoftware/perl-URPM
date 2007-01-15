@@ -16,6 +16,6 @@ t/parse.t
 t/pod.t
 t/rpmdb.t
 t/synthesis.t
+t/test-rpm.spec
 ChangeLog
 META.yml                                 Module meta-data (added by MakeMaker)
-test-rpm.spec

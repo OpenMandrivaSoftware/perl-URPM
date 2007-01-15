@@ -33,6 +33,7 @@ TODO: {
 	q/get headers from parsing rpm/);
 }
 
+mkdir 't/headers';
 system('touch t/headers/empty');
 is(URPM->new->parse_hdlist('t/headers/empty'), undef, 'empty header');
 system('echo FOO > t/headers/bad');
@@ -100,7 +101,7 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
 }
 
 {
-    my $pkg = URPM::spec2srcheader("test-rpm.spec");
+    my $pkg = URPM::spec2srcheader("t/test-rpm.spec");
     ok(defined $pkg, "Parsing a spec works");
     is($pkg->get_tag(1000), 'test-rpm', 'parsed correctly');
     $pkg = URPM::spec2srcheader("doesnotexist.spec");
