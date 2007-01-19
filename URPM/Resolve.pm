@@ -59,7 +59,7 @@ sub find_chosen_packages {
     my ($urpm, $db, $state, $dep) = @_;
     my %packages;
     my %installed_arch;
-    my $strict_arch = defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /a86_64|sparc64|ppc64/;
+    my $strict_arch = defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /x86_64|sparc64|ppc64/;
 
     #- search for possible packages, try to be as fast as possible, backtrack can be longer.
     foreach (split /\|/, $dep) {
@@ -839,7 +839,7 @@ sub _no_more_recent_installed_and_providing {
 	my ($p) = @_;
 	#- allow if a less recent package is installed,
 	if ($allow && $pkg->compare_pkg($p) <= 0) {
-	    if ($p->provides_overlap($required)) {
+	    if ($required =~ /^\d+/ || $p->provides_overlap($required)) {
 		$urpm->{debug_URPM}("not selecting " . $pkg->fullname . " since the more recent " . $p->fullname . " is installed") if $urpm->{debug_URPM};
 		$allow = 0;
 	    } else {
