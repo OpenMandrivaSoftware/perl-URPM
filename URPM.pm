@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.53';
+our $VERSION = '1.59';
 
 URPM->bootstrap($VERSION);
 
@@ -546,9 +546,8 @@ Return an array of human readable view of tag values. $tagid is the numerical va
 =item $package->is_arch_compat()
 
 Returns whether this package is compatible with the current machine's
-architecture. 0 means not compatible. The higher the result is, the "more
-compatible" the package is; in other words the return value is a compatibility
-score.
+architecture. 0 means not compatible. The lower the result is, the preferred
+the package is.
 
 =item $package->license()
 
