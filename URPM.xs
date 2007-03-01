@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <zlib.h>
+#include <libintl.h>
 
 #undef Fflush
 #undef Mkdir
@@ -111,6 +112,16 @@ void rpmError_callback() {
 /* needed for importing keys (from rpmio) */
 int rpmioSlurp(const char * fn, const byte ** bp, ssize_t * blenp);
 int b64decode (const char * s, void ** datap, size_t *lenp);
+
+static int rpm_codeset_is_utf8 = 0;
+
+static SV*
+newSVpv_utf8(const char *s, STRLEN len)
+{
+  SV *sv = newSVpv(s, len);
+  SvUTF8_on(sv);
+  return sv;
+}
 
 static void
 get_fullname_parts(URPM__Package pkg, char **name, char **version, char **release, char **arch, char **eos) {
@@ -620,7 +631,9 @@ return_problems(rpmps ps, int translate_message) {
       if (translate_message) {
 	/* translate error using rpm localization */
 	const char *buf = rpmProblemString(ps->probs + i);
-	XPUSHs(sv_2mortal(newSVpv(buf, 0)));
+	SV *sv = newSVpv(buf, 0);
+	if (rpm_codeset_is_utf8) SvUTF8_on(sv);
+	XPUSHs(sv_2mortal(sv));
 	_free(buf);
       } else {
 	const char *pkgNEVR = p->pkgNEVR ? p->pkgNEVR : "";
@@ -1100,15 +1113,23 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
   return 0;
 }
 
-static void
+static int
 read_config_files(int force) {
   static int already = 0;
+  int rc = 0;
 
   if (!already || force) {
-    rpmReadConfigFiles(NULL, NULL);
-    already = 1;
+    rc = rpmReadConfigFiles(NULL, NULL);
+    already = (rc == 0); /* set config as load only if it succeed */
   }
+  return rc;
 }
+
+static void
+ts_nosignature(rpmts ts) {
+  rpmtsSetVSFlags(ts, _RPMVSF_NODIGESTS | _RPMVSF_NOSIGNATURES);
+}
+
 
 #ifdef RPM_CALLBACK_LONGLONG
 /* That's for rpm >= 4.4.5 */
@@ -1335,9 +1356,9 @@ Pkg_summary(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->summary) {
-    XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
+    XPUSHs(sv_2mortal(newSVpv_utf8(pkg->summary, 0)));
   } else if (pkg->h) {
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_SUMMARY), 0)));
+    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_SUMMARY), 0)));
   }
 
 void
@@ -1345,7 +1366,7 @@ Pkg_description(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h) {
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_DESCRIPTION), 0)));
+    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_DESCRIPTION), 0)));
   }
 
 void
@@ -1361,7 +1382,7 @@ Pkg_packager(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h) {
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_PACKAGER), 0)));
+    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_PACKAGER), 0)));
   }
 
 void
@@ -1719,10 +1740,10 @@ Pkg_group(pkg)
 
     if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
       char *eos = strchr(s+1, '@');
-      XPUSHs(sv_2mortal(newSVpv(s+1, eos != NULL ? eos-s-1 : 0)));
+      XPUSHs(sv_2mortal(newSVpv_utf8(s+1, eos != NULL ? eos-s-1 : 0)));
     }
   } else if (pkg->h) {
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_GROUP), 0)));
+    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_GROUP), 0)));
   }
 
 void
@@ -2110,7 +2131,7 @@ Pkg_queryformat(pkg, fmt)
       s = headerSprintf(pkg->h, fmt,
     	rpmTagTable, rpmHeaderFormats, NULL);
       if (s) {
-        XPUSHs(sv_2mortal(newSVpv(s,0)));
+        XPUSHs(sv_2mortal(newSVpv_utf8(s,0)));
       }
   }
   
@@ -2547,6 +2568,7 @@ Db_traverse(db,callback)
   int count = 0;
   CODE:
   db->ts = rpmtsLink(db->ts, "URPM::DB::traverse");
+  ts_nosignature(db->ts);
   mi = rpmtsInitIterator(db->ts, RPMDBI_PACKAGES, NULL, 0);
   while ((header = rpmdbNextIterator(mi))) {
     if (SvROK(callback)) {
@@ -2610,6 +2632,7 @@ Db_traverse_tag(db,tag,names,callback)
       SV **isv = av_fetch(names_av, i, 0);
       char *name = SvPV(*isv, str_len);
       db->ts = rpmtsLink(db->ts, "URPM::DB::traverse_tag");
+      ts_nosignature(db->ts);
       mi = rpmtsInitIterator(db->ts, rpmtag, name, str_len);
       while ((header = rpmdbNextIterator(mi))) {
 	if (SvROK(callback)) {
@@ -2920,11 +2943,19 @@ Trans_run(trans, data, ...)
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
+BOOT:
+(void) read_config_files(0);
 
 void
+Urpm_bind_rpm_textdomain_codeset()
+  CODE:
+  rpm_codeset_is_utf8 = 1;
+  bind_textdomain_codeset("rpm", "UTF-8");
+
+int
 Urpm_read_config_files()
   CODE:
-  read_config_files(1); /* force re-read of configuration files */
+  return(read_config_files(1) == 0); /* force re-read of configuration files */
 
 void
 Urpm_list_rpm_tag(urpm=Nullsv)
