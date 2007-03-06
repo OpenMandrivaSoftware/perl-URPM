@@ -1054,7 +1054,14 @@ sub compute_flags {
 #- all installed or upgrade flag.
 sub request_packages_to_upgrade {
     my ($urpm, $db, $_state, $requested, %options) = @_;
-    my (%provides, %names, %skip, %requested, %obsoletes, @obsoleters);
+
+    my ($names, $obsoletes) = _request_packages_to_upgrade_1($urpm, %options) or return;
+    _request_packages_to_upgrade_2($urpm, $db, $requested, $names, $obsoletes, %options);
+}
+
+sub _request_packages_to_upgrade_1 {
+    my ($urpm, %options) = @_;
+    my (%provides, %names, %skip);
 
     my @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
     
@@ -1091,6 +1098,7 @@ sub request_packages_to_upgrade {
     #- checked consistency with obsoletes of eligible packages.
     #- It is important to avoid selecting a package that obsoletes
     #- an old one.
+    my %obsoletes;
     foreach my $pkg (values %names) {
 	foreach ($pkg->obsoletes) {
 	    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*)\s*([^\s\]]*)/) {
@@ -1105,6 +1113,14 @@ sub request_packages_to_upgrade {
 
     #- ignore skipped packages.
     delete @names{keys %skip};
+
+    \%names, \%obsoletes;
+}
+
+sub _request_packages_to_upgrade_2 {
+    my ($_urpm, $db, $requested, $names, $obsoletes, %options) = @_;
+    my %names = %$names;
+    my (%requested, @obsoleters);
 
     #- now we can examine all existing packages to find packages to upgrade.
     $db->traverse(sub {
@@ -1134,7 +1150,7 @@ sub request_packages_to_upgrade {
 	    #- should be avoided.
 	    unless ($p->obsoletes_overlap($property)) {
 		if (my ($n) = $property =~ /^([^\s\[]*)/) {
-		    foreach my $pkg (@{$obsoletes{$n} || []}) {
+		    foreach my $pkg (@{$obsoletes->{$n} || []}) {
 			next if $pkg->name eq $pn || $pn ne $n || !$names{$pkg->name};
 			if ($pkg->obsoletes_overlap($property)) {
 			    #- the package being examined can be obsoleted.
