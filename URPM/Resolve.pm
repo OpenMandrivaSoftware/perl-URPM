@@ -1113,13 +1113,14 @@ sub request_packages_to_upgrade {
 	#- first try with package using the same name.
 	#- this will avoid selecting all packages obsoleting an old one.
 	if (my $pkg = $names{$pn}) {
-	    if (!$pkg->flag_upgrade && !$pkg->flag_installed) {
-		$pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+	    my $may_upgrade = $pkg->flag_upgrade || #- it is has already been flagged upgradable
+	         (!$pkg->flag_installed && do {
+		     $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
+		     1;
+		 });
+	    if ($may_upgrade && $pkg->compare_pkg($p) > 0) {
+		#- keep in mind the package is requested.
 		$pkg->set_flag_upgrade;
-	    }
-	    $pkg->flag_upgrade and $pkg->set_flag_upgrade($pkg->compare_pkg($p) > 0);
-	    #- keep in mind the package is requested.
-	    if ($pkg->flag_upgrade) {
 		$requested{$pn} = undef;
 	    } else {
 		delete $names{$pn};
