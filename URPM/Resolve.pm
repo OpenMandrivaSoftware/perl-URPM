@@ -72,7 +72,9 @@ sub find_chosen_packages {
 	    if ($strict_arch && $pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
 		my $n = $pkg->name;
 		defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
-		$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
+		if ($installed_arch{$n} && $installed_arch{$n} ne 'noarch') {
+		    $pkg->arch eq $installed_arch{$n} or next;
+		}
 	    }
 	    if (my $p = $packages{$pkg->name}) {
 		$pkg->flag_requested > $p->flag_requested ||
@@ -325,6 +327,8 @@ sub backtrack_selected {
 		}
 	    }
 	    #- the package is already rejected, we assume we can add another reason here!
+	    $urpm->{debug_URPM}("adding a reason to already rejected package " . $dep->{from}->fullname . ": unsatisfied " . $dep->{required}) if $urpm->{debug_URPM};
+	    
 	    push @{$state->{rejected}{$dep->{from}->fullname}{backtrack}{unsatisfied}}, $dep->{required};
 	}
     }
@@ -372,6 +376,8 @@ sub backtrack_selected {
 sub resolve_rejected {
     my ($urpm, $db, $state, $pkg, %options) = @_;
     my @unsatisfied;
+
+    $urpm->{debug_URPM}("resolve_rejected: " . $pkg->fullname) if $urpm->{debug_URPM};
 
     #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
@@ -1107,7 +1113,7 @@ sub request_packages_to_upgrade {
 	#- first try with package using the same name.
 	#- this will avoid selecting all packages obsoleting an old one.
 	if (my $pkg = $names{$pn}) {
-	    unless ($pkg->flag_upgrade || $pkg->flag_installed) {
+	    if (!$pkg->flag_upgrade && !$pkg->flag_installed) {
 		$pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
 		$pkg->set_flag_upgrade;
 	    }
