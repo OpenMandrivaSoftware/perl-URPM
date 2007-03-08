@@ -568,8 +568,7 @@ sub resolve_requested {
 			    next;
 			}
 			#- populate avoided entries according to what is selected.
-			foreach (keys %{$urpm->{provides}{$n} || {}}) {
-			    my $p = $urpm->{depslist}[$_];
+			foreach my $p ($urpm->packages_providing($n)) {
 			    if ($p->name eq $pkg->name) {
 				#- all packages with the same name should now be avoided except when chosen.
 				$p->fullname eq $pkg->fullname and next;
@@ -672,8 +671,7 @@ sub resolve_requested {
 		@keep and last;
 		#- propagate conflicts to avoid
 		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
-		    foreach (keys %{$urpm->{provides}{$n} || {}}) {
-			my $p = $urpm->{depslist}[$_];
+		    foreach my $p ($urpm->packages_providing($n)) {
 			$pkg == $p and next;
 			$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
 			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
@@ -932,8 +930,7 @@ sub disable_selected_unrequested_dependencies {
 	#- search for unrequested required packages.
 	foreach (@unselected) {
 	    foreach ($_->requires_nosense) {
-		foreach (keys %{$urpm->{provides}{$_} || {}}) {
-		    my $pkg = $urpm->{depslist}[$_] or next;
+		foreach my $pkg (grep {$_} $urpm->packages_providing($_)) {
 		    $state->{selected}{$pkg->id} or next;
 		    $state->{selected}{$pkg->id}{psel} && $state->{selected}{$state->{selected}{$pkg->id}{psel}->id} and next;
 		    $pkg->flag_requested and next;
@@ -993,8 +990,7 @@ sub compute_installed_flags {
     $db->traverse(sub {
 	my ($p) = @_;
 	#- compute flags.
-	foreach (keys %{$urpm->{provides}{$p->name} || {}}) {
-	    my $pkg = $urpm->{depslist}[$_];
+	foreach my $pkg ($urpm->packages_providing($p->name)) {
 	    next if !defined $pkg;
 	    $pkg->is_arch_compat && $pkg->name eq $p->name or next;
 	    #- compute only installed and upgrade flags.
@@ -1032,8 +1028,7 @@ sub compute_flags {
 	if ($name =~ m,^/(.*)/$,) {
 	    push @regex, $1;
 	} else {
-	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
-		my $pkg = $urpm->{depslist}[$_];
+	    foreach my $pkg ($urpm->packages_providing($name)) {
 		$urpm->compute_flag($pkg, %options);
 	    }
 	}
@@ -1130,10 +1125,10 @@ sub _request_packages_to_upgrade_2 {
 	#- this will avoid selecting all packages obsoleting an old one.
 	if (my $pkg = $names{$pn}) {
 	    my $may_upgrade = $pkg->flag_upgrade || #- it is has already been flagged upgradable
-	         (!$pkg->flag_installed && do {
+	         !$pkg->flag_installed && do {
 		     $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
 		     1;
-		 });
+		 };
 	    if ($may_upgrade && $pkg->compare_pkg($p) > 0) {
 		#- keep in mind the package is requested.
 		$pkg->set_flag_upgrade;
