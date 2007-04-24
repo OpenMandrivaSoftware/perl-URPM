@@ -1,0 +1,44 @@
+Version 1.60 - 8 March 2007, by Pascal "Pixel" Rigaux
+
+- more debugging hooks
+- create $urpm->packages_providing($name) and use it
+- create $urpm->packages_by_name($name)
+
+Version 1.59 - 1 March 2007, by Olivier Thauvin
+
+- rpm 4.4.8 adaptions
+- load rpm config files at module load, improve the mechanism
+
+Version 1.58 - 14 February 2007, by Pascal "Pixel" Rigaux
+
+- don't check signature and digest in ->traverse and ->traverse_tag
+  (=> x15 speedup, ie 2.5 speedup on urpmi --auto-select and rpmdrake)
+
+Version 1.57 - 9 February 2007, by Pascal "Pixel" Rigaux
+
+- allow upgrading from noarch to x86_64 even if strict-arch
+
+Version 1.56 - 19 January 2007, by Pascal "Pixel" Rigaux
+
+- tell perl that strings from rpm headers are utf8
+- add URPM::bind_rpm_textdomain_codeset() to set encoding of messages returned
+  by rpmlib, and tell perl that those strings are utf8
+- really use strict-arch by default on x86_64
+
+Version 1.55 - 10 January 2007, by Pascal "Pixel" Rigaux
+
+- bug fix release
+- fix "not selecting foo-1 since the more recent foo-1 is installed" causing
+  urpmi to try to remove the package it wants to install (#28076)
+
+Version 1.54 - 9 January 2007, by Pascal "Pixel" Rigaux
+
+- if we have a choice between foo-1 and bar-1 and foo-2 is installed,
+  prefering bar-1 instead of foo-1
+  (otherwise we can hit: "the more recent foo-2 is installed, but does not
+  provide xxx whereas foo-1 does", cf bug #27991)
+- bar is needed, foo-1 does provide bar, installed foo-2 does not provide bar:
+  do not let the algorithm use foo-2 as if it also provides bar
+- allow understanding what ->resolve_requested is doing through a callback ($urpm->{debug_URPM})
+- cleanup some code in ->resolve_requested
+- make the documentation for ->is_arch_compat more clear

@@ -17,6 +17,7 @@ sub _get_tmp_dir () {
 #-   dir      : directory which will contain headers (defaults to /tmp/.build_hdlist)
 #-   callback : perl code to be called for each package read (defaults pack_header)
 #-   clean    : bool to clean cache before (default no).
+#-   packing  : bool to create info (default is weird)
 sub parse_rpms_build_headers {
     my ($urpm, %options) = @_;
     my ($dir, %cache, @headers);
@@ -24,7 +25,7 @@ sub parse_rpms_build_headers {
     #- check for mandatory options.
     if (@{$options{rpms} || []} > 0) {
 	#- build a working directory which will hold rpm headers.
-	$dir = $options{dir} || _get_tmp_dir;
+	$dir = $options{dir} || _get_tmp_dir();
 	$options{clean} and system($ENV{LD_LOADER} ? $ENV{LD_LOADER} : @{[]}, "rm", "-rf", $dir);
 	-d $dir or mkdir $dir, 0755 or die "cannot create directory $dir\n";
 
@@ -46,11 +47,11 @@ sub parse_rpms_build_headers {
 	}
 
 	foreach (@{$options{rpms}}) {
-	    my ($key) = /([^\/]*)\.rpm$/ or next; #- get rpm filename.
+	    my ($key) = m!([^/]*)\.rpm$! or next; #- get rpm filename.
 	    my ($id, $filename);
 
 	    if ($cache{$key} && $cache{$key}{time} > 0 && $cache{$key}{time} >= (stat $_)[9]) {
-		($id, undef) = $urpm->parse_hdlist("$dir/$cache{$key}{file}", keep_all_tags => $options{keep_all_tags});
+		($id, undef) = $urpm->parse_hdlist("$dir/$cache{$key}{file}", packing => $options{packing}, keep_all_tags => $options{keep_all_tags});
 		unless (defined $id) {
 		  if ($options{dontdie}) {
 		    print STDERR "bad header $dir/$cache{$key}{file}\n";
@@ -124,13 +125,13 @@ sub parse_headers {
     my ($urpm, %options) = @_;
     my ($dir, $start, $id);
 
-    $dir = $options{dir} || _get_tmp_dir;
+    $dir = $options{dir} || _get_tmp_dir();
     -d $dir or die "no directory $dir\n";
 
     $start = @{$urpm->{depslist} || []};
     foreach (@{$options{headers} || []}) {
 	#- make smart use of memory (no need to keep header in memory now).
-	($id, undef) = $urpm->parse_hdlist("$dir/$_", !$options{callback});
+	($id, undef) = $urpm->parse_hdlist("$dir/$_", packing => !$options{callback});
 	defined $id or die "bad header $dir/$_\n";
 	$options{callback} and $options{callback}->($urpm, $id, %options);
     }
@@ -404,10 +405,10 @@ sub build_hdlist {
     my ($urpm, %options) = @_;
     my ($dir, $ratio, @idlist);
 
-    $dir = $options{dir} || _get_tmp_dir;
+    $dir = $options{dir} || _get_tmp_dir();
      -d $dir or die "no directory $dir\n";
 
-    @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
+    @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist});
 
     #- compression ratio are not very high, sample for cooker
     #- gives the following (main only and cache fed up):
@@ -429,7 +430,7 @@ sub build_hdlist {
     ) or die "Can't create archive";
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 	my $filename = $pkg->fullname;
-	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ /([^\/]*)\.rpm$/
+	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ m!([^/]*)\.rpm$!
 	    and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
 	$pack->add($dir, $filename);
@@ -448,7 +449,7 @@ sub build_synthesis {
     my ($urpm, %options) = @_;
     my ($ratio, @idlist);
 
-    @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
+    @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist});
 
     $ratio = $options{ratio} || 9;
     $options{synthesis} || defined $options{fd} or die "invalid parameters given";
