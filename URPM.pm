@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.59';
+our $VERSION = '1.60';
 
 URPM->bootstrap($VERSION);
 
@@ -26,6 +26,16 @@ sub new {
 
 sub set_nofatal { $_[0]{nofatal} = $_[1] }
 
+sub packages_providing {
+    my ($urpm, $name) = @_;
+    map { $urpm->{depslist}[$_] } keys %{$urpm->{provides}{$name} || {}};
+}
+
+sub packages_by_name {
+    my ($urpm, $name) = @_;
+    grep { $name eq $_->name } packages_providing($urpm, $name);
+}
+
 sub search {
     my ($urpm, $name, %options) = @_;
     my $best;
@@ -33,15 +43,13 @@ sub search {
     #- tries other alternative if no strict searching.
     unless ($options{strict_name}) {
 	if ($name =~ /^(.*)-([^\-]*)-([^\-]*)\.([^\.\-]*)$/) {
-	    foreach (keys %{$urpm->{provides}{$1} || {}}) {
-		my $pkg = $urpm->{depslist}[$_];
+	    foreach my $pkg (packages_providing($urpm, $1)) {
 		$pkg->fullname eq $name and return $pkg;
 	    }
 	}
 	unless ($options{strict_fullname}) {
 	    if ($name =~ /^(.*)-([^\-]*)-([^\-]*)$/) {
-		foreach (keys %{$urpm->{provides}{$1} || {}}) {
-		    my $pkg = $urpm->{depslist}[$_];
+		foreach my $pkg (packages_providing($urpm, $1)) {
 		    my ($n, $v, $r, $a) = $pkg->fullname;
 		    $options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
 		    "$n-$v-$r" eq $name or next;
@@ -50,8 +58,7 @@ sub search {
 		$best and return $best;
 	    }
 	    if ($name =~ /^(.*)-([^\-]*)$/) {
-		foreach (keys %{$urpm->{provides}{$1} || {}}) {
-		    my $pkg = $urpm->{depslist}[$_];
+		foreach my $pkg (packages_providing($urpm, $1)) {
 		    my ($n, $v, undef, $a) = $pkg->fullname;
 		    $options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
 		    "$n-$v" eq $name or next;
@@ -63,8 +70,7 @@ sub search {
     }
 
     unless ($options{strict_fullname}) {
-	foreach (keys %{$urpm->{provides}{$name} || {}}) {
-	    my $pkg = $urpm->{depslist}[$_];
+	foreach my $pkg (packages_providing($urpm, $name)) {
 	    my ($n, undef, undef, $a) = $pkg->fullname;
 	    $options{src} && $a eq 'src' || $pkg->is_arch_compat or next;
 	    $n eq $name or next;
@@ -105,8 +111,7 @@ sub traverse_tag {
     if (@{$names || []}) {
 	if ($tag eq 'name') {
 	    foreach my $n (@$names) {
-		foreach (keys %{$urpm->{provides}{$n} || {}}) {
-		    my $p = $urpm->{depslist}[$_];
+		foreach my $p (packages_providing($urpm, $n)) {
 		    $p->name eq $n or next;
 		    $callback and $callback->($p);
 		    ++$count;
@@ -320,6 +325,14 @@ and adds them to the URPM object. Allowed options are
 
 If C<keep_all_tags> isn't specified, URPM will drop all memory-consuming tags
 (notably changelogs, filelists, scriptlets).
+
+=item $urpm->packages_providing($name)
+
+Returns a list of C<URPM::Package> providing <$name>
+
+=item $urpm->packages_by_name($name)
+
+Returns a list of C<URPM::Package> corresponding to the wanted <$name>
 
 =item $urpm->search($name, %options)
 
