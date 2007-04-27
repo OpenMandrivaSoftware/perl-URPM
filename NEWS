@@ -1,3 +1,11 @@
+Version 1.61 - 3 April 2007, by Pascal "Pixel" Rigaux
+
+- add $trans->NElements and $trans->Element_name
+  to be able to display name of uninstalled package in callback_uninst
+- fix b--obsoletes-->a and c--conflicts-->a prompting for upgrading a
+  (need a fix in urpmi which rely on the $state->{rejected} 
+   to upgrade (-U) b instead of installing (-i) it)
+
 Version 1.60 - 8 March 2007, by Pascal "Pixel" Rigaux
 
 - more debugging hooks

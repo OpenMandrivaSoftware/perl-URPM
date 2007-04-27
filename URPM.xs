@@ -35,6 +35,7 @@
 #include <rpm/rpmio.h>
 #include <rpm/rpmdb.h>
 #include <rpm/rpmts.h>
+#include <rpm/rpmte.h>
 #include <rpm/rpmps.h>
 #include <rpm/rpmpgp.h>
 #include <rpm/rpmcli.h>
@@ -2863,6 +2864,24 @@ Trans_order(trans)
       XPUSHs(sv_2mortal(newSVpv("error while ordering dependencies", 0)));
     }
   }
+
+int
+Trans_NElements(trans)
+  URPM::Transaction trans
+  CODE:
+  RETVAL = rpmtsNElements(trans->ts);
+  OUTPUT:
+  RETVAL
+
+char *
+Trans_Element_name(trans, index)
+  URPM::Transaction trans
+  int index
+  CODE:
+  rpmte te = rpmtsElement(trans->ts, index);
+  RETVAL = te ? (char *) rpmteN(te) : NULL;
+  OUTPUT:
+  RETVAL
 
 void
 Trans_run(trans, data, ...)
