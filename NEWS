@@ -2,9 +2,6 @@ Version 1.62 - 3 May 2007, by Pascal "Pixel" Rigaux
 
 - pass the virtual package name as a parameter to {callback_choices} in
   ->resolve_requested
-
-Version 1.61 - 3 April 2007, by Pascal "Pixel" Rigaux
-
 - add $trans->NElements and $trans->Element_name
   to be able to display name of uninstalled package in callback_uninst
 - fix b--obsoletes-->a and c--conflicts-->a prompting for upgrading a
