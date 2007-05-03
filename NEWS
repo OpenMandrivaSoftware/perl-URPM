@@ -1,3 +1,6 @@
+- pass the virtual package name as a parameter to {callback_choices} in
+  ->resolve_requested
+
 Version 1.61 - 3 April 2007, by Pascal "Pixel" Rigaux
 
 - add $trans->NElements and $trans->Element_name

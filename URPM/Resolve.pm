@@ -505,7 +505,7 @@ sub resolve_requested {
 		unshift @properties, $urpm->backtrack_selected($db, $state, $dep, %options);
 		next; #- backtrack code choose to continue with same package or completely new strategy.
 	    } elsif ($options{callback_choices} && @chosen > 1) {
-		my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen);
+		my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen, _id_to_name($urpm, $dep->{required}));
 		$urpm->{debug_URPM}("replacing " . _id_to_name($urpm, $dep->{required}) . " with " . 
 				    join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
 		unshift @properties, map {
