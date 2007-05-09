@@ -1,3 +1,7 @@
+Version 1.63 - 9 May 2007, by Pascal "Pixel" Rigaux
+
+- add $trans->Element_fullname
+
 Version 1.62 - 3 May 2007, by Pascal "Pixel" Rigaux
 
 - pass the virtual package name as a parameter to {callback_choices} in

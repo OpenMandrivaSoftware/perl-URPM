@@ -2883,6 +2883,16 @@ Trans_Element_name(trans, index)
   OUTPUT:
   RETVAL
 
+char *
+Trans_Element_fullname(trans, index)
+  URPM::Transaction trans
+  int index
+  CODE:
+  rpmte te = rpmtsElement(trans->ts, index);
+  RETVAL = te ? (char *) rpmteNEVRA(te) : NULL;
+  OUTPUT:
+  RETVAL
+
 void
 Trans_run(trans, data, ...)
   URPM::Transaction trans
