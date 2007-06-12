@@ -1342,10 +1342,11 @@ Pkg_is_arch_compat(pkg)
 
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     *eos = 0;
-    RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
+    RETVAL = strcmp(arch, "noarch") == 0 ? 4 : rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
     *eos = '@';
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
-    RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, get_name(pkg->h, RPMTAG_ARCH));
+    char *arch = get_name(pkg->h, RPMTAG_ARCH);
+    RETVAL = strcmp(arch, "noarch") == 0 ? 4 : rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
   } else {
     RETVAL = 0;
   }

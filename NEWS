@@ -1,3 +1,6 @@
+- hack on $pkg->is_arch_compat to make it return true for noarch packages
+  when using rpm 4.4.8 (#31314)
+
 Version 1.63 - 9 May 2007, by Pascal "Pixel" Rigaux
 
 - add $trans->Element_fullname
