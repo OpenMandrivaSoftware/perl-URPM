@@ -1,4 +1,4 @@
-Version 1.64 - 9 May 2007, by Pascal "Pixel" Rigaux
+Version 1.64 - 12 June 2007, by Pascal "Pixel" Rigaux
 
 - hack on $pkg->is_arch_compat to make it return true for noarch packages
   when using rpm 4.4.8 (#31314)
