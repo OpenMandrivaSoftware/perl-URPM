@@ -445,6 +445,7 @@ sub build_hdlist {
 #-   end       : index of last package (defaults to last index of depslist).
 #-   idlist    : id list of rpm to compute (defaults is start .. end)
 #-   ratio     : compression ratio (default 9).
+#- returns true on success
 sub build_synthesis {
     my ($urpm, %options) = @_;
     my ($ratio, @idlist);
@@ -477,7 +478,7 @@ sub build_synthesis {
 
 	$pkg->build_info($options{synthesis} ? fileno $fh : $options{fd}, join('@', keys %files));
     }
-    close $fh;
+    close $fh; # returns true on success
 }
 
 #- write depslist.ordered file according to info in params.
