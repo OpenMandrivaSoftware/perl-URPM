@@ -50,6 +50,9 @@ if ($version =~ /^4\.(4\.[5-9]$|4\.\d\d|[5-9]\.|\d\d)/) {
 if ($version =~ /^4\.4/ && (split(/\./, $version))[2] >= 6) {
     $ccflags .= ' -DRPM_446';
 }
+if ($version =~ /^4\.4/ && (split(/\./, $version))[2] >= 8) {
+    $ccflags .= ' -DRPM_448';
+}
 
 WriteMakefile(
     NAME	=> 'URPM',

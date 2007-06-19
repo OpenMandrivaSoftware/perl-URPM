@@ -1334,7 +1334,10 @@ Pkg_arch(pkg)
 int
 Pkg_is_arch_compat(pkg)
   URPM::Package pkg
+  INIT:
+  char * platform;
   CODE:
+  char * arch;
   read_config_files(0);
   if (pkg->info) {
     char *arch;
@@ -1342,11 +1345,22 @@ Pkg_is_arch_compat(pkg)
 
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     *eos = 0;
-    RETVAL = strcmp(arch, "noarch") == 0 ? 4 : rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
+#ifdef RPM_448
+    platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+    RETVAL = rpmPlatformScore(platform, NULL, 0);
+#else
+    RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
+#endif
     *eos = '@';
+    free(platform);
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     char *arch = get_name(pkg->h, RPMTAG_ARCH);
-    RETVAL = strcmp(arch, "noarch") == 0 ? 4 : rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
+#ifdef RPM_448
+    platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+    RETVAL = rpmPlatformScore(platform, NULL, 0);
+#else
+    RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
+#endif
   } else {
     RETVAL = 0;
   }

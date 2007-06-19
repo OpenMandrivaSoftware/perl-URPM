@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 39;
+use Test::More tests => 40;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
@@ -99,6 +99,7 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
     is($pkg->get_tag(1001), '1.0');
     is($pkg->get_tag(1002), '1mdk');
     is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch");
+    ok($pkg->is_arch_compat(), "Arch compat works");
     close $hdfh;
 }
 
