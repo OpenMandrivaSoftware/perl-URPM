@@ -1063,7 +1063,7 @@ sub request_packages_to_upgrade {
 
 sub _request_packages_to_upgrade_1 {
     my ($urpm, %options) = @_;
-    my (%provides, %names, %skip);
+    my (%names, %skip);
 
     my @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
     
@@ -1071,29 +1071,6 @@ sub _request_packages_to_upgrade_1 {
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 
 	if ($pkg->is_arch_compat) {
-	    foreach ($pkg->provides) {
-		if (my ($n, $evr) = /^([^\s\[]*)(?:\[\*\])?\[?=+\s*([^\s\]]*)/) {
-		    if ($provides{$n}) {
-			foreach ($provides{$n}->provides) {
-			    if (my ($pn, $pevr) = /^([^\s\[]*)(?:\[\*\])?\[?=+\s*([^\s\]]*)/) {
-				$pn eq $n or next;
-				if (ranges_overlap("< $evr", "== $pevr")) {
-				    #- this package looks like too old ?
-				    if ($provides{$n}->name ne $pkg->name) {
-					$urpm->{debug_URPM}("skipping " . $provides{$n}->fullname . " since " . $pkg->fullname . " provides a more recent version of $n ($evr vs $pevr)") if $urpm->{debug_URPM};
-					$skip{$provides{$n}->name} = undef;
-				    }
-				    $provides{$n} = $pkg;
-				}
-				last;
-			    }
-			}
-		    } else {
-			$provides{$n} = $pkg;
-		    }
-		}
-	    }
-
 	    my $p = $names{$pkg->name};
 	    !$p || $pkg->compare_pkg($p) > 0 and $names{$pkg->name} = $pkg;
 	}

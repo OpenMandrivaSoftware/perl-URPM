@@ -1,3 +1,9 @@
+- fix --auto-select skipping some packages because of other packages providing
+  a more recent version, but no obsolete between those packages.
+  the fix is to revert commit from Aug 2002:
+    "fixed propable old package (according provides) requested by
+     request_packages_to_upgrade."
+
 Version 1.64 - 12 June 2007, by Pascal "Pixel" Rigaux
 
 - hack on $pkg->is_arch_compat to make it return true for noarch packages
