@@ -1079,7 +1079,10 @@ sub _request_packages_to_upgrade_1 {
 				$pn eq $n or next;
 				if (ranges_overlap("< $evr", "== $pevr")) {
 				    #- this package looks like too old ?
-				    $provides{$n}->name ne $pkg->name and $skip{$provides{$n}->name} = undef;
+				    if ($provides{$n}->name ne $pkg->name) {
+					$urpm->{debug_URPM}("skipping " . $provides{$n}->fullname . " since " . $pkg->fullname . " provides a more recent version of $n ($evr vs $pevr)") if $urpm->{debug_URPM};
+					$skip{$provides{$n}->name} = undef;
+				    }
 				    $provides{$n} = $pkg;
 				}
 				last;
