@@ -1,8 +1,14 @@
+Version 1.66 - 2 July 2007, by Pascal "Pixel" Rigaux
+
 - fix --auto-select skipping some packages because of other packages providing
   a more recent version, but no obsolete between those packages.
   the fix is to revert commit from Aug 2002:
     "fixed propable old package (according provides) requested by
      request_packages_to_upgrade."
+
+Version 1.65 - 22 June 2007, by Olivier Thauvin
+
+- really fix arch_score evaluation
 
 Version 1.64 - 12 June 2007, by Pascal "Pixel" Rigaux
 
