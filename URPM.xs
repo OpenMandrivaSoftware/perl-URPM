@@ -1337,7 +1337,6 @@ Pkg_is_arch_compat(pkg)
   INIT:
   char * platform;
   CODE:
-  char * arch;
   read_config_files(0);
   if (pkg->info) {
     char *arch;
@@ -3033,7 +3032,9 @@ Urpm_bind_rpm_textdomain_codeset()
 int
 Urpm_read_config_files()
   CODE:
-  return(read_config_files(1) == 0); /* force re-read of configuration files */
+  RETVAL = (read_config_files(1) == 0); /* force re-read of configuration files */
+  OUTPUT:
+  RETVAL
 
 void
 Urpm_list_rpm_tag(urpm=Nullsv)
