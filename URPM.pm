@@ -562,6 +562,12 @@ Returns whether this package is compatible with the current machine's
 architecture. 0 means not compatible. The lower the result is, the preferred
 the package is.
 
+=item $package->is_platform_compat()
+
+Return whether this package is compatible with the current machine's
+platform configuration (/etc/rpm/platform). 0 mean not compatible.
+The lower the result is the preferred the package is.
+
 =item $package->license()
 
 =item $package->name()
@@ -750,6 +756,11 @@ Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
 =item rpmErrorString()
 
 =item rpmErrorWriteTo($fd)
+
+=item platformscore($platform)
+
+Return the score of $platform according computer's configuration.
+0 mean not compatible, lower is prefered.
 
 =back
 

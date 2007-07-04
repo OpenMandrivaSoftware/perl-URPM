@@ -1352,7 +1352,7 @@ Pkg_is_arch_compat(pkg)
     RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
 #endif
     *eos = '@';
-    free(platform);
+    _free(platform);
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     char *arch = get_name(pkg->h, RPMTAG_ARCH);
 #ifdef RPM_448
@@ -1364,6 +1364,40 @@ Pkg_is_arch_compat(pkg)
   } else {
     RETVAL = 0;
   }
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_is_platform_compat(pkg)
+  URPM::Package pkg
+  INIT:
+  char * platform = NULL;
+  CODE:
+#ifdef RPM_448
+  read_config_files(0);
+  if (pkg->h && headerIsEntry(pkg->h, RPMTAG_PLATFORM)) {
+    int_32 count, type;
+    (void) headerGetEntry(pkg->h, RPMTAG_PLATFORM, &type, (void **) &platform, &count);
+    RETVAL = rpmPlatformScore(platform, NULL, 0);
+    platform = headerFreeData(platform, type);
+  } else if (pkg->info) {
+    char *arch;
+    char *eos;
+
+    get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
+    *eos = 0;
+    platform = rpmExpand(arch, "-%{_real_vendor}-", eos, "%{?_gnu}", NULL);
+    RETVAL = rpmPlatformScore(platform, NULL, 0);
+    *eos = '@';
+    _free(platform);
+  } else { 
+#else
+    croak("is_platform_compat() is availlable only since rpm 4.4.8");
+    { /* to match last } and avoid another #ifdef for it */
+#endif
+    RETVAL = 0;
+    }
+  
   OUTPUT:
   RETVAL
 
@@ -3633,6 +3667,19 @@ Urpm_import_pubkey(...)
   rpmtsClean(ts);
   _free(pkt);
   rpmtsFree(ts);
+  OUTPUT:
+  RETVAL
+
+int
+Urpm_platformscore(platform)
+  const char * platform
+  CODE:
+#ifdef RPM_448
+  RETVAL=rpmPlatformScore(platform, NULL, 0);
+#else
+  croak("platformscore() is availlable only since rpm 4.4.8");
+  RETVAL=0
+#endif
   OUTPUT:
   RETVAL
 
