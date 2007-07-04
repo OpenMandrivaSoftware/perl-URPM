@@ -3671,9 +3671,44 @@ Urpm_import_pubkey(...)
   RETVAL
 
 int
+Urpm_archscore(arch)
+  const char * arch
+  PREINIT:
+  char * platform = NULL;
+  CODE:
+  read_config_files(0);
+#ifdef RPM_448
+  platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+  RETVAL=rpmPlatformScore(platform, NULL, 0);
+  _free(platform);
+#else
+  RETVAL=rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
+#endif
+  OUTPUT:
+  RETVAL
+
+int
+Urpm_osscore(os)
+  const char * os
+  PREINIT:
+  char * platform = NULL;
+  CODE:
+  read_config_files(0);
+#ifdef RPM_448
+  platform = rpmExpand("%{_real_arch}-%{_real_vendor}-", os, "%{?_gnu}", NULL);
+  RETVAL=rpmPlatformScore(platform, NULL, 0);
+  _free(platform);
+#else
+  RETVAL=rpmMachineScore(RPM_MACHTABLE_INSTOS, os);
+#endif
+  OUTPUT:
+  RETVAL
+
+int
 Urpm_platformscore(platform)
   const char * platform
   CODE:
+  read_config_files(0);
 #ifdef RPM_448
   RETVAL=rpmPlatformScore(platform, NULL, 0);
 #else
