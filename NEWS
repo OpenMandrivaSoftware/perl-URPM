@@ -1,3 +1,11 @@
+Version 1.67 - 22 June 2007, by Olivier "Nanar" Thauvin
+
+- add osscore, archscore and platformscore function to URPM
+- is_platform_compat function to Pkg object
+- fix call to rpm function in spec2header()
+- fix some compilation warnings
+
+
 Version 1.66 - 2 July 2007, by Pascal "Pixel" Rigaux
 
 - fix --auto-select skipping some packages because of other packages providing

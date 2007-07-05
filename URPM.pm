@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.66';
+our $VERSION = '1.67';
 
 URPM->bootstrap($VERSION);
 
@@ -761,6 +761,16 @@ Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
 
 Return the score of $platform according computer's configuration.
 0 mean not compatible, lower is prefered.
+
+=item archscore($arch)
+
+Return the score of the given arch. 0 mean not compatible,
+lower is prefered.
+
+=item osscore($os)
+
+Return the score of the given os. 0 mean not compatible,
+lower is prefered.
 
 =back
 
