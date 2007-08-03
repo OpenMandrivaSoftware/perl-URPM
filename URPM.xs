@@ -2932,6 +2932,26 @@ Trans_Element_name(trans, index)
   RETVAL
 
 char *
+Trans_Element_version(trans, index)
+  URPM::Transaction trans
+  int index
+  CODE:
+  rpmte te = rpmtsElement(trans->ts, index);
+  RETVAL = te ? (char *) rpmteV(te) : NULL;
+  OUTPUT:
+  RETVAL
+
+char *
+Trans_Element_release(trans, index)
+  URPM::Transaction trans
+  int index
+  CODE:
+  rpmte te = rpmtsElement(trans->ts, index);
+  RETVAL = te ? (char *) rpmteR(te) : NULL;
+  OUTPUT:
+  RETVAL
+
+char *
 Trans_Element_fullname(trans, index)
   URPM::Transaction trans
   int index
