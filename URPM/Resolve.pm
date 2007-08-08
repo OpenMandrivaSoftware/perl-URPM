@@ -355,7 +355,7 @@ sub backtrack_selected {
 	    $db->traverse_tag('whatrequires', [ $dep->{promote} ], sub {
 				  my ($p) = @_;
 				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p,
-									  nopromoteepoch => 1, name => $dep->{promote})) {
+									  name => $dep->{promote})) {
 				      #- typically a redo of the diff_provides code should be applied...
 				      $urpm->resolve_rejected($db, $state, $p,
 							      removed => 1,
@@ -761,7 +761,7 @@ sub resolve_requested {
 	    my ($n, $pkg) = ($dep->{name}, $dep->{pkg});
 	    $db->traverse_tag('whatrequires', [ $n ], sub {
 				  my ($p) = @_;
-				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, nopromoteepoch => 1, name => $n)) {
+				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
 				      #- try if upgrading the package will be satisfying all the requires...
 				      #- there is no need to avoid promoting epoch as the package examined is not
 				      #- already installed.
