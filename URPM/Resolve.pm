@@ -254,6 +254,20 @@ sub unsatisfied_requires {
     keys %properties;
 }
 
+#- this function is "suggests vs requires" safe:
+#-   'whatrequires' will give both requires & suggests, but unsatisfied_requires
+#-   will check $p->requires and so filter out suggests
+sub with_db_unsatisfied_requires {
+    my ($urpm, $db, $state, $name, $do) = @_;
+
+    $db->traverse_tag('whatrequires', [ $name ], sub {
+	my ($p) = @_;
+	if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $name)) {
+	    $do->($p, @l);
+	}
+    });
+}
+
 sub backtrack_selected {
     my ($urpm, $db, $state, $dep, %options) = @_;
     my @properties;
@@ -352,17 +366,14 @@ sub backtrack_selected {
 	    defined $dep->{keep} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{keep}}, @{$dep->{keep}};
 	} else {
 	    #- the backtrack need to examine diff_provides promotion on $n.
-	    $db->traverse_tag('whatrequires', [ $dep->{promote} ], sub {
-				  my ($p) = @_;
-				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p,
-									  name => $dep->{promote})) {
+	    with_db_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
+				      my ($p, @l) = @_;
 				      #- typically a redo of the diff_provides code should be applied...
 				      $urpm->resolve_rejected($db, $state, $p,
 							      removed => 1,
 							      unsatisfied => \@properties,
 							      from => scalar $dep->{psel}->fullname,
 							      why => { unsatisfied => \@l });
-				  }
 			      });
 	}
     }
@@ -403,9 +414,8 @@ sub resolve_rejected {
 			    push @unsatisfied, @l;
 			}
 		    }
-		    $db->traverse_tag('whatrequires', [ $n ], sub {
-			my ($p) = @_;
-			if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
+		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
+			    my ($p, @l) = @_;
 			    my $rv = $state->{rejected}{$p->fullname} ||= {};
 
 			    #- keep track of what causes closure.
@@ -424,7 +434,6 @@ sub resolve_rejected {
 
 			    $p->pack_header; #- need to pack else package is no longer visible...
 			    push @closure, $p;
-			}
 		    });
 		}
 	    }
@@ -759,9 +768,8 @@ sub resolve_requested {
 	}
 	if (defined ($dep = shift @diff_provides)) {
 	    my ($n, $pkg) = ($dep->{name}, $dep->{pkg});
-	    $db->traverse_tag('whatrequires', [ $n ], sub {
-				  my ($p) = @_;
-				  if (my @l = $urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
+	    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
+				      my ($p, @l) = @_;
 				      #- try if upgrading the package will be satisfying all the requires...
 				      #- there is no need to avoid promoting epoch as the package examined is not
 				      #- already installed.
@@ -808,7 +816,6 @@ sub resolve_requested {
 					      }
 					  }
 				      }
-				  }
 			      });
 	}
     } while @diff_provides || @properties;
