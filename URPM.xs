@@ -44,6 +44,7 @@
 struct s_Package {
   char *info;
   char *requires;
+  char *suggests;
   char *obsoletes;
   char *conflicts;
   char *provides;
@@ -106,7 +107,7 @@ typedef struct s_Package* URPM__Package;
 static int rpmError_callback_data;
 void rpmError_callback() {
   if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR) {
-    write(rpmError_callback_data, rpmErrorString(), strlen(rpmErrorString()));
+    (void) write(rpmError_callback_data, rpmErrorString(), strlen(rpmErrorString()));
   }
 }
 
@@ -264,6 +265,16 @@ ranges_overlap(int_32 aflags, char *sa, int_32 bflags, char *sb, int b_nopromote
   }
 }
 
+static int has_suggests;
+int is_suggests(int_32 flags) { 
+  int is = flags & RPMSENSE_MISSINGOK;
+  if (is) has_suggests = is;
+  return is;
+}
+int is_not_suggests(int_32 flags) {
+  return !is_suggests(flags);
+}
+
 typedef int (*callback_list_str)(char *s, int slen, char *name, int_32 flags, char *evr, void *param);
 
 static int
@@ -272,6 +283,36 @@ callback_list_str_xpush(char *s, int slen, char *name, int_32 flags, char *evr, 
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
   } else {
+    char buff[4096];
+    int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
+    if (len >= 0)
+      XPUSHs(sv_2mortal(newSVpv(buff, len)));
+  }
+  PUTBACK;
+  /* returning zero indicates to continue processing */
+  return 0;
+}
+static int
+callback_list_str_xpush_requires(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+  dSP;
+  if (s) {
+    XPUSHs(sv_2mortal(newSVpv(s, slen)));
+  } else if (is_not_suggests(flags)) {
+    char buff[4096];
+    int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
+    if (len >= 0)
+      XPUSHs(sv_2mortal(newSVpv(buff, len)));
+  }
+  PUTBACK;
+  /* returning zero indicates to continue processing */
+  return 0;
+}
+static int
+callback_list_str_xpush_suggests(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+  dSP;
+  if (s) {
+    XPUSHs(sv_2mortal(newSVpv(s, slen)));
+  } else if (is_suggests(flags)) {
     char buff[4096];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
@@ -688,7 +729,7 @@ return_problems(rpmps ps, int translate_message) {
 }
 
 static char *
-pack_list(Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version) {
+pack_list(Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, int (*check_flag)(int)) {
   char buff[65536];
   int_32 type, count;
   char **list = NULL;
@@ -702,6 +743,7 @@ pack_list(Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version) 
     if (tag_flags) headerGetEntry(header, tag_flags, &type, (void **) &flags, &count);
     if (tag_version) headerGetEntry(header, tag_version, &type, (void **) &list_evr, &count);
     for(i = 0; i < count; i++) {
+      if (check_flag && !check_flag(flags[i])) continue;
       int len = print_list_entry(p, sizeof(buff)-(p-buff)-1, list[i], flags ? flags[i] : 0, list_evr ? list_evr[i] : NULL);
       if (len < 0) continue;
       p += len;
@@ -738,14 +780,17 @@ pack_header(URPM__Package pkg) {
       }
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
     }
-    if (pkg->requires == NULL)
-      pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION);
+    if (pkg->requires == NULL && pkg->suggests == NULL)
+      has_suggests = 0;
+      pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_suggests);
+      if (has_suggests)
+      pkg->suggests = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_suggests);
     if (pkg->obsoletes == NULL)
-      pkg->obsoletes = pack_list(pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION);
+      pkg->obsoletes = pack_list(pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION, NULL);
     if (pkg->conflicts == NULL)
-      pkg->conflicts = pack_list(pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION);
+      pkg->conflicts = pack_list(pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION, NULL);
     if (pkg->provides == NULL)
-      pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION);
+      pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
     if (pkg->summary == NULL) {
       char *summary = get_name(pkg->h, RPMTAG_SUMMARY);
       int len = 1 + strlen(summary);
@@ -1018,6 +1063,8 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, 
       memset(pkg, 0, sizeof(struct s_Package));
     } else if (!strcmp(tag, "requires")) {
       free(pkg->requires); pkg->requires = memcpy(malloc(data_len), data, data_len);
+    } else if (!strcmp(tag, "suggests")) {
+      free(pkg->suggests); pkg->suggests = memcpy(malloc(data_len), data, data_len);
     } else if (!strcmp(tag, "obsoletes")) {
       free(pkg->obsoletes); pkg->obsoletes = memcpy(malloc(data_len), data, data_len);
     } else if (!strcmp(tag, "conflicts")) {
@@ -1264,6 +1311,7 @@ Pkg_DESTROY(pkg)
   CODE:
   free(pkg->info);
   free(pkg->requires);
+  free(pkg->suggests);
   free(pkg->obsoletes);
   free(pkg->conflicts);
   free(pkg->provides);
@@ -1885,7 +1933,7 @@ Pkg_requires(pkg)
   PPCODE:
   PUTBACK;
   return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION,
-		  callback_list_str_xpush, NULL);
+		  callback_list_str_xpush_requires, NULL);
   SPAGAIN;
 
 void
@@ -1893,7 +1941,17 @@ Pkg_requires_nosense(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, 0, 0, callback_list_str_xpush, NULL);
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, 0, 
+		  callback_list_str_xpush_requires, NULL);
+  SPAGAIN;
+
+void
+Pkg_suggests(pkg)
+  URPM::Package pkg
+  PPCODE:
+  PUTBACK;
+  return_list_str(pkg->suggests, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, 0,
+		  callback_list_str_xpush_suggests, NULL);
   SPAGAIN;
 
 void
@@ -2275,6 +2333,10 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
     }
     if (pkg->requires && *pkg->requires) {
       size = snprintf(buff, sizeof(buff), "@requires@%s\n", pkg->requires);
+      if (size < sizeof(buff)) write(fileno, buff, size);
+    }
+    if (pkg->suggests && *pkg->suggests) {
+      size = snprintf(buff, sizeof(buff), "@suggests@%s\n", pkg->suggests);
       if (size < sizeof(buff)) write(fileno, buff, size);
     }
     if (pkg->summary && *pkg->summary) {

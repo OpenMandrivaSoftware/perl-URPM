@@ -451,6 +451,38 @@ sub resolve_rejected {
     $options{unsatisfied} and push @{$options{unsatisfied}}, map { { required => $_, rejected => $pkg->fullname, } } @unsatisfied;
 }
 
+# see resolve_requested__no_suggests below for information about usage
+sub resolve_requested {
+    my ($urpm, $db, $state, $requested, %options) = @_;
+
+    my @selected = resolve_requested__no_suggests($urpm, $db, $state, $requested, %options);
+
+    if (!$options{no_suggests}) {
+	my @todo = @selected;
+	while (@todo) {
+	    my $pkg = shift @todo;
+	    my %suggests = map { $_ => 1 } $pkg->suggests or next;
+
+	    #- do not install a package that has already been suggested
+	    $db->traverse_tag('name', [ $pkg->name ], sub {
+		my ($p) = @_;
+		delete $suggests{$_} foreach $p->suggests;
+	    });
+
+	    %suggests or next;
+
+	    $urpm->{debug_URPM}("requested " . join(', ', keys %suggests) . " suggested by " . $pkg->fullname) if $urpm->{debug_URPM};
+	    
+	    my %new_requested = map { $_ => undef } keys %suggests;
+	    my @new_selected = resolve_requested__no_suggests($urpm, $db, $state, \%new_requested, %options);
+	    $state->{selected}{$_->id}{suggested} = 1 foreach @new_selected;
+	    push @selected, @new_selected;
+	    push @todo, @new_selected;
+	}
+    }
+    @selected;
+}
+
 #- Resolve dependencies of requested packages; keep resolution state to
 #- speed up process.
 #- A requested package is marked to be installed; once done, an upgrade flag or
@@ -467,7 +499,7 @@ sub resolve_rejected {
 #-   keep_unrequested_dependencies :
 #-   keep :
 #-   nodeps :
-sub resolve_requested {
+sub resolve_requested__no_suggests {
     my ($urpm, $db, $state, $requested, %options) = @_;
     my ($dep, @diff_provides, @properties, @selected);
 
@@ -1239,7 +1271,7 @@ sub build_transaction_set {
 	    if (keys(%requested) >= $options{split_length}) {
 		my %set;
 
-		$urpm->resolve_requested(
+		$urpm->resolve_requested__no_suggests(
 		    $db, $state->{transaction_state} ||= {},
 		    \%requested,
 		    keep_requested_flag => 1,
