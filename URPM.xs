@@ -1395,11 +1395,11 @@ Pkg_is_arch_compat(pkg)
 #ifdef RPM_448
     platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
+    _free(platform);
 #else
     RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
 #endif
     *eos = '@';
-    _free(platform);
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     char *arch = get_name(pkg->h, RPMTAG_ARCH);
 #ifdef RPM_448
