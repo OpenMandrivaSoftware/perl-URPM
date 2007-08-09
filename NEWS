@@ -1,3 +1,9 @@
+Version 1.69 - 9 August 2007, by Pascal "Pixel" Rigaux
+
+- "suggests" are no more handled as "requires"
+- resolve_requested support "suggests": a newly suggested package is installed
+  as if required (can be disabled with option no_suggests)
+
 Version 1.68 - 3 August 2007, by Pascal "Pixel" Rigaux
 
 - add $trans->Element_version and $trans->Element_release
