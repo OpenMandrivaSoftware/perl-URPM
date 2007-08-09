@@ -1,3 +1,5 @@
+- compilation fixes on rpm < 4.4.8
+
 Version 1.69 - 9 August 2007, by Pascal "Pixel" Rigaux
 
 - "suggests" are no more handled as "requires"

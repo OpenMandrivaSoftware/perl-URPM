@@ -3796,7 +3796,7 @@ Urpm_platformscore(platform)
   RETVAL=rpmPlatformScore(platform, NULL, 0);
 #else
   croak("platformscore() is availlable only since rpm 4.4.8");
-  RETVAL=0
+  RETVAL=0;
 #endif
   OUTPUT:
   RETVAL
@@ -3838,7 +3838,15 @@ Urpm_spec2srcheader(specfile)
 #define SPEC_FORCE 1
 /* check what it does */
 #define SPEC_VERIFY 0
-  if (!parseSpec(ts, specfile, "/", 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE, SPEC_VERIFY)) {
+  if (!parseSpec(ts, specfile, "/"
+#ifndef RPM_448
+		 , NULL
+#endif
+		 , 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE
+#ifdef RPM_448
+		 , SPEC_VERIFY
+#endif
+		 )) {
     const char *zero = "";
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
