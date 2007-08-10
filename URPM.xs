@@ -3322,21 +3322,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 
 	PUTBACK;
 	do {
-	  int count = 4;
 	  header=headerRead(fd, HEADER_MAGIC_YES);
-	  while (header == NULL && count > 0) {
-	    fd_set readfds;
-	    struct timeval timeout;
-
-	    FD_ZERO(&readfds);
-	    FD_SET(fdFileno(fd), &readfds);
-	    timeout.tv_sec = 1;
-	    timeout.tv_usec = 0;
-	    select(fdFileno(fd)+1, &readfds, NULL, NULL, &timeout);
-
-	    header=headerRead(fd, HEADER_MAGIC_YES);
-	    --count;
-	  }
 	  if (header != NULL) {
 	    struct s_Package pkg, *_pkg;
 	    SV *sv_pkg;
