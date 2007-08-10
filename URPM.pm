@@ -10,7 +10,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '1.71';
+our $VERSION = '1.72';
 
 URPM->bootstrap($VERSION);
 
