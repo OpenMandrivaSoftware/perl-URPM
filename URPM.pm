@@ -169,12 +169,17 @@ sub parse_hdlist_or_synthesis {
     my $previous_indice = @{$urpm->{depslist}};
     if (my ($start, $end) = $parse_func->($urpm, $file, %options)) {
 	($start, $end);
-    } else {
+    } elsif (!$options{callback}) {
 	#- parse_hdlist__XS may have added some pkgs to {depslist},
 	#- but we don't want those pkgs since reading hdlist failed later.
 	#- so we need to drop them
 	#- FIXME: {provides} would need to be reverted too!
 	splice(@{$urpm->{depslist}}, $previous_indice);
+	();
+    } else {
+	#- we need to keep them since the callback has been used
+	#- and we can't pretend we didn't parse anything
+	#- (needed for genhdlist2)
 	();
     }
 }

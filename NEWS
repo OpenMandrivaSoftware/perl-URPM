@@ -1,3 +1,6 @@
+- modify parse_hdlist so that partial hdlist reading can be used
+  (needed when some stuff is already done in the callback)
+
 Version 1.71 - 9 August 2007, by Pascal "Pixel" Rigaux
 
 - compilation fixes on rpm < 4.4.8
