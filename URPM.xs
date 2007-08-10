@@ -1000,8 +1000,11 @@ open_archive(char *filename, pid_t *pid, int *empty_archive) {
 	  lseek(fd, 0, SEEK_SET);
 	  dup2(fd, STDIN_FILENO); close(fd);
 	  dup2(fdno[1], STDOUT_FILENO); close(fdno[1]);
+
+	  /* get rid of "decompression OK, trailing garbage ignored" */
 	  fd = open("/dev/null", O_WRONLY);
 	  dup2(fd, STDERR_FILENO); close(fd);
+
 	  execvp(unpacker[0], unpacker);
 	  exit(1);
 	}
