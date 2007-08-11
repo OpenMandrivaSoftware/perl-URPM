@@ -3063,6 +3063,8 @@ Trans_run(trans, data, ...)
 				        RPMTRANS_FLAG_NOPOSTUN );
     } else if (len == 10 && !memcmp(s, "oldpackage", 10)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_OLDPACKAGE;
+    } else if (len == 11 && !memcmp(s, "replacepkgs", 11)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEPKG;
     } else if (len == 9 && !memcmp(s, "repackage", 9)) {
       if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_REPACKAGE;
     } else if (len == 10 && !memcmp(s, "ignorearch", 10)) {
