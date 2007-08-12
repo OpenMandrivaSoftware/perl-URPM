@@ -1,3 +1,5 @@
+Version 1.75 - 12 August 2007, by Pascal "Pixel" Rigaux
+
 - fix dropping tags from rpm header.
   it hasn't work since MDK8.1 and rpm 4.0. 
   it may break urpmi!! but potentially allows a much smaller hdlist.cz :)
