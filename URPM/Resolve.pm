@@ -185,9 +185,9 @@ sub find_chosen_packages {
 	       (sort sort_package_result @chosen_other_en),
 	       (sort sort_package_result @chosen_other),
 	       (sort sort_package_result @chosen_bad_locales);
+    } else {
+	return values(%packages);
     }
-
-    return values(%packages);
 }
 
 sub sort_package_result { $b->compare_pkg($a) || $a->id <=> $b->id }
