@@ -1084,6 +1084,67 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, 
   }
 }
 
+static void pack_rpm_header(Header *h) {
+  Header packed = headerNew();
+  HeaderIterator hi;
+  int type, c, tag;
+  void *p;
+
+  for (hi = headerInitIterator(*h);
+       headerNextIterator(hi, &tag, &type, (void *) &p, &c);
+       p = headerFreeData(p, type))
+    {
+      // fprintf(stderr, "adding %s %d\n", tagname(tag), c);
+      headerAddEntry(packed, tag, type, p, c);
+    }
+
+  headerFreeIterator(hi);
+  headerFree(*h);
+
+  *h = packed;
+}
+
+static void drop_tags(Header *h) {
+  headerRemoveEntry(*h, RPMTAG_FILEUSERNAME); /* user ownership is correct */
+  headerRemoveEntry(*h, RPMTAG_FILEGROUPNAME); /* group ownership is correct */
+  headerRemoveEntry(*h, RPMTAG_FILEMTIMES); /* correct time without it */
+  headerRemoveEntry(*h, RPMTAG_FILEINODES); /* hardlinks work without it */
+  headerRemoveEntry(*h, RPMTAG_FILEDEVICES); /* it is the same number for every file */
+  headerRemoveEntry(*h, RPMTAG_FILESIZES); /* ? */
+  headerRemoveEntry(*h, RPMTAG_FILERDEVS); /* it seems unused. always empty */
+  headerRemoveEntry(*h, RPMTAG_FILEVERIFYFLAGS); /* only used for -V */
+  headerRemoveEntry(*h, RPMTAG_FILEDIGESTALGOS); /* only used for -V */
+  headerRemoveEntry(*h, RPMTAG_FILEDIGESTS); /* only used for -V */
+  /* keep RPMTAG_FILEFLAGS for %config (rpmnew) to work */
+  /* keep RPMTAG_FILELANGS for %lang (_install_langs) to work */
+  /* keep RPMTAG_FILELINKTOS for checking conflicts between symlinks */
+  /* keep RPMTAG_FILEMODES otherwise it segfaults with excludepath */
+
+  /* keep RPMTAG_POSTIN RPMTAG_POSTUN RPMTAG_PREIN RPMTAG_PREUN */
+  /* keep RPMTAG_TRIGGERSCRIPTS RPMTAG_TRIGGERVERSION RPMTAG_TRIGGERFLAGS RPMTAG_TRIGGERNAME */
+  /* small enough, and only in some packages. not needed per se */
+
+  headerRemoveEntry(*h, RPMTAG_ICON);
+  headerRemoveEntry(*h, RPMTAG_GIF);
+  headerRemoveEntry(*h, RPMTAG_EXCLUDE);
+  headerRemoveEntry(*h, RPMTAG_EXCLUSIVE);
+  headerRemoveEntry(*h, RPMTAG_COOKIE);
+  headerRemoveEntry(*h, RPMTAG_VERIFYSCRIPT);
+
+  /* always the same for our packages */
+  headerRemoveEntry(*h, RPMTAG_VENDOR);
+  headerRemoveEntry(*h, RPMTAG_DISTRIBUTION);
+
+  /* keep RPMTAG_SIGSIZE, useful to tell the size of the rpm file (+440) */
+
+  headerRemoveEntry(*h, RPMTAG_DSAHEADER);
+  headerRemoveEntry(*h, RPMTAG_SHA1HEADER);
+  headerRemoveEntry(*h, RPMTAG_SIGMD5);
+  headerRemoveEntry(*h, RPMTAG_SIGGPG);
+
+  pack_rpm_header(h);
+}
+
 static int
 update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags) {
   int d = open(filename, O_RDONLY);
@@ -1117,33 +1178,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	  pkg->h = header;
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
 
-	  if (!keep_all_tags) {
-	    headerRemoveEntry(pkg->h, RPMTAG_POSTIN);
-	    headerRemoveEntry(pkg->h, RPMTAG_POSTUN);
-	    headerRemoveEntry(pkg->h, RPMTAG_PREIN);
-	    headerRemoveEntry(pkg->h, RPMTAG_PREUN);
-	    headerRemoveEntry(pkg->h, RPMTAG_FILEUSERNAME);
-	    headerRemoveEntry(pkg->h, RPMTAG_FILEGROUPNAME);
-	    headerRemoveEntry(pkg->h, RPMTAG_FILEVERIFYFLAGS);
-	    headerRemoveEntry(pkg->h, RPMTAG_FILERDEVS);
-	    headerRemoveEntry(pkg->h, RPMTAG_FILEMTIMES);
-	    headerRemoveEntry(pkg->h, RPMTAG_FILEDEVICES);
-	    headerRemoveEntry(pkg->h, RPMTAG_FILEINODES);
-	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERSCRIPTS);
-	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERVERSION);
-	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERFLAGS);
-	    headerRemoveEntry(pkg->h, RPMTAG_TRIGGERNAME);
-	    headerRemoveEntry(pkg->h, RPMTAG_CHANGELOGTIME);
-	    headerRemoveEntry(pkg->h, RPMTAG_CHANGELOGNAME);
-	    headerRemoveEntry(pkg->h, RPMTAG_CHANGELOGTEXT);
-	    headerRemoveEntry(pkg->h, RPMTAG_ICON);
-	    headerRemoveEntry(pkg->h, RPMTAG_GIF);
-	    headerRemoveEntry(pkg->h, RPMTAG_VENDOR);
-	    headerRemoveEntry(pkg->h, RPMTAG_EXCLUDE);
-	    headerRemoveEntry(pkg->h, RPMTAG_EXCLUSIVE);
-	    headerRemoveEntry(pkg->h, RPMTAG_DISTRIBUTION);
-	    headerRemoveEntry(pkg->h, RPMTAG_VERIFYSCRIPT);
-	  }
+	  if (!keep_all_tags) drop_tags(&pkg->h);
 	  return 1;
 	}
 	rpmtsFree(ts);
