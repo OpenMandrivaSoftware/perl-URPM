@@ -181,16 +181,39 @@ sub find_chosen_packages {
 
 	#- sort packages in order to have preferred ones first
 	#- (this means good locales, no locales, bad locales).
-	return (sort sort_package_result @chosen_good_locales),
-	       (sort sort_package_result @chosen_other_en),
-	       (sort sort_package_result @chosen_other),
-	       (sort sort_package_result @chosen_bad_locales);
+	return sort_package_result($urpm, @chosen_good_locales),
+	       sort_package_result($urpm, @chosen_other_en),
+	       sort_package_result($urpm, @chosen_other),
+	       sort_package_result($urpm, @chosen_bad_locales);
     } else {
 	return values(%packages);
     }
 }
 
-sub sort_package_result { $b->compare_pkg($a) || $a->id <=> $b->id }
+sub find(&@) {
+    my $f = shift;
+    $f->($_) and return $_ foreach @_;
+    undef;
+}
+sub pkg2media {
+   my ($mediums, $p) = @_; 
+   my $id = $p->id;
+   find { $id >= $_->{start} && $id <= $_->{end} } @$mediums;
+}
+
+sub sort_package_result { 
+    my ($urpm, @l) = @_;
+    if ($urpm->{media}) {
+	map { $_->[0] } sort {
+	    $a->[1] != $b->[1] ? 
+	       $a->[0]->id <=> $b->[0]->id : 
+	       $b->[0]->compare_pkg($a->[0]);
+	} map { [ $_, pkg2media($urpm->{media}, $_) ] } @l;
+    } else {
+	$urpm->{debug_URPM}("can't sort choices by media") if $urpm->{debug_URPM};
+	sort { $b->compare_pkg($a) || $a->id <=> $b->id } @l;
+    }
+}
 
 #- return unresolved requires of a package (a new one or an existing one).
 sub unsatisfied_requires {
