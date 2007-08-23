@@ -1,3 +1,5 @@
+- allow running transaction with justdb option
+
 Version 1.75 - 12 August 2007, by Pascal "Pixel" Rigaux
 
 - fix dropping tags from rpm header.

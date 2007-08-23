@@ -3102,6 +3102,8 @@ Trans_run(trans, data, ...)
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEPKG;
     } else if (len == 9 && !memcmp(s, "repackage", 9)) {
       if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_REPACKAGE;
+    } else if (len == 6 && !memcmp(s, "justdb", 6)) {
+      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_JUSTDB;
     } else if (len == 10 && !memcmp(s, "ignorearch", 10)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_IGNOREARCH;
     } else if (len == 17 && !memcmp(s, "translate_message", 17))
