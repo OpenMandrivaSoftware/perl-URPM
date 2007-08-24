@@ -1285,6 +1285,8 @@ sub build_transaction_set {
 	      (grep { exists($selected_id{$_}) } keys %{$state->{selected}}) : 
 	      keys %{$state->{selected}});
 
+	$urpm->{debug_URPM}('rpms sorted by dependance: ' . join(' ', map { $urpm->{depslist}[$_]->name } @sorted)) if $urpm->{debug_URPM};
+
 	#- second step consists of re-applying resolve_requested in the same
 	#- order computed in first step and to update a list of packages to
 	#- install, to upgrade and to remove.
@@ -1292,7 +1294,6 @@ sub build_transaction_set {
 	foreach (@sorted) {
 	    $requested{$_} = undef;
 	    if (keys(%requested) >= $options{split_length}) {
-		my %set;
 
 		$urpm->resolve_requested__no_suggests(
 		    $db, $state->{transaction_state} ||= {},
@@ -1303,19 +1304,19 @@ sub build_transaction_set {
 		);
 		%requested = ();
 
-		foreach (keys %{$state->{transaction_state}{selected}}) {
-		    exists $examined{$_} and next;
-		    $examined{$_} = undef;
-		    push @{$set{upgrade}}, $_;
-		}
-		foreach (keys %{$state->{transaction_state}{rejected}}) {
-		    exists $examined{$_} and next;
-		    $examined{$_} = undef;
-		    $state->{transaction_state}{rejected}{$_}{removed} &&
-		      !$state->{transaction_state}{rejected}{$_}{obsoleted} or next;
-		    push @{$set{remove}}, $_;
-		}
-		%set and push @{$state->{transaction}}, \%set;
+		my @upgrade = grep { ! exists $examined{$_} } keys %{$state->{transaction_state}{selected}};
+		my @remove = grep { $state->{transaction_state}{rejected}{$_}{removed} &&
+				    !$state->{transaction_state}{rejected}{$_}{obsoleted} }
+		             grep { ! exists $examined{$_} } keys %{$state->{transaction_state}{rejected}};
+
+		@upgrade || @remove or next;
+
+		$urpm->{debug_URPM}(sprintf('transaction valid: remove=%s update=%s',
+					    join(',', @remove),
+					    join(',', map { $urpm->{depslist}[$_]->name } @upgrade))) if $urpm->{debug_URPM};
+    
+		$examined{$_} = undef foreach @upgrade, @remove;
+		push @{$state->{transaction}}, { upgrade => \@upgrade, remove => \@remove };
 	    }
 	}
 
@@ -1340,6 +1341,7 @@ sub build_transaction_set {
 
     #- fallback if something can be selected but nothing has been allowed in transaction list.
     if (%{$state->{selected} || {}} && !@{$state->{transaction}}) {
+	$urpm->{debug_URPM}('using one big transaction') if $urpm->{debug_URPM};
 	push @{$state->{transaction}}, {
 					upgrade => [ keys %{$state->{selected}} ],
 					remove  => [ grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} }
