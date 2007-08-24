@@ -1,4 +1,6 @@
 - allow running transaction with justdb option
+- fix split_length > 1 
+  (eg: "urpmi --split-length 2 a b c" will only install 2 pkgs)
 
 Version 1.75 - 12 August 2007, by Pascal "Pixel" Rigaux
 

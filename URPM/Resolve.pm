@@ -1290,10 +1290,10 @@ sub build_transaction_set {
 	#- second step consists of re-applying resolve_requested in the same
 	#- order computed in first step and to update a list of packages to
 	#- install, to upgrade and to remove.
-	my (%requested, %examined);
-	foreach (@sorted) {
-	    $requested{$_} = undef;
-	    if (keys(%requested) >= $options{split_length}) {
+	my %examined;
+	while (@sorted) {
+	    my @ids = splice(@sorted, 0, $options{split_length});
+	    my %requested = map { $_ => undef } @ids;
 
 		$urpm->resolve_requested__no_suggests(
 		    $db, $state->{transaction_state} ||= {},
@@ -1302,7 +1302,6 @@ sub build_transaction_set {
 		    defined $options{start} ? (start => $options{start}) : @{[]},
 		    defined $options{end}   ? (end   => $options{end}) : @{[]},
 		);
-		%requested = ();
 
 		my @upgrade = grep { ! exists $examined{$_} } keys %{$state->{transaction_state}{selected}};
 		my @remove = grep { $state->{transaction_state}{rejected}{$_}{removed} &&
@@ -1317,7 +1316,6 @@ sub build_transaction_set {
     
 		$examined{$_} = undef foreach @upgrade, @remove;
 		push @{$state->{transaction}}, { upgrade => \@upgrade, remove => \@remove };
-	    }
 	}
 
 	#- check that the transaction set has been correctly created.
