@@ -1,3 +1,6 @@
+- build_transaction_set: new sort algorithm which allow returning sets of
+  circular dependent packages, taking into account obsoleted packages
+  (fixes #31969). It may still fail in presence of conflicts
 - allow running transaction with justdb option
 - fix split_length > 1 
   (eg: "urpmi --split-length 2 a b c" will only install 2 pkgs)

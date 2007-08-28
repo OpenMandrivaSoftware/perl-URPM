@@ -6,6 +6,7 @@ use strict;
 use Config;
 
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
+sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 
 #- $state fields :
 #- * ask_remove: deprecated
@@ -1239,32 +1240,102 @@ sub _request_packages_to_upgrade_2 {
     $requested;
 }
 
-#- detects a dependency relation.
-sub has_dependence {
-    my ($urpm, $state, $a, $b) = @_;
-    my %examined; $examined{$a} = undef;
-    my @closure = $urpm->{depslist}[$a];
+sub _sort_by_dependencies_get_graph {
+    my ($urpm, $state, $l) = @_;
+    my %edges;
+    foreach my $id (@$l) {
+	my $pkg = $urpm->{depslist}[$id];
+	my @provides = map { keys %{$state->{whatrequires}{$_} || {}} } $pkg->provides_nosense;
+	if (my $from = $state->{selected}{$id}{from}) {
+	    unshift @provides, $from->id;
+	}
+	$edges{$id} = [ uniq(@provides) ];
+    }
+    \%edges;
+}
 
-    while (my $pkg = shift @closure) {
-	$pkg->id eq $b and return 1;
-	if (my $from = $state->{selected}{$pkg->id}{from}) {
-	    unless (exists $examined{$from->id}) {
-		$examined{$from->id} = undef;
-		push @closure, $from;
+sub reverse_multi_hash {
+    my ($h) = @_;
+    my %r;
+    my ($k, $v);
+    while (($k, $v) = each %$h) {
+	push @{$r{$_}}, $k foreach @$v;
+    }
+    \%r;
+}
+
+#- nb: this handles $nodes list not containing all $nodes that can be seen in $edges
+sub sort_graph {
+    my ($nodes, $edges) = @_;
+
+    my %nodes_h = map { $_ => 1 } @$nodes;
+    my (%examined, @sorted);
+
+    my $recurse; $recurse = sub {
+	my (@ids) = @_;
+	my $id = $ids[0];
+
+	my @loop;
+	foreach my $p_id (@{$edges->{$id}}) {
+	    my $loop;
+	    if (exists $examined{$p_id}) {
+		# already done
+	    } elsif (my @l = grep { $loop ||= $_ == $p_id } @ids) {
+		push @loop, @l;
+	    } else {
+		my @l = $recurse->($p_id, @ids);
+		if (@l) {
+		    push @loop, @l;
+		}
 	    }
 	}
-	foreach ($pkg->provides_nosense) {
-	    foreach (keys %{$state->{whatrequires}{$_} || {}}) {
-		my $p = $urpm->{depslist}[$_] or next;
-		$state->{selected}{$p->id} or next;
-		exists $examined{$p->id} and next;
-		$examined{$p->id} = undef;
-		push @closure, $p;
-	    }
+	if (!@loop || $loop[0] == $id) {
+	    #- it's now a leaf or a loop we're done with
+	    my @toadd = @loop ? @loop : $id;
+	    $examined{$_} = undef foreach @toadd;
+	    push @sorted, [ uniq(grep { $nodes_h{$_} } @toadd) ];
+	    ();
+	} else {
+	    #- still looping, going up
+	    @loop;
+	}
+    };
+    $recurse->($_) foreach @$nodes;
+
+    @sorted;
+}
+
+
+sub _sort_by_dependencies__add_obsolete_edges {
+    my ($urpm, $state, $l, $requires) = @_;
+
+    my @obsoletes = grep { $_->{obsoleted} } values %{$state->{rejected}} or return;
+
+    my %fullnames = map { scalar($urpm->{depslist}[$_]->fullname) => $_ } @$l;
+    foreach my $rej (@obsoletes) {
+	my @group = map { $fullnames{$_} } keys %{$rej->{closure}};
+	@group > 1 or next;
+	foreach (@group) {
+	    @{$requires->{$_}} = uniq(@{$requires->{$_}}, @group);
 	}
     }
+}
 
-    return 0;
+sub sort_by_dependencies {
+    my ($urpm, $state, @list_unsorted) = @_;
+    @list_unsorted = sort { $a <=> $b } @list_unsorted; # sort by ids to be more reproductable
+    my $edges = _sort_by_dependencies_get_graph($urpm, $state, \@list_unsorted);
+    my $requires = reverse_multi_hash($edges);
+
+    _sort_by_dependencies__add_obsolete_edges($urpm, $state, \@list_unsorted, $requires);
+
+    my @sorted = sort_graph(\@list_unsorted, $requires);
+
+    $urpm->{debug_URPM}('rpms sorted by dependance: ' . join(' ', map { 
+	join('+', map { $urpm->{depslist}[$_]->name } @$_);
+    } @sorted)) if $urpm->{debug_URPM};
+
+    @sorted;
 }
 
 #- build transaction set for given selection
@@ -1279,20 +1350,21 @@ sub build_transaction_set {
     
     if ($options{split_length}) {
 	#- first step consists of sorting packages according to dependencies.
-	my @sorted = sort { ($a <=> $b, -1, 1, 0)[($urpm->has_dependence($state, $a, $b) && 1) +
-						  ($urpm->has_dependence($state, $b, $a) && 2)] }
-	  (keys(%selected_id) > 0 ? 
+	my @sorted = sort_by_dependencies($urpm, $state,
+	   keys(%selected_id) > 0 ? 
 	      (grep { exists($selected_id{$_}) } keys %{$state->{selected}}) : 
 	      keys %{$state->{selected}});
-
-	$urpm->{debug_URPM}('rpms sorted by dependance: ' . join(' ', map { $urpm->{depslist}[$_]->name } @sorted)) if $urpm->{debug_URPM};
 
 	#- second step consists of re-applying resolve_requested in the same
 	#- order computed in first step and to update a list of packages to
 	#- install, to upgrade and to remove.
 	my %examined;
 	while (@sorted) {
-	    my @ids = splice(@sorted, 0, $options{split_length});
+	    my @ids;
+	    while (@sorted && @ids < $options{split_length}) {
+		my $l = shift @sorted;
+		push @ids, @$l;
+	    }
 	    my %requested = map { $_ => undef } @ids;
 
 		$urpm->resolve_requested__no_suggests(
