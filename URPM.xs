@@ -3883,6 +3883,10 @@ Urpm_spec2srcheader(specfile)
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
     headerAddEntry(spec->sourceHeader, RPMTAG_SOURCERPM, RPM_INT32_TYPE, &zero, 1);
+
+    /* parseSpec() sets RPMTAG_ARCH to %{_target_cpu} whereas we really a header similar to .src.rpm header */
+    headerModifyEntry(spec->sourceHeader, RPMTAG_ARCH, RPM_STRING_TYPE, "src", 1);
+
     pkg->h = headerLink(spec->sourceHeader);
     sv_pkg = sv_newmortal();
     sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
