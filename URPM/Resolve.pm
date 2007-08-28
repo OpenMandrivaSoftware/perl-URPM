@@ -1329,13 +1329,15 @@ sub sort_by_dependencies {
 
     _sort_by_dependencies__add_obsolete_edges($urpm, $state, \@list_unsorted, $requires);
 
-    my @sorted = sort_graph(\@list_unsorted, $requires);
+    sort_graph(\@list_unsorted, $requires);
+}
 
-    $urpm->{debug_URPM}('rpms sorted by dependance: ' . join(' ', map { 
+sub sorted_rpms_to_string {
+    my ($urpm, @sorted) = @_;
+
+    'rpms sorted by dependance: ' . join(' ', map { 
 	join('+', map { $urpm->{depslist}[$_]->name } @$_);
-    } @sorted)) if $urpm->{debug_URPM};
-
-    @sorted;
+    } @sorted);
 }
 
 #- build transaction set for given selection
@@ -1354,6 +1356,7 @@ sub build_transaction_set {
 	   keys(%selected_id) > 0 ? 
 	      (grep { exists($selected_id{$_}) } keys %{$state->{selected}}) : 
 	      keys %{$state->{selected}});
+	$urpm->{debug_URPM}(sorted_rpms_to_string($urpm, @sorted)) if $urpm->{debug_URPM};
 
 	#- second step consists of re-applying resolve_requested in the same
 	#- order computed in first step and to update a list of packages to
@@ -1382,6 +1385,13 @@ sub build_transaction_set {
 
 		@upgrade || @remove or next;
 
+		if (my @bad_remove = grep { !$state->{rejected}{$_}{removed} || $state->{rejected}{$_}{obsoleted} } @remove) {
+		    $urpm->{error}(sorted_rpms_to_string($urpm, @sorted)) if $urpm->{error};
+		    $urpm->{error}('transaction is too small: ' . join(' ', @bad_remove) . ' is rejected but it should not (current transaction: ' . join(' ', map { $urpm->{depslist}[$_]->name } @upgrade) . ')') if $urpm->{error};
+		    $state->{transaction} = [];
+		    last;
+		}
+
 		$urpm->{debug_URPM}(sprintf('transaction valid: remove=%s update=%s',
 					    join(',', @remove),
 					    join(',', map { $urpm->{depslist}[$_]->name } @upgrade))) if $urpm->{debug_URPM};
@@ -1399,11 +1409,13 @@ sub build_transaction_set {
 	   ) {
 	    foreach (keys(%{$state->{selected}})) {
 		exists $state->{transaction_state}{selected}{$_} and next;
+		$urpm->{error}('using one big transaction') if $urpm->{error};
 		$state->{transaction} = []; last;
 	    }
 	    foreach (grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} } keys %{$state->{rejected}}) {
 		$state->{transaction_state}{rejected}{$_}{removed} &&
 		  !$state->{transaction_state}{rejected}{$_}{obsoleted} and next;
+		$urpm->{error}('using one big transaction') if $urpm->{error};
 		$state->{transaction} = []; last;
 	    }
 	}
