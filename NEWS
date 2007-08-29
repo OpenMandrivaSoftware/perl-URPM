@@ -1,3 +1,5 @@
+Version 1.76 - 28 August 2007, by Pascal "Pixel" Rigaux
+
 - build_transaction_set: new sort algorithm which allow returning sets of
   circular dependent packages, taking into account obsoleted packages
   (fixes #31969). It may still fail in presence of conflicts
