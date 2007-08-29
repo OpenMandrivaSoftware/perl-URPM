@@ -1,3 +1,5 @@
+- disable "dropping tags from rpm header" until we can safely use it
+
 Version 1.76 - 28 August 2007, by Pascal "Pixel" Rigaux
 
 - build_transaction_set: new sort algorithm which allow returning sets of
