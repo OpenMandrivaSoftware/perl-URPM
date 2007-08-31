@@ -1269,7 +1269,7 @@ sub sort_graph {
     my ($nodes, $edges) = @_;
 
     my %nodes_h = map { $_ => 1 } @$nodes;
-    my (%examined, @sorted);
+    my (%examined, %added, @sorted);
 
     my $recurse; $recurse = sub {
 	my (@ids) = @_;
@@ -1277,12 +1277,16 @@ sub sort_graph {
 
 	my @loop;
 	foreach my $p_id (@{$edges->{$id}}) {
-	    my $loop;
-	    if (exists $examined{$p_id}) {
+	    if ($p_id == $id) {
+		# don't care
+	    } elsif (exists $added{$p_id}) {
 		# already done
-	    } elsif (my @l = grep { $loop ||= $_ == $p_id } @ids) {
-		push @loop, @l;
-	    } else {
+	    } elsif (grep { $_ == $p_id } @ids) {
+		my $begin = 1;
+		my @l = grep { $begin &&= $_ != $p_id } @ids;
+		push @loop, $p_id, @l;
+	    } elsif (!exists $examined{$p_id}) {
+		$examined{$p_id} = undef;
 		my @l = $recurse->($p_id, @ids);
 		if (@l) {
 		    push @loop, @l;
@@ -1292,7 +1296,7 @@ sub sort_graph {
 	if (!@loop || $loop[0] == $id) {
 	    #- it's now a leaf or a loop we're done with
 	    my @toadd = @loop ? @loop : $id;
-	    $examined{$_} = undef foreach @toadd;
+	    $added{$_} = undef foreach @toadd;
 	    push @sorted, [ uniq(grep { $nodes_h{$_} } @toadd) ];
 	    ();
 	} else {
@@ -1300,9 +1304,33 @@ sub sort_graph {
 	    @loop;
 	}
     };
-    $recurse->($_) foreach @$nodes;
+    !exists $added{$_} and $recurse->($_) foreach @$nodes;
+
+    check_graph_is_sorted(\@sorted, $edges) or die "sort_graph failed";
 
     @sorted;
+}
+
+sub check_graph_is_sorted {
+    my ($sorted, $edges) = @_;
+
+    my $i = 1;
+    my %nb;
+    foreach (@$sorted) {
+	$nb{$_} = $i foreach @$_;
+	$i++;
+    }
+    my $nb_errors = 0;
+    my $error = sub { $nb_errors++; warn "$_[0]\n" };
+
+    foreach my $id (keys %$edges) {
+	my $id_i = $nb{$id} or next;
+	foreach my $req (@{$edges->{$id}}) {
+	    my $req_i = $nb{$req} or next;
+	    $req_i <= $id_i or $error->("$id should be before $req ($req_i $id_i)");
+	}
+    }
+    $nb_errors == 0;
 }
 
 
@@ -1324,11 +1352,13 @@ sub _sort_by_dependencies__add_obsolete_edges {
 sub sort_by_dependencies {
     my ($urpm, $state, @list_unsorted) = @_;
     @list_unsorted = sort { $a <=> $b } @list_unsorted; # sort by ids to be more reproductable
+    $urpm->{debug_URPM}("getting graph of dependencies for sorting") if $urpm->{debug_URPM};
     my $edges = _sort_by_dependencies_get_graph($urpm, $state, \@list_unsorted);
     my $requires = reverse_multi_hash($edges);
 
     _sort_by_dependencies__add_obsolete_edges($urpm, $state, \@list_unsorted, $requires);
 
+    $urpm->{debug_URPM}("sorting graph of dependencies") if $urpm->{debug_URPM};
     sort_graph(\@list_unsorted, $requires);
 }
 

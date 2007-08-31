@@ -1,3 +1,5 @@
+- fix dead-loop in build_transaction_set (#33020)
+
 Version 1.77 - 29 August 2007, by Pascal "Pixel" Rigaux
 
 - disable "dropping tags from rpm header" until we can safely use it
