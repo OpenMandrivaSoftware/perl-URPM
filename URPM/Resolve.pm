@@ -1272,10 +1272,9 @@ sub sort_graph {
     my (%examined, %added, @sorted);
 
     my $recurse; $recurse = sub {
-	my (@ids) = @_;
-	my $id = $ids[0];
+	my ($id, @ids) = @_;
 
-	my @loop;
+	my ($loop_ahead, %loop);
 	foreach my $p_id (@{$edges->{$id}}) {
 	    if ($p_id == $id) {
 		# don't care
@@ -1284,24 +1283,30 @@ sub sort_graph {
 	    } elsif (grep { $_ == $p_id } @ids) {
 		my $begin = 1;
 		my @l = grep { $begin &&= $_ != $p_id } @ids;
-		push @loop, $p_id, @l;
+		$loop_ahead = 1;
+		@loop{$p_id, $id, @l} = undef;
 	    } elsif (!exists $examined{$p_id}) {
 		$examined{$p_id} = undef;
-		my @l = $recurse->($p_id, @ids);
+		my @l = $recurse->($p_id, $id, @ids);
 		if (@l) {
-		    push @loop, @l;
+		    @loop{@l} = undef;
+		    #- we would need to compute loop_ahead. we will do it below only once, and if not already set
 		}
 	    }
 	}
-	if (!@loop || $loop[0] == $id) {
+	if (!$loop_ahead && grep { exists $loop{$_} } @ids) {
+	    $loop_ahead = 1;
+	}
+
+	if (!$loop_ahead) {
 	    #- it's now a leaf or a loop we're done with
-	    my @toadd = @loop ? @loop : $id;
+	    my @toadd = %loop ? keys %loop : $id;
 	    $added{$_} = undef foreach @toadd;
 	    push @sorted, [ uniq(grep { $nodes_h{$_} } @toadd) ];
 	    ();
 	} else {
 	    #- still looping, going up
-	    @loop;
+	    keys %loop;
 	}
     };
     !exists $added{$_} and $recurse->($_) foreach @$nodes;
@@ -1327,7 +1332,7 @@ sub check_graph_is_sorted {
 	my $id_i = $nb{$id} or next;
 	foreach my $req (@{$edges->{$id}}) {
 	    my $req_i = $nb{$req} or next;
-	    $req_i <= $id_i or $error->("$id should be before $req ($req_i $id_i)");
+	    $req_i <= $id_i or $error->("$req should be before $id ($req_i $id_i)");
 	}
     }
     $nb_errors == 0;

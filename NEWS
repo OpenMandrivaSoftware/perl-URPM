@@ -1,3 +1,5 @@
+- fix bug in sort_graph (used by build_transaction_set)
+
 Version 1.78 - 31 August 2007, by Pascal "Pixel" Rigaux
 
 - fix dead-loop in build_transaction_set (#33020)
