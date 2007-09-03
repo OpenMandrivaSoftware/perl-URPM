@@ -1268,13 +1268,39 @@ sub reverse_multi_hash {
 sub sort_graph {
     my ($nodes, $edges) = @_;
 
+    #require Data::Dumper;
+    #warn Data::Dumper::Dumper($nodes, $edges);
+
     my %nodes_h = map { $_ => 1 } @$nodes;
-    my (%examined, %added, @sorted);
+    my (%loops, %added, @sorted);
+
+    my $merge_loops = sub {
+	my ($l1, $l2) = @_;
+	my $l = [ @$l1, @$l2 ];
+	$loops{$_} = $l foreach @$l;
+	$l;
+    };
+    my $add_loop = sub {
+	my (@ids) = @_;
+	my ($main, @other) = uniq(grep { $_ } map { $loops{$_} } @ids);
+	$main ||= [];
+	if (@other) {
+	    $main = $merge_loops->($main, $_) foreach @other;
+	}
+	foreach (grep { !$loops{$_} } @ids) {
+	    $loops{$_} ||= $main;
+	    push @$main, $_;
+	    my @l_ = uniq(@$main);
+	    @l_ == @$main or die '';
+	}
+#	warn "# loops: ", join(' ', map { join('+', @$_) } uniq(values %loops)), "\n";
+    };
 
     my $recurse; $recurse = sub {
 	my ($id, @ids) = @_;
+#	warn "# recurse $id @ids\n";
 
-	my ($loop_ahead, %loop);
+	my $loop_ahead;
 	foreach my $p_id (@{$edges->{$id}}) {
 	    if ($p_id == $id) {
 		# don't care
@@ -1284,40 +1310,42 @@ sub sort_graph {
 		my $begin = 1;
 		my @l = grep { $begin &&= $_ != $p_id } @ids;
 		$loop_ahead = 1;
-		@loop{$p_id, $id, @l} = undef;
-	    } elsif (!exists $examined{$p_id}) {
-		$examined{$p_id} = undef;
-		my @l = $recurse->($p_id, $id, @ids);
-		if (@l) {
-		    @loop{@l} = undef;
-		    #- we would need to compute loop_ahead. we will do it below only once, and if not already set
+		$add_loop->($p_id, $id, @l);
+	    } elsif ($loops{$p_id}) {
+		my $take;
+		if (my @l = grep { $take ||= $loops{$_} && $loops{$_} == $loops{$p_id} } reverse @ids) {
+		    $loop_ahead = 1;
+#		    warn "# loop to existing one $p_id, $id, @l\n";
+		    $add_loop->($p_id, $id, @l);
 		}
+	    } else {
+		$recurse->($p_id, $id, @ids);
+		#- we would need to compute loop_ahead. we will do it below only once, and if not already set
 	    }
 	}
-	if (!$loop_ahead && grep { exists $loop{$_} } @ids) {
+	if (!$loop_ahead && $loops{$id} && grep { exists $loops{$_} && $loops{$_} == $loops{$id} } @ids) {
 	    $loop_ahead = 1;
 	}
 
 	if (!$loop_ahead) {
 	    #- it's now a leaf or a loop we're done with
-	    my @toadd = %loop ? keys %loop : $id;
+	    my @toadd = $loops{$id} ? @{$loops{$id}} : $id;
 	    $added{$_} = undef foreach @toadd;
+#	    warn "# adding ", join('+', @toadd), " for $id\n";
 	    push @sorted, [ uniq(grep { $nodes_h{$_} } @toadd) ];
-	    ();
-	} else {
-	    #- still looping, going up
-	    keys %loop;
 	}
     };
     !exists $added{$_} and $recurse->($_) foreach @$nodes;
 
-    check_graph_is_sorted(\@sorted, $edges) or die "sort_graph failed";
+#    warn "# result: ", join(' ', map { join('+', @$_) } @sorted), "\n";
 
+    check_graph_is_sorted(\@sorted, $nodes, $edges) or die "sort_graph failed";
+    
     @sorted;
 }
 
 sub check_graph_is_sorted {
-    my ($sorted, $edges) = @_;
+    my ($sorted, $nodes, $edges) = @_;
 
     my $i = 1;
     my %nb;
@@ -1326,8 +1354,11 @@ sub check_graph_is_sorted {
 	$i++;
     }
     my $nb_errors = 0;
-    my $error = sub { $nb_errors++; warn "$_[0]\n" };
+    my $error = sub { $nb_errors++; warn "error: $_[0]\n" };
 
+    foreach my $id (@$nodes) {
+	$nb{$id} or $error->("missing $id in sort_graph list");
+    }
     foreach my $id (keys %$edges) {
 	my $id_i = $nb{$id} or next;
 	foreach my $req (@{$edges->{$id}}) {
