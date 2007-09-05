@@ -1430,10 +1430,11 @@ sub build_transaction_set {
 	#- order computed in first step and to update a list of packages to
 	#- install, to upgrade and to remove.
 	my %examined;
-	while (@sorted) {
+	my @todo = @sorted;
+	while (@todo) {
 	    my @ids;
-	    while (@sorted && @ids < $options{split_length}) {
-		my $l = shift @sorted;
+	    while (@todo && @ids < $options{split_length}) {
+		my $l = shift @todo;
 		push @ids, @$l;
 	    }
 	    my %requested = map { $_ => undef } @ids;
@@ -1455,7 +1456,7 @@ sub build_transaction_set {
 
 		if (my @bad_remove = grep { !$state->{rejected}{$_}{removed} || $state->{rejected}{$_}{obsoleted} } @remove) {
 		    $urpm->{error}(sorted_rpms_to_string($urpm, @sorted)) if $urpm->{error};
-		    $urpm->{error}('transaction is too small: ' . join(' ', @bad_remove) . ' is rejected but it should not (current transaction: ' . join(' ', map { $urpm->{depslist}[$_]->name } @upgrade) . ')') if $urpm->{error};
+		    $urpm->{error}('transaction is too small: ' . join(' ', @bad_remove) . ' is rejected but it should not (current transaction: ' . join(' ', map { scalar $urpm->{depslist}[$_]->fullname } @upgrade) . ', requested: ' . join('+', map { scalar $urpm->{depslist}[$_]->fullname } @ids) . ')') if $urpm->{error};
 		    $state->{transaction} = [];
 		    last;
 		}
