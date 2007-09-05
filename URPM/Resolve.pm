@@ -826,6 +826,8 @@ sub resolve_requested__no_suggests {
 	    my ($n, $pkg) = ($dep->{name}, $dep->{pkg});
 	    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
 				      my ($p, @l) = @_;
+				      $urpm->{debug_URPM}($p->fullname . " is conflicting because of unsatisfied @l") if $urpm->{debug_URPM};
+
 				      #- try if upgrading the package will be satisfying all the requires...
 				      #- there is no need to avoid promoting epoch as the package examined is not
 				      #- already installed.
