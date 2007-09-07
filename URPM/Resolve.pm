@@ -20,6 +20,16 @@ sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 #- * unselected: deprecated
 #- * whatrequires
 
+sub property2name {
+    $_[0] =~ /^([^\s\[]*)/ && $1;
+}
+sub property2name_range {
+    $_[0] =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/;
+}
+sub property2name_op_version {
+    $_[0] =~ /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/;
+}
+
 #- Find candidates packages from a require string (or id).
 #- Takes care of direct choices using the '|' separator.
 sub find_candidate_packages {
@@ -33,7 +43,8 @@ sub find_candidate_packages {
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
 	    $options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
 	    push @{$packages{$pkg->name}}, $pkg;
-	} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
+	} elsif (my $name = property2name($_)) {
+	    my $property = $_;
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->flag_skip and next;
@@ -82,7 +93,8 @@ sub find_chosen_packages {
 	    } else {
 		$packages{$pkg->name} = $pkg;
 	    }
-	} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
+	} elsif (my $name = property2name($_)) {
+	    my $property = $_;
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->is_arch_compat or next;
@@ -234,7 +246,7 @@ sub unsatisfied_requires {
     #- all requires should be satisfied according to selected packages or installed packages,
     #- or the package itself.
   REQUIRES: foreach my $dep ($pkg->requires) {
-	my ($n, $s) = $dep =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/ or next;
+	my ($n, $s) = property2name_range($dep) or next;
 
 	if (defined $options{name} && $n ne $options{name}) {
 	    #- allow filtering on a given name (to speed up some search).
@@ -270,7 +282,7 @@ sub unsatisfied_requires {
 		    my ($p) = @_;
 		    exists $state->{rejected}{$p->fullname} and return;
 		    foreach ($p->provides) {
-			if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+			if (my ($pn, $ps) = property2name_range($_)) {
 			    $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
 			    $pn eq $n or next;
 			    ranges_overlap($ps, $s, 1) and ++$satisfied;
@@ -636,7 +648,7 @@ sub resolve_requested__no_suggests {
 
 		my $first;
 		foreach ($pkg->name . " < " . $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release, $pkg->obsoletes) {
-		    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
+		    if (my ($n, $o, $v) = property2name_op_version($_)) {
 			if ($first++ && $n eq $pkg->name) {
 			    #- ignore if this package obsoletes itself
 			    #- otherwise this can cause havoc if: to_install=v3, installed=v2, v3 obsoletes < v2
@@ -704,20 +716,19 @@ sub resolve_requested__no_suggests {
 				#- diff_provides on obsoleted provides are needed.
 				foreach ($p->provides) {
 				    #- check differential provides between obsoleted package and newer one.
-				    if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+				    my ($pn, $ps) = property2name_range($_) or next;
+
 					$diff_provides{$pn} = undef;
 					foreach (grep { exists $state->{selected}{$_} }
 					    keys %{$urpm->{provides}{$pn} || {}})
 					{
 					    my $pp = $urpm->{depslist}[$_];
 					    foreach ($pp->provides) {
-						/^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/ && $1 eq $pn
-						    or next;
-						$2 eq $ps
+						my ($ppn, $pps) = property2name_range($_) or next;
+						$ppn eq $pn && $pps eq $ps
 						    and delete $diff_provides{$pn};
 					    }
 					}
-				    }
 				}
 			    });
 		    }
@@ -745,7 +756,7 @@ sub resolve_requested__no_suggests {
 	    foreach ($pkg->conflicts) {
 		@keep and last;
 		#- propagate conflicts to avoid
-		if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/) {
+		if (my ($n, $o, $v) = property2name_op_version($_)) {
 		    foreach my $p ($urpm->packages_providing($n)) {
 			$pkg == $p and next;
 			$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
@@ -767,7 +778,8 @@ sub resolve_requested__no_suggests {
 			    );
 			}
 		    });
-		} elsif (my ($property, $name) = /^(([^\s\[]*).*)/) {
+		} elsif (my $name = property2name($_)) {
+		    my $property = $_;
 		    $db->traverse_tag('whatprovides', [ $name ], sub {
 			@keep and return;
 			my ($p) = @_;
@@ -1164,7 +1176,7 @@ sub _request_packages_to_upgrade_1 {
     my %obsoletes;
     foreach my $pkg (values %names) {
 	foreach ($pkg->obsoletes) {
-	    if (my ($n, $o, $v) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*)\s*([^\s\]]*)/) {
+	    if (my ($n, $o, $v) = property2name_op_version($_)) {
 		if ($n ne $pkg->name && $names{$n} && (!$o || eval($names{$n}->compare($v) . $o . 0))) {
 		    #- an existing best package is obsoleted by another one.
 		    $skip{$n} = undef;
@@ -1212,7 +1224,7 @@ sub _request_packages_to_upgrade_2 {
 	    #- only real provides should be taken into account, this means internal obsoletes
 	    #- should be avoided.
 	    unless ($p->obsoletes_overlap($property)) {
-		if (my ($n) = $property =~ /^([^\s\[]*)/) {
+		if (my $n = property2name($property)) {
 		    foreach my $pkg (@{$obsoletes->{$n} || []}) {
 			next if $pkg->name eq $pn || $pn ne $n || !$names{$pkg->name};
 			if ($pkg->obsoletes_overlap($property)) {
