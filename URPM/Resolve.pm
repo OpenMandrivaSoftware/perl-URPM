@@ -770,13 +770,13 @@ sub resolve_requested__no_suggests {
 			    my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch . ":" : "") .
 			    $p->version . "-" . $p->release;
 			    my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
-			    my $best = join '|', map { $_->id }
-			    grep { ! $_->provides_overlap($property) }
-			    @{$packages->{$p->name}};
+			    my $best = join('|', map { $_->id }
+					      grep { ! $_->provides_overlap($property) }
+						@{$packages->{$p->name}});
 
 			    if (length $best) {
 				$urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
-				unshift @properties, { required => $best, promote_conflicts => $name,  };
+				unshift @properties, { required => $best, promote_conflicts => $name };
 			    } else {
 				if ($options{keep}) {
 				    push @keep, scalar $p->fullname;
