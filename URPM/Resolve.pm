@@ -829,7 +829,7 @@ sub resolve_requested__no_suggests {
 					  }
 
 					  if (@best == @l) {
-					      $urpm->{debug_URPM}("promoting " . join(' ', map { scalar $urpm->{depslist}[$_]->fullname } @best) . " because of conflict above") if $urpm->{debug_URPM};
+					      $urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, @best)) . " because of conflict above") if $urpm->{debug_URPM};
 					      push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 					  } else {
 					      if ($options{keep}) {
@@ -900,6 +900,16 @@ sub _id_to_name {
     } else {
 	$dep;
     }
+}
+sub _ids_to_names {
+    my $urpm = shift;
+
+    map { $urpm->{depslist}[$_]->name } @_;
+}
+sub _ids_to_fullnames {
+    my $urpm = shift;
+
+    map { scalar $urpm->{depslist}[$_]->fullname } @_;
 }
 
 sub _set_flag_installed_and_upgrade_if_no_newer {
@@ -1411,7 +1421,7 @@ sub sorted_rpms_to_string {
     my ($urpm, @sorted) = @_;
 
     'rpms sorted by dependance: ' . join(' ', map { 
-	join('+', map { $urpm->{depslist}[$_]->name } @$_);
+	join('+', _ids_to_names($urpm, @$_));
     } @sorted);
 }
 
@@ -1463,14 +1473,14 @@ sub build_transaction_set {
 
 		if (my @bad_remove = grep { !$state->{rejected}{$_}{removed} || $state->{rejected}{$_}{obsoleted} } @remove) {
 		    $urpm->{error}(sorted_rpms_to_string($urpm, @sorted)) if $urpm->{error};
-		    $urpm->{error}('transaction is too small: ' . join(' ', @bad_remove) . ' is rejected but it should not (current transaction: ' . join(' ', map { scalar $urpm->{depslist}[$_]->fullname } @upgrade) . ', requested: ' . join('+', map { scalar $urpm->{depslist}[$_]->fullname } @ids) . ')') if $urpm->{error};
+		    $urpm->{error}('transaction is too small: ' . join(' ', @bad_remove) . ' is rejected but it should not (current transaction: ' . join(' ', _ids_to_fullnames($urpm, @upgrade)) . ', requested: ' . join('+', _ids_to_fullnames($urpm, @ids)) . ')') if $urpm->{error};
 		    $state->{transaction} = [];
 		    last;
 		}
 
 		$urpm->{debug_URPM}(sprintf('transaction valid: remove=%s update=%s',
 					    join(',', @remove),
-					    join(',', map { $urpm->{depslist}[$_]->name } @upgrade))) if $urpm->{debug_URPM};
+					    join(',', _ids_to_names($urpm, @upgrade)))) if $urpm->{debug_URPM};
     
 		$examined{$_} = undef foreach @upgrade, @remove;
 		push @{$state->{transaction}}, { upgrade => \@upgrade, remove => \@remove };
