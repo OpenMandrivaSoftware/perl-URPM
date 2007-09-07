@@ -763,6 +763,8 @@ sub resolve_requested__no_suggests {
 			@keep and return;
 			my ($p) = @_;
 			if ($p->provides_overlap($property)) {
+			    $urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
+
 			    #- the existing package will conflict with the selection; check
 			    #- whether a newer version will be ok, else ask to remove the old.
 			    my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch . ":" : "") .
@@ -773,6 +775,7 @@ sub resolve_requested__no_suggests {
 			    @{$packages->{$p->name}};
 
 			    if (length $best) {
+				$urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
 				unshift @properties, { required => $best, promote_conflicts => $name,  };
 			    } else {
 				if ($options{keep}) {
@@ -840,6 +843,7 @@ sub resolve_requested__no_suggests {
 					  map { @{$_ || []} } values %$packages;
 
 				      if (length $best) {
+					  $urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
 					  push @properties, { required => $best, promote => $n, psel => $pkg };
 				      } else {
 					  #- no package have been found, we may need to remove the package examined unless
@@ -857,6 +861,7 @@ sub resolve_requested__no_suggests {
 					  }
 
 					  if (@best == @l) {
+					      $urpm->{debug_URPM}("promoting " . join(' ', map { scalar $urpm->{depslist}[$_]->fullname } @best) . " because of conflict above") if $urpm->{debug_URPM};
 					      push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 					  } else {
 					      if ($options{keep}) {
