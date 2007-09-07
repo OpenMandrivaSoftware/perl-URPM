@@ -234,13 +234,13 @@ sub unsatisfied_requires {
     #- all requires should be satisfied according to selected packages or installed packages,
     #- or the package itself.
   REQUIRES: foreach my $dep ($pkg->requires) {
-	if (my ($n, $s) = $dep =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
+	my ($n, $s) = $dep =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/ or next;
+
+	if (defined $options{name} && $n ne $options{name}) {
 	    #- allow filtering on a given name (to speed up some search).
-	    ! defined $options{name} || $n eq $options{name} or next REQUIRES;
-
+	} elsif (exists $properties{$dep}) {
 	    #- avoid recomputing the same all the time.
-	    exists $properties{$dep} and next REQUIRES;
-
+	} else {
 	    #- check for installed packages in the installed cache.
 	    foreach (keys %{$state->{cached_installed}{$n} || {}}) {
 		exists $state->{rejected}{$_} and next;
@@ -248,8 +248,7 @@ sub unsatisfied_requires {
 	    }
 
 	    #- check on the selected package if a provide is satisfying the resolution (need to do the ops).
-	    foreach (keys %{$urpm->{provides}{$n} || {}}) {
-		exists $state->{selected}{$_} or next;
+	    foreach (grep { exists $state->{selected}{$_} } keys %{$urpm->{provides}{$n} || {}}) {
 		my $p = $urpm->{depslist}[$_];
 		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($dep, 1) and next REQUIRES;
 	    }
