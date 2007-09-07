@@ -719,57 +719,7 @@ sub resolve_requested__no_suggests {
 	    }
 	}
 	if (defined ($dep = shift @diff_provides)) {
-	    my ($n, $pkg) = ($dep->{name}, $dep->{pkg});
-	    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
-				      my ($p, @l) = @_;
-
-				      #- try if upgrading the package will be satisfying all the requires...
-				      #- there is no need to avoid promoting epoch as the package examined is not
-				      #- already installed.
-				      my $packages = $urpm->find_candidate_packages($p->name, avoided => $state->{rejected});
-				      my $best = join '|', map { $_->id }
-					grep { ($_->name eq $p->name ||
-						$_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
-						 && $_->fullname ne $p->fullname &&
-						   $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
-					  map { @{$_ || []} } values %$packages;
-
-				      if (length $best) {
-					  $urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
-					  push @properties, { required => $best, promote => $n, psel => $pkg };
-				      } else {
-					  #- no package have been found, we may need to remove the package examined unless
-					  #- there exists enough packages that provided the unsatisfied requires.
-					  my @best;
-					  foreach (@l) {
-					      $packages = $urpm->find_candidate_packages($_,
-											 avoided => $state->{rejected});
-					      $best = join('|',
-							   map { $_->id }
-							   grep { $_->fullname ne $p->fullname }
-							   map { @{$_ || []} } values %$packages);
-					      $best and push @best, $best;
-					  }
-
-					  if (@best == @l) {
-					      $urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, @best)) . " because of conflict above") if $urpm->{debug_URPM};
-					      push @properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
-					  } else {
-					      if ($options{keep}) {
-						  unshift @properties, $urpm->backtrack_selected($db, $state,
-												 { keep => [ scalar $p->fullname ],
-												   psel => $pkg,
-												 },
-												 %options);
-					      } else {
-						  resolve_rejected_($urpm, $db, $state, $p, \@properties,
-									  removed => 1,
-									  from => scalar $pkg->fullname,
-									  why => { unsatisfied => \@l });
-					      }
-					  }
-				      }
-			      });
+	    _handle_diff_provides($urpm, $db, $state, \@properties, $dep->{name}, $dep->{pkg}, %options);
 	}
     } while @diff_provides || @properties;
 
@@ -874,6 +824,59 @@ sub _compute_diff_provides_one {
 		    my ($ppn, $pps) = property2name_range($_) or next;
 		    $ppn eq $pn && $pps eq $ps
 		      and delete $diff_provides->{$pn};
+		}
+	    }
+	}
+    });
+}
+
+sub _handle_diff_provides {
+    my ($urpm, $db, $state, $properties, $n, $pkg, %options) = @_;
+
+    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
+	my ($p, @l) = @_;
+
+	#- try if upgrading the package will be satisfying all the requires...
+	#- there is no need to avoid promoting epoch as the package examined is not
+	#- already installed.
+	my $packages = $urpm->find_candidate_packages($p->name, avoided => $state->{rejected});
+	my $best = join '|', map { $_->id }
+	  grep { ($_->name eq $p->name ||
+		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
+		   && $_->fullname ne $p->fullname &&
+		     $urpm->unsatisfied_requires($db, $state, $_, name => $n) == 0 }
+	    map { @{$_ || []} } values %$packages;
+
+	if (length $best) {
+	    $urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
+	    push @$properties, { required => $best, promote => $n, psel => $pkg };
+	} else {
+	    #- no package have been found, we may need to remove the package examined unless
+	    #- there exists enough packages that provided the unsatisfied requires.
+	    my @best;
+	    foreach (@l) {
+		$packages = $urpm->find_candidate_packages($_,
+							   avoided => $state->{rejected});
+		$best = join('|', map { $_->id }
+			          grep { $_->fullname ne $p->fullname }
+				  map { @{$_ || []} } values %$packages);
+		$best and push @best, $best;
+	    }
+
+	    if (@best == @l) {
+		$urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, @best)) . " because of conflict above") if $urpm->{debug_URPM};
+		push @$properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
+	    } else {
+		if ($options{keep}) {
+		    unshift @$properties, 
+		      $urpm->backtrack_selected($db, $state,
+						{ keep => [ scalar $p->fullname ], psel => $pkg },
+						%options);
+		} else {
+		    resolve_rejected_($urpm, $db, $state, $p, $properties,
+				      removed => 1,
+				      from => scalar $pkg->fullname,
+				      why => { unsatisfied => \@l });
 		}
 	    }
 	}
