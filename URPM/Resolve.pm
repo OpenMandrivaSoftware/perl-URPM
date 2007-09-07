@@ -216,6 +216,17 @@ sub sort_package_result {
     }
 }
 
+sub whatrequires {
+    my ($urpm, $state, $property_name) = @_;
+
+    map { $urpm->{depslist}[$_] } whatrequires_id($urpm, $state, $property_name);
+}
+sub whatrequires_id {
+    my ($state, $property_name) = @_;
+
+    keys %{$state->{whatrequires}{$property_name} || {}};
+}
+
 #- return unresolved requires of a package (a new one or an existing one).
 sub unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, %options) = @_;
@@ -430,8 +441,7 @@ sub resolve_rejected {
 	while (my $cp = shift @closure) {
 	    #- close what requires this property, but check with selected package requiring old properties.
 	    foreach my $n ($cp->provides_nosense) {
-		    foreach (keys %{$state->{whatrequires}{$n} || {}}) {
-			my $pkg = $urpm->{depslist}[$_] or next;
+		    foreach my $pkg (whatrequires($urpm, $state, $n)) {
 			if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg, name => $n)) {
 			    #- a selected package requires something that is no more available
 			    #- and should be tried to be re-selected if possible.
@@ -967,8 +977,7 @@ sub disable_selected {
 	#- determine package that requires properties no longer available, so that they need to be
 	#- unselected too.
 	foreach my $n ($pkg->provides_nosense) {
-	    foreach (keys %{$state->{whatrequires}{$n} || {}}) {
-		my $p = $urpm->{depslist}[$_];
+	    foreach my $p (whatrequires($urpm, $state, $n)) {
 		exists $state->{selected}{$p->id} or next;
 		if ($urpm->unsatisfied_requires($db, $state, $p, name => $n)) {
 		    #- this package has broken dependencies and is selected.
@@ -1017,10 +1026,9 @@ sub disable_selected_unrequested_dependencies {
 	foreach (keys %required) {
 	    my $pkg = $urpm->{depslist}[$_] or next;
 	    foreach ($pkg->provides_nosense) {
-		foreach (keys %{$state->{whatrequires}{$_} || {}}) {
-		    my $p = $urpm->{depslist}[$_] or next;
-		    exists $required{$p->id} and next;
-		    $state->{selected}{$p->id} and $required{$pkg->id} = 1;
+		foreach my $p_id (whatrequires_id($urpm, $state, $_)) {
+		    exists $required{$p_id} and next;
+		    $state->{selected}{$p_id} and $required{$pkg->id} = 1;
 		}
 	    }
 	}
@@ -1249,7 +1257,7 @@ sub _sort_by_dependencies_get_graph {
     my %edges;
     foreach my $id (@$l) {
 	my $pkg = $urpm->{depslist}[$id];
-	my @provides = map { keys %{$state->{whatrequires}{$_} || {}} } $pkg->provides_nosense;
+	my @provides = map { whatrequires_id($state, $_) } $pkg->provides_nosense;
 	if (my $from = $state->{selected}{$id}{from}) {
 	    unshift @provides, $from->id;
 	}
