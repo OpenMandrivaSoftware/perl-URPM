@@ -763,39 +763,7 @@ sub resolve_requested__no_suggests {
 			@keep and return;
 			my ($p) = @_;
 			if ($p->provides_overlap($property)) {
-			    $urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
-
-			    #- the existing package will conflict with the selection; check
-			    #- whether a newer version will be ok, else ask to remove the old.
-			    my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch . ":" : "") .
-			    $p->version . "-" . $p->release;
-			    my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
-			    my $best = join('|', map { $_->id }
-					      grep { ! $_->provides_overlap($property) }
-						@{$packages->{$p->name}});
-
-			    if (length $best) {
-				$urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
-				unshift @properties, { required => $best, promote_conflicts => $name };
-			    } else {
-				if ($options{keep}) {
-				    push @keep, scalar $p->fullname;
-				} else {
-				    #- no package has been found, we need to remove the package examined.
-				    my $obsoleted;
-				    #- force resolution (#12696, maybe #11885)
-				    if (my $prev = delete $state->{rejected}{$p->fullname}) {
-					$obsoleted = $prev->{obsoleted};
-				    }
-				    $urpm->resolve_rejected(
-					$db, $state, $p,
-					($obsoleted ? 'obsoleted' : 'removed') => 1,
-					unsatisfied => \@properties,
-					from => scalar $pkg->fullname,
-					why => { conflicts => $property },
-				    );
-				}
-			    }
+			    _handle_provides_overlap($urpm, $db, $state, $pkg, $p, $property, $name, \@properties, $options{keep} && \@keep);
 			}
 		    });
 		}
@@ -887,6 +855,45 @@ sub resolve_requested__no_suggests {
     #- return what has been selected by this call (not all selected hash which may be not empty
     #- previously. avoid returning rejected packages which weren't selectable.
     grep { exists $state->{selected}{$_->id} } @selected;
+}
+
+
+sub _handle_provides_overlap {
+    my ($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep) = @_;
+    
+    $urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
+
+    #- the existing package will conflict with the selection; check
+    #- whether a newer version will be ok, else ask to remove the old.
+    my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch . ":" : "") .
+      $p->version . "-" . $p->release;
+    my $packages = $urpm->find_candidate_packages($need_deps, avoided => $state->{rejected});
+    my $best = join('|', map { $_->id }
+		      grep { ! $_->provides_overlap($property) }
+			@{$packages->{$p->name}});
+
+    if (length $best) {
+	$urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
+	unshift @$properties, { required => $best, promote_conflicts => $name };
+    } else {
+	if ($keep) {
+	    push @$keep, scalar $p->fullname;
+	} else {
+	    #- no package has been found, we need to remove the package examined.
+	    my $obsoleted;
+	    #- force resolution (#12696, maybe #11885)
+	    if (my $prev = delete $state->{rejected}{$p->fullname}) {
+		$obsoleted = $prev->{obsoleted};
+	    }
+	    $urpm->resolve_rejected(
+		$db, $state, $p,
+		($obsoleted ? 'obsoleted' : 'removed') => 1,
+		unsatisfied => $properties,
+		from => scalar $pkg->fullname,
+		why => { conflicts => $property },
+	    );
+	}
+    }
 }
 
 sub _id_to_name {
