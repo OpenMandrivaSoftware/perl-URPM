@@ -249,8 +249,8 @@ sub unsatisfied_requires {
 
 	    #- check on the selected package if a provide is satisfying the resolution (need to do the ops).
 	    foreach (keys %{$urpm->{provides}{$n} || {}}) {
-		my $p = $urpm->{depslist}[$_];
 		exists $state->{selected}{$_} or next;
+		my $p = $urpm->{depslist}[$_];
 		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($dep, 1) and next REQUIRES;
 	    }
 
