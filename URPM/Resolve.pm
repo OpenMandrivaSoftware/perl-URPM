@@ -775,16 +775,7 @@ sub resolve_requested__no_suggests {
 		my ($p) = @_;
 		foreach my $property ($p->conflicts) {
 		    if ($pkg->provides_overlap($property)) {
-			$urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
-			if ($options{keep}) {
-			    push @keep, scalar $p->fullname;
-			} else {
-			    #- all these packages should be removed.
-			    $urpm->resolve_rejected($db, $state, $p,
-			    removed => 1, unsatisfied => \@properties,
-			    from => scalar $pkg->fullname,
-			    why => { conflicts => $property });
-			}
+			_handle_provides_overlap($urpm, $db, $state, $pkg, $p, $property, $pkg->name, \@properties, $options{keep} && \@keep);
 		    }
 		}
 	    });
