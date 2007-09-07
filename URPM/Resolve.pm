@@ -403,9 +403,8 @@ sub backtrack_selected {
 	    with_db_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
 				      my ($p, @l) = @_;
 				      #- typically a redo of the diff_provides code should be applied...
-				      $urpm->resolve_rejected($db, $state, $p,
+				      resolve_rejected_($urpm, $db, $state, $p, \@properties,
 							      removed => 1,
-							      unsatisfied => \@properties,
 							      from => scalar $dep->{psel}->fullname,
 							      why => { unsatisfied => \@l });
 			      });
@@ -417,10 +416,14 @@ sub backtrack_selected {
     @properties;
 }
 
-#- close rejected (as urpme previously) for package to be removable without error.
 sub resolve_rejected {
     my ($urpm, $db, $state, $pkg, %options) = @_;
-    my @unsatisfied;
+    resolve_rejected_($urpm, $db, $state, $pkg, $options{unsatisfied}, %options);
+}
+
+#- close rejected (as urpme previously) for package to be removable without error.
+sub resolve_rejected_ {
+    my ($urpm, $db, $state, $pkg, $properties, %options) = @_;
 
     $urpm->{debug_URPM}("resolve_rejected: " . $pkg->fullname) if $urpm->{debug_URPM};
 
@@ -443,7 +446,9 @@ sub resolve_rejected {
 			if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg, name => $n)) {
 			    #- a selected package requires something that is no more available
 			    #- and should be tried to be re-selected if possible.
-			    push @unsatisfied, @l;
+			    if ($properties) {
+				push @$properties, map { { required => $_, rejected => $pkg->fullname, } } @l;
+			    }
 			}
 		    }
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
@@ -479,7 +484,6 @@ sub resolve_rejected {
     }
 
     $options{from} and $state->{rejected}{$pkg->fullname}{closure}{$options{from}} = $options{why};
-    $options{unsatisfied} and push @{$options{unsatisfied}}, map { { required => $_, rejected => $pkg->fullname, } } @unsatisfied;
 }
 
 # see resolve_requested__no_suggests below for information about usage
@@ -757,9 +761,8 @@ sub resolve_requested__no_suggests {
 			    push @keep, scalar $p->fullname;
 			} else {
 			    #- all these package should be removed.
-			    $urpm->resolve_rejected(
-				$db, $state, $p,
-				removed => 1, unsatisfied => \@properties,
+			    resolve_rejected_($urpm, $db, $state, $p, \@properties,
+				removed => 1,
 				from => scalar $pkg->fullname,
 				why => { conflicts => $file },
 			    );
@@ -836,9 +839,8 @@ sub resolve_requested__no_suggests {
 												 },
 												 %options);
 					      } else {
-						  $urpm->resolve_rejected($db, $state, $p,
+						  resolve_rejected_($urpm, $db, $state, $p, \@properties,
 									  removed => 1,
-									  unsatisfied => \@properties,
 									  from => scalar $pkg->fullname,
 									  why => { unsatisfied => \@l });
 					      }
@@ -881,10 +883,8 @@ sub _handle_provides_overlap {
 	    if (my $prev = delete $state->{rejected}{$p->fullname}) {
 		$obsoleted = $prev->{obsoleted};
 	    }
-	    $urpm->resolve_rejected(
-		$db, $state, $p,
+	    resolve_rejected_($urpm, $db, $state, $p, $properties,
 		($obsoleted ? 'obsoleted' : 'removed') => 1,
-		unsatisfied => $properties,
 		from => scalar $pkg->fullname,
 		why => { conflicts => $property },
 	    );
