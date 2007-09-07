@@ -429,8 +429,7 @@ sub resolve_rejected {
 
 	while (my $cp = shift @closure) {
 	    #- close what requires this property, but check with selected package requiring old properties.
-	    foreach ($cp->provides) {
-		if (my ($n) = /^([^\s\[]*)/) {
+	    foreach my $n ($cp->provides_nosense) {
 		    foreach (keys %{$state->{whatrequires}{$n} || {}}) {
 			my $pkg = $urpm->{depslist}[$_] or next;
 			if (my @l = $urpm->unsatisfied_requires($db, $state, $pkg, name => $n)) {
@@ -460,7 +459,6 @@ sub resolve_rejected {
 			    $p->pack_header; #- need to pack else package is no longer visible...
 			    push @closure, $p;
 		    });
-		}
 	    }
 	}
     } else {
