@@ -25,7 +25,6 @@ sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 sub find_candidate_packages {
     my ($urpm, $dep, %options) = @_;
     my %packages;
-    $options{nopromoteepoch} = 1 unless defined $options{nopromoteepoch};
 
     foreach (split /\|/, $dep) {
 	if (/^\d+$/) {
@@ -41,7 +40,7 @@ sub find_candidate_packages {
 		$pkg->is_arch_compat or next;
 		$options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
-		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, $options{nopromoteepoch})
+		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, 1)
 		    and push @{$packages{$pkg->name}}, $pkg;
 	    }
 	}
@@ -231,7 +230,6 @@ sub whatrequires_id {
 sub unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, %options) = @_;
     my %properties;
-    $options{nopromoteepoch} = 1 unless defined $options{nopromoteepoch};
 
     #- all requires should be satisfied according to selected packages or installed packages,
     #- or the package itself.
@@ -253,7 +251,7 @@ sub unsatisfied_requires {
 	    foreach (keys %{$urpm->{provides}{$n} || {}}) {
 		my $p = $urpm->{depslist}[$_];
 		exists $state->{selected}{$_} or next;
-		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($dep, $options{nopromoteepoch}) and next REQUIRES;
+		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($dep, 1) and next REQUIRES;
 	    }
 
 	    #- check if the package itself provides what is necessary.
@@ -276,7 +274,7 @@ sub unsatisfied_requires {
 			if (my ($pn, $ps) = /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/) {
 			    $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
 			    $pn eq $n or next;
-			    ranges_overlap($ps, $s, $options{nopromoteepoch}) and ++$satisfied;
+			    ranges_overlap($ps, $s, 1) and ++$satisfied;
 			}
 		    }
 		});
