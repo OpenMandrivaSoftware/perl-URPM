@@ -807,6 +807,7 @@ sub resolve_requested__no_suggests {
 		my ($p) = @_;
 		foreach my $property ($p->conflicts) {
 		    if ($pkg->provides_overlap($property)) {
+			$urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
 			if ($options{keep}) {
 			    push @keep, scalar $p->fullname;
 			} else {
