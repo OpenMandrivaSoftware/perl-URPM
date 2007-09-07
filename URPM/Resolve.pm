@@ -218,7 +218,7 @@ sub sort_package_result {
 sub whatrequires {
     my ($urpm, $state, $property_name) = @_;
 
-    map { $urpm->{depslist}[$_] } whatrequires_id($urpm, $state, $property_name);
+    map { $urpm->{depslist}[$_] } whatrequires_id($state, $property_name);
 }
 sub whatrequires_id {
     my ($state, $property_name) = @_;
