@@ -792,7 +792,7 @@ sub resolve_requested__no_suggests {
 					($obsoleted ? 'obsoleted' : 'removed') => 1,
 					unsatisfied => \@properties,
 					from => scalar $pkg->fullname,
-					why => { conflicts => scalar $pkg->fullname },
+					why => { conflicts => $property },
 				    );
 				}
 			    }
