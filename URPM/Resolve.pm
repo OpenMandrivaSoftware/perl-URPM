@@ -644,97 +644,9 @@ sub resolve_requested__no_suggests {
 	    #- check if the package is not already installed before trying to use it, compute
 	    #- obsoleted packages too. This is valable only for non source packages.
 	    if ($pkg->arch ne 'src' && !$pkg->flag_disable_obsolete) {
-		my (%diff_provides);
 
-		my $first;
-		foreach ($pkg->name . " < " . $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release, $pkg->obsoletes) {
-		    if (my ($n, $o, $v) = property2name_op_version($_)) {
-			if ($first++ && $n eq $pkg->name) {
-			    #- ignore if this package obsoletes itself
-			    #- otherwise this can cause havoc if: to_install=v3, installed=v2, v3 obsoletes < v2
-			    next;
-			}
-			#- populate avoided entries according to what is selected.
-			foreach my $p ($urpm->packages_providing($n)) {
-			    if ($p->name eq $pkg->name) {
-				#- all packages with the same name should now be avoided except when chosen.
-				$p->fullname eq $pkg->fullname and next;
-			    } else {
-				#- in case of obsoletes, keep track of what should be avoided
-				#- but only if package name equals the obsolete name.
-				$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
-			    }
-			    #- these packages are not yet selected, if they happen to be selected,
-			    #- they must first be unselected.
-			    $state->{rejected}{$p->fullname}{closure}{$pkg->fullname} ||= undef;
-			}
-			#- examine rpm db too (but only according to package names as a fix in rpm itself)
-			$db->traverse_tag('name', [ $n ], sub {
-				my ($p) = @_;
-
-				#- without an operator, anything (with the same name) is matched.
-				#- with an operator, check package EVR with the obsoletes EVR.
-				#- $satisfied is true if installed package has version newer or equal.
-				my $comparison = $p->compare($v);
-				my $satisfied = !$o || eval($comparison . $o . 0);
-				$p->name eq $pkg->name || $satisfied or return;
-
-				#- do not propagate now the broken dependencies as they are
-				#- computed later.
-				my $rv = $state->{rejected}{$p->fullname} ||= {};
-				$rv->{closure}{$pkg->fullname} = undef;
-				$rv->{size} = $p->size;
-
-				if ($p->name eq $pkg->name) {
-				    #- all packages older than the current one are obsoleted,
-				    #- the others are simply removed (the result is the same).
-				    if ($o && $comparison > 0) {
-					#- installed package is newer
-					#- remove this package from the list of packages to install,
-					#- unless urpmi was invoked with --allow-force (in which
-					#- case rpm could be invoked with --oldpackage)
-					if (!$urpm->{options}{'allow-force'}) {
-					    #- since the originally requested packages (or other
-					    #- non-installed ones) could be unselected by the following
-					    #- operation, remember them, to warn the user
-					    my @unselected_uninstalled = grep {
-						!$_->flag_installed;
-					    } $urpm->disable_selected($db, $state, $pkg);
-					    $state->{unselected_uninstalled} = \@unselected_uninstalled;
-					}
-				    } elsif ($satisfied) {
-					$rv->{obsoleted} = 1;
-				    } else {
-					$rv->{closure}{$pkg->fullname} = { old_requested => 1 };
-					$rv->{removed} = 1;
-					++$state->{oldpackage};
-				    }
-				} else {
-				    $rv->{obsoleted} = 1;
-				}
-
-				#- diff_provides on obsoleted provides are needed.
-				foreach ($p->provides) {
-				    #- check differential provides between obsoleted package and newer one.
-				    my ($pn, $ps) = property2name_range($_) or next;
-
-					$diff_provides{$pn} = undef;
-					foreach (grep { exists $state->{selected}{$_} }
-					    keys %{$urpm->{provides}{$pn} || {}})
-					{
-					    my $pp = $urpm->{depslist}[$_];
-					    foreach ($pp->provides) {
-						my ($ppn, $pps) = property2name_range($_) or next;
-						$ppn eq $pn && $pps eq $ps
-						    and delete $diff_provides{$pn};
-					    }
-					}
-				}
-			    });
-		    }
-		}
-
-		push @diff_provides, map { +{ name => $_, pkg => $pkg } } keys %diff_provides;
+		push @diff_provides, map { +{ name => $_, pkg => $pkg } } 
+		  _compute_diff_provides($urpm, $db, $state, $pkg);
 	    }
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
@@ -866,6 +778,107 @@ sub resolve_requested__no_suggests {
     grep { exists $state->{selected}{$_->id} } @selected;
 }
 
+
+sub _compute_diff_provides {
+    my ($urpm, $db, $state, $pkg) = @_;
+
+    my %diff_provides;
+
+    _compute_diff_provides_one($urpm, $db, $state, $pkg, \%diff_provides, $pkg->name, '<', $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release);
+
+    foreach ($pkg->obsoletes) {
+	my ($n, $o, $v) = property2name_op_version($_) or next;
+
+	#- ignore if this package obsoletes itself
+	#- otherwise this can cause havoc if: to_install=v3, installed=v2, v3 obsoletes < v2
+	if ($n ne $pkg->name) {
+	    _compute_diff_provides_one($urpm, $db, $state, $pkg, \%diff_provides, $n, $o, $v);
+	}
+    }
+    keys %diff_provides;
+}
+
+sub _compute_diff_provides_one {
+    my ($urpm, $db, $state, $pkg, $diff_provides, $n, $o, $v) = @_;
+
+    #- populate avoided entries according to what is selected.
+    foreach my $p ($urpm->packages_providing($n)) {
+	if ($p->name eq $pkg->name) {
+	    #- all packages with the same name should now be avoided except when chosen.
+	    $p->fullname eq $pkg->fullname and next;
+	} else {
+	    #- in case of obsoletes, keep track of what should be avoided
+	    #- but only if package name equals the obsolete name.
+	    $p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
+	}
+	#- these packages are not yet selected, if they happen to be selected,
+	#- they must first be unselected.
+	$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} ||= undef;
+    }
+	
+    #- examine rpm db too (but only according to package names as a fix in rpm itself)
+    $db->traverse_tag('name', [ $n ], sub {
+	my ($p) = @_;
+
+	#- without an operator, anything (with the same name) is matched.
+	#- with an operator, check package EVR with the obsoletes EVR.
+	#- $satisfied is true if installed package has version newer or equal.
+	my $comparison = $p->compare($v);
+	my $satisfied = !$o || eval($comparison . $o . 0);
+	$p->name eq $pkg->name || $satisfied or return;
+	
+	#- do not propagate now the broken dependencies as they are
+	#- computed later.
+	my $rv = $state->{rejected}{$p->fullname} ||= {};
+	$rv->{closure}{$pkg->fullname} = undef;
+	$rv->{size} = $p->size;
+
+	if ($p->name eq $pkg->name) {
+	    #- all packages older than the current one are obsoleted,
+	    #- the others are simply removed (the result is the same).
+	    if ($o && $comparison > 0) {
+		#- installed package is newer
+		#- remove this package from the list of packages to install,
+		#- unless urpmi was invoked with --allow-force (in which
+		#- case rpm could be invoked with --oldpackage)
+		if (!$urpm->{options}{'allow-force'}) {
+		    #- since the originally requested packages (or other
+		    #- non-installed ones) could be unselected by the following
+		    #- operation, remember them, to warn the user
+		    my @unselected_uninstalled = grep {
+			!$_->flag_installed;
+		    } $urpm->disable_selected($db, $state, $pkg);
+		    $state->{unselected_uninstalled} = \@unselected_uninstalled;
+		}
+	    } elsif ($satisfied) {
+		$rv->{obsoleted} = 1;
+	    } else {
+		$rv->{closure}{$pkg->fullname} = { old_requested => 1 };
+		$rv->{removed} = 1;
+		++$state->{oldpackage};
+	    }
+	} else {
+	    $rv->{obsoleted} = 1;
+	}
+
+	#- diff_provides on obsoleted provides are needed.
+	foreach ($p->provides) {
+	    #- check differential provides between obsoleted package and newer one.
+	    my ($pn, $ps) = property2name_range($_) or next;
+
+	    $diff_provides->{$pn} = undef;
+	    foreach (grep { exists $state->{selected}{$_} }
+		       keys %{$urpm->{provides}{$pn} || {}}) {
+		my $pp = $urpm->{depslist}[$_];
+		foreach ($pp->provides) {
+		    my ($ppn, $pps) = property2name_range($_) or next;
+		    $ppn eq $pn && $pps eq $ps
+		      and delete $diff_provides->{$pn};
+		}
+	    }
+	}
+    });
+}
 
 sub _handle_provides_overlap {
     my ($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep) = @_;
