@@ -819,7 +819,6 @@ sub resolve_requested__no_suggests {
 					  my @best;
 					  foreach (@l) {
 					      $packages = $urpm->find_candidate_packages($_,
-											 nopromoteepoch => 1,
 											 avoided => $state->{rejected});
 					      $best = join('|',
 							   map { $_->id }
