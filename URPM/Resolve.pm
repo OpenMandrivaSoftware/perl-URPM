@@ -259,12 +259,12 @@ sub unsatisfied_requires {
 
     #- all requires should be satisfied according to selected packages or installed packages,
     #- or the package itself.
-  REQUIRES: foreach my $dep ($pkg->requires) {
-	my ($n, $s) = property2name_range($dep) or next;
+  REQUIRES: foreach my $prop ($pkg->requires) {
+	my ($n, $s) = property2name_range($prop) or next;
 
 	if (defined $options{name} && $n ne $options{name}) {
 	    #- allow filtering on a given name (to speed up some search).
-	} elsif (exists $unsatisfied{$dep}) {
+	} elsif (exists $unsatisfied{$prop}) {
 	    #- avoid recomputing the same all the time.
 	} else {
 	    #- check for installed packages in the installed cache.
@@ -276,11 +276,11 @@ sub unsatisfied_requires {
 	    #- check on the selected package if a provide is satisfying the resolution (need to do the ops).
 	    foreach (grep { exists $state->{selected}{$_} } keys %{$urpm->{provides}{$n} || {}}) {
 		my $p = $urpm->{depslist}[$_];
-		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($dep, 1) and next REQUIRES;
+		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($prop, 1) and next REQUIRES;
 	    }
 
 	    #- check if the package itself provides what is necessary.
-	    $pkg->provides_overlap($dep) and next REQUIRES;
+	    $pkg->provides_overlap($prop) and next REQUIRES;
 
 	    #- check on installed system if a package which is not obsoleted is satisfying the require.
 	    my $satisfied = 0;
@@ -305,7 +305,7 @@ sub unsatisfied_requires {
 		});
 	    }
 	    #- if nothing can be done, the require should be resolved.
-	    $satisfied or $unsatisfied{$dep} = undef;
+	    $satisfied or $unsatisfied{$prop} = undef;
 	}
     }
 
