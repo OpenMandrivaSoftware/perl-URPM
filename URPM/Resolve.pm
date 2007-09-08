@@ -47,10 +47,10 @@ sub property2name_op_version {
 #- Find candidates packages from a require string (or id).
 #- Takes care of direct choices using the '|' separator.
 sub find_candidate_packages {
-    my ($urpm, $dep, %options) = @_;
+    my ($urpm, $id_prop, %options) = @_;
     my %packages;
 
-    foreach (split /\|/, $dep) {
+    foreach (split /\|/, $id_prop) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
 	    $pkg->flag_skip and next;
@@ -81,13 +81,13 @@ sub get_installed_arch {
 }
 
 sub find_chosen_packages {
-    my ($urpm, $db, $state, $dep) = @_;
+    my ($urpm, $db, $state, $id_prop) = @_;
     my %packages;
     my %installed_arch;
     my $strict_arch = defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /x86_64|sparc64|ppc64/;
 
     #- search for possible packages, try to be as fast as possible, backtrack can be longer.
-    foreach (split /\|/, $dep) {
+    foreach (split /\|/, $id_prop) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
