@@ -663,44 +663,7 @@ sub resolve_requested__no_suggests {
 		$state->{whatrequires}{$_}{$pkg->id} = undef;
 	    }
 
-	    #- examine conflicts, an existing package conflicting with this selection should
-	    #- be upgraded to a new version which will be safe, else it should be removed.
-	    foreach ($pkg->conflicts) {
-		@keep and last;
-		#- propagate conflicts to avoid
-		if (my ($n, $o, $v) = property2name_op_version($_)) {
-		    foreach my $p ($urpm->packages_providing($n)) {
-			$pkg == $p and next;
-			$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
-			$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
-		    }
-		}
-		if (my ($file) = m!^(/[^\s\[]*)!) {
-		    $db->traverse_tag('path', [ $file ], sub {
-			@keep and return;
-			my ($p) = @_;
-			if ($options{keep}) {
-			    push @keep, scalar $p->fullname;
-			} else {
-			    #- all these package should be removed.
-			    resolve_rejected_($urpm, $db, $state, $p, \@properties,
-				removed => 1,
-				from => scalar $pkg->fullname,
-				why => { conflicts => $file },
-			    );
-			}
-		    });
-		} elsif (my $name = property2name($_)) {
-		    my $property = $_;
-		    $db->traverse_tag('whatprovides', [ $name ], sub {
-			@keep and return;
-			my ($p) = @_;
-			if ($p->provides_overlap($property)) {
-			    _handle_provides_overlap($urpm, $db, $state, $pkg, $p, $property, $name, \@properties, $options{keep} && \@keep);
-			}
-		    });
-		}
-	    }
+	    _handle_conflicts($urpm, $db, $state, $pkg, \@properties, $options{keep} && \@keep);
 
 	    #- examine if an existing package does not conflict with this one.
 	    $db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
@@ -728,6 +691,48 @@ sub resolve_requested__no_suggests {
     grep { exists $state->{selected}{$_->id} } @selected;
 }
 
+sub _handle_conflicts {
+    my ($urpm, $db, $state, $pkg, $properties, $keep) = @_;
+
+    #- examine conflicts, an existing package conflicting with this selection should
+    #- be upgraded to a new version which will be safe, else it should be removed.
+    foreach ($pkg->conflicts) {
+	$keep && @$keep and last;
+	#- propagate conflicts to avoid
+	if (my ($n, $o, $v) = property2name_op_version($_)) {
+	    foreach my $p ($urpm->packages_providing($n)) {
+		$pkg == $p and next;
+		$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
+		$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
+	    }
+	}
+	if (my ($file) = m!^(/[^\s\[]*)!) {
+	    $db->traverse_tag('path', [ $file ], sub {
+		$keep && @$keep and return;
+		my ($p) = @_;
+		if ($keep) {
+		    push @$keep, scalar $p->fullname;
+		} else {
+		    #- all these package should be removed.
+		    resolve_rejected_($urpm, $db, $state, $p, $properties,
+				      removed => 1,
+				      from => scalar $pkg->fullname,
+				      why => { conflicts => $file },
+				  );
+		}
+	    });
+	} elsif (my $name = property2name($_)) {
+	    my $property = $_;
+	    $db->traverse_tag('whatprovides', [ $name ], sub {
+		$keep && @$keep and return;
+		my ($p) = @_;
+		if ($p->provides_overlap($property)) {
+		    _handle_provides_overlap($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep);
+		}
+	    });
+	}
+    }
+}
 
 sub _compute_diff_provides {
     my ($urpm, $db, $state, $pkg) = @_;
