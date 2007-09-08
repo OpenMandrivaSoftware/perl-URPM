@@ -1,4 +1,6 @@
 package URPM;
+#package URPM::Resolve;
+#use URPM;
 
 # $Id$
 
@@ -455,7 +457,7 @@ sub resolve_rejected_ {
     #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
     if (! $state->{rejected}{$pkg->fullname}) {
-	my @closure = $pkg;
+	my @pkgs_todo = $pkg;
 
 	#- keep track of size of package which are finally removed.
 	$state->{rejected}{$pkg->fullname}{size} = $pkg->size;
@@ -464,7 +466,7 @@ sub resolve_rejected_ {
 	}
 	$options{closure_as_removed} and $options{removed} ||= delete $options{obsoleted};
 
-	while (my $cp = shift @closure) {
+	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
 	    foreach my $n ($cp->provides_nosense) {
 		    foreach my $pkg (whatrequires($urpm, $state, $n)) {
@@ -495,7 +497,7 @@ sub resolve_rejected_ {
 			    $rv->{size} = $p->size;
 
 			    $p->pack_header; #- need to pack else package is no longer visible...
-			    push @closure, $p;
+			    push @pkgs_todo, $p;
 		    });
 	    }
 	}
@@ -998,26 +1000,26 @@ sub _no_more_recent_installed_and_providing {
 #- any other package.
 #- return the packages that have been deselected.
 sub disable_selected {
-    my ($urpm, $db, $state, @closure) = @_;
+    my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @unselected;
 
     #- iterate over package needing unrequested one.
-    while (my $pkg = shift @closure) {
+    while (my $pkg = shift @pkgs_todo) {
 	exists $state->{selected}{$pkg->id} or next;
 
 	#- keep a trace of what is deselected.
 	push @unselected, $pkg;
 
 	#- perform a closure on rejected packages (removed, obsoleted or avoided).
-	my @closure_rejected = scalar $pkg->fullname;
-	while (my $fullname = shift @closure_rejected) {
+	my @rejected_todo = scalar $pkg->fullname;
+	while (my $fullname = shift @rejected_todo) {
 	    my @rejecteds = keys %{$state->{rejected}};
 	    foreach (@rejecteds) {
 		exists $state->{rejected}{$_} && exists $state->{rejected}{$_}{closure}{$fullname} or next;
 		delete $state->{rejected}{$_}{closure}{$fullname};
 		unless (%{$state->{rejected}{$_}{closure}}) {
 		    delete $state->{rejected}{$_};
-		    push @closure_rejected, $_;
+		    push @rejected_todo, $_;
 		}
 	    }
 	}
@@ -1034,7 +1036,7 @@ sub disable_selected {
 		exists $state->{selected}{$p->id} or next;
 		if (unsatisfied_requires($urpm, $db, $state, $p, name => $n)) {
 		    #- this package has broken dependencies and is selected.
-		    push @closure, $p;
+		    push @pkgs_todo, $p;
 		}
 	    }
 	}
@@ -1052,16 +1054,16 @@ sub disable_selected {
 
 #- determine dependencies that can safely been removed and are not requested
 sub disable_selected_unrequested_dependencies {
-    my ($urpm, $db, $state, @closure) = @_;
-    my @unselected_closure;
+    my ($urpm, $db, $state, @pkgs_todo) = @_;
+    my @all_unselected;
 
     #- disable selected packages, then extend unselection to all required packages
     #- no longer needed and not requested.
-    while (my @unselected = disable_selected($urpm, $db, $state, @closure)) {
+    while (my @unselected = disable_selected($urpm, $db, $state, @pkgs_todo)) {
 	my %required;
 
 	#- keep in the packages that had to be unselected.
-	@unselected_closure or push @unselected_closure, @unselected;
+	@all_unselected or push @all_unselected, @unselected;
 
 	#- search for unrequested required packages.
 	foreach (@unselected) {
@@ -1087,10 +1089,10 @@ sub disable_selected_unrequested_dependencies {
 	}
 
 	#- now required values still undefined indicates packages than can be removed.
-	@closure = map { $urpm->{depslist}[$_] } grep { !$required{$_} } keys %required;
+	@pkgs_todo = map { $urpm->{depslist}[$_] } grep { !$required{$_} } keys %required;
     }
 
-    @unselected_closure;
+    @all_unselected;
 }
 
 #- compute selected size by removing any removed or obsoleted package.
