@@ -9,16 +9,30 @@ sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 
 #- $state fields :
-#- * ask_remove: deprecated
-#- * backtrack
-#- * cached_installed
-#- * oldpackage
-#- * rejected
-#- * selected
-#- * transaction
-#- * transaction_state
-#- * unselected: deprecated
-#- * whatrequires
+#-
+#- backtrack => { selected => { id => undef }, 
+#-                deadlock => { id|property => undef } },
+#-
+#- cached_installed => { property_name => { fullname => undef } },
+#-
+#- oldpackage => int,
+#-    # will be passed to $trans->run to set RPMPROB_FILTER_OLDPACKAGE
+#-
+#- selected => { id => { requested => bool, install => bool,
+#-                       from => pkg, psel => pkg,
+#-                       promote => name, unsatisfied => [ id|property ] } },
+#-
+#- rejected => { fullname => { size => int, removed => bool, obsoleted => bool,
+#-                             backtrack => { promote => [ name ], keep => [ fullname ], 
+#-                                            unsatisfied => [ id|property ], 
+#-                                            closure => { fullname => { old_requested => bool, unsatisfied => [ id|property ] } } } } },
+#-
+#- whatrequires => { name => { id => undef } },
+#-    # reversed requires_nosense for selected packages
+#-
+#- # more fields only used in build_transaction_set and its callers)
+#- transaction => [ { upgrade => [ id ], remove => [ fullname ] } ],
+#- transaction_state => state_object,
 
 sub property2name {
     $_[0] =~ /^([^\s\[]*)/ && $1;
