@@ -1060,7 +1060,7 @@ sub disable_selected_unrequested_dependencies {
 	foreach (keys %required) {
 	    my $pkg = $urpm->{depslist}[$_] or next;
 	    foreach ($pkg->provides_nosense) {
-		foreach my $p_id (whatrequires_id($urpm, $state, $_)) {
+		foreach my $p_id (whatrequires_id($state, $_)) {
 		    exists $required{$p_id} and next;
 		    $state->{selected}{$p_id} and $required{$pkg->id} = 1;
 		}
