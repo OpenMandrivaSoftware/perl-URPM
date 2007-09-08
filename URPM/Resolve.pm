@@ -10,7 +10,7 @@ use Config;
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 
-#- $state fields :
+#- $state fields:
 #-
 #- backtrack => { selected => { id => undef }, 
 #-                deadlock => { id|property => undef } },
