@@ -241,7 +241,7 @@ sub whatrequires_id {
 #- return unresolved requires of a package (a new one or an existing one).
 sub unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, %options) = @_;
-    my %properties;
+    my %unsatisfied;
 
     #- all requires should be satisfied according to selected packages or installed packages,
     #- or the package itself.
@@ -250,7 +250,7 @@ sub unsatisfied_requires {
 
 	if (defined $options{name} && $n ne $options{name}) {
 	    #- allow filtering on a given name (to speed up some search).
-	} elsif (exists $properties{$dep}) {
+	} elsif (exists $unsatisfied{$dep}) {
 	    #- avoid recomputing the same all the time.
 	} else {
 	    #- check for installed packages in the installed cache.
@@ -291,11 +291,11 @@ sub unsatisfied_requires {
 		});
 	    }
 	    #- if nothing can be done, the require should be resolved.
-	    $satisfied or $properties{$dep} = undef;
+	    $satisfied or $unsatisfied{$dep} = undef;
 	}
     }
 
-    keys %properties;
+    keys %unsatisfied;
 }
 
 #- this function is "suggests vs requires" safe:
