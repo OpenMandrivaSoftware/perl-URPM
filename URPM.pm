@@ -265,8 +265,9 @@ contains two fields:
 B<depslist> is an arrayref containing the list of depending packages (which are
 C<URPM::Package> objects).
 
-B<provides> is an hashref containing as keys the list of items provided by the
-URPM object.
+B<provides> is an hashref containing as keys the list of property names
+provided by the URPM object. The associated value is true if the property is
+versioned.
 
 If the constructor is called with the arguments C<< nofatal => 1 >>, various
 fatal error messages are suppressed (file not found in parse_hdlist() and
