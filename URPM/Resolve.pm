@@ -49,7 +49,7 @@ sub property2name_op_version {
 #- Find candidates packages from a require string (or id).
 #- Takes care of direct choices using the '|' separator.
 sub find_candidate_packages {
-    my ($urpm, $id_prop, %options) = @_;
+    my ($urpm, $id_prop, $o_rejected) = @_;
     my %packages;
 
     foreach (split /\|/, $id_prop) {
@@ -57,7 +57,7 @@ sub find_candidate_packages {
 	    my $pkg = $urpm->{depslist}[$_];
 	    $pkg->flag_skip and next;
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
-	    $options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
+	    $o_rejected && exists $o_rejected->{$pkg->fullname} and next;
 	    push @{$packages{$pkg->name}}, $pkg;
 	} elsif (my $name = property2name($_)) {
 	    my $property = $_;
@@ -65,7 +65,7 @@ sub find_candidate_packages {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->flag_skip and next;
 		$pkg->is_arch_compat or next;
-		$options{avoided} && exists $options{avoided}{$pkg->fullname} and next;
+		$o_rejected && exists $o_rejected->{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
 		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, 1)
 		    and push @{$packages{$pkg->name}}, $pkg;
@@ -870,7 +870,7 @@ sub _handle_diff_provides {
 	#- try if upgrading the package will be satisfying all the requires...
 	#- there is no need to avoid promoting epoch as the package examined is not
 	#- already installed.
-	my $packages = find_candidate_packages($urpm, $p->name, avoided => $state->{rejected});
+	my $packages = find_candidate_packages($urpm, $p->name, $state->{rejected});
 	my $best = join '|', map { $_->id }
 	  grep { ($_->name eq $p->name ||
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
@@ -886,8 +886,7 @@ sub _handle_diff_provides {
 	    #- there exists enough packages that provided the unsatisfied requires.
 	    my @best;
 	    foreach (@l) {
-		$packages = find_candidate_packages($urpm, $_,
-							   avoided => $state->{rejected});
+		$packages = find_candidate_packages($urpm, $_, $state->{rejected});
 		$best = join('|', map { $_->id }
 			          grep { $_->fullname ne $p->fullname }
 				  map { @{$_ || []} } values %$packages);
@@ -923,7 +922,7 @@ sub _handle_provides_overlap {
     #- whether a newer version will be ok, else ask to remove the old.
     my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch . ":" : "") .
       $p->version . "-" . $p->release;
-    my $packages = find_candidate_packages($urpm, $need_deps, avoided => $state->{rejected});
+    my $packages = find_candidate_packages($urpm, $need_deps, $state->{rejected});
     my $best = join('|', map { $_->id }
 		      grep { ! $_->provides_overlap($property) }
 			@{$packages->{$p->name}});
