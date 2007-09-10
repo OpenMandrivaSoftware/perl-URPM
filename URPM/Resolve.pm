@@ -192,36 +192,48 @@ sub _find_chosen_packages__sort {
 	    return @k_chosen if $stripped_kernel;
 	}
 
-	my (@chosen_good_locales, @chosen_bad_locales, @chosen_other, @chosen_other_en);
-
-	#- Now we split @chosen in priority lists depending on locale.
-	#- Packages that require locales-xxx when the corresponding locales are
-	#- already installed should be preferred over packages that require locales
-	#- which are not installed.
-	foreach (@chosen) {
-	    my @r = $_->requires_nosense;
-	    if (my ($specific_locales) = grep { /locales-(?!en)/ } @r) {
-		if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
-		    $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
-		    push @chosen_good_locales, $_;
-		} else {
-		    push @chosen_bad_locales, $_;
-		}
-	    } else {
-		if (grep /locales-en/, @r) {
-		    push @chosen_other_en, $_;
-		} else {
-		    push @chosen_other, $_;
-		}
-	    }
+    if ($urpm->{media}) {
+	@chosen_with_score = sort {
+	    $a->[2] != $b->[2] ? 
+	       $a->[0]->id <=> $b->[0]->id : 
+	       $b->[1] <=> $a->[1] || $b->[0]->compare_pkg($a->[0]);
+	} map { [ $_, _score_for_locales($urpm, $db, $_), pkg2media($urpm->{media}, $_) ] } @chosen;
+    } else {
+	$urpm->{debug_URPM}("can't sort choices by media") if $urpm->{debug_URPM};
+	@chosen_with_score = sort {
+	    $b->[1] <=> $a->[1] ||
+	      $b->[0]->compare_pkg($a->[0]) || $a->[0]->id <=> $b->[0]->id;
+	} map { [ $_, _score_for_locales($urpm, $db, $_) ] } @chosen;
+    }
+    if (!$urpm->{options}{morechoices}) {
+	if (my @valid_locales = grep { $_->[1] } @chosen_with_score) {
+	    #- get rid of invalid locales
+	    @chosen_with_score = @valid_locales;
 	}
+    }
+    map { $_->[0] } @chosen_with_score;
+}
 
-	#- sort packages in order to have preferred ones first
-	#- (this means good locales, no locales, bad locales).
-	return sort_package_result($urpm, @chosen_good_locales),
-	       sort_package_result($urpm, @chosen_other_en),
-	       sort_package_result($urpm, @chosen_other),
-	       sort_package_result($urpm, @chosen_bad_locales);
+#- Packages that require locales-xxx when the corresponding locales are
+#- already installed should be preferred over packages that require locales
+#- which are not installed.
+sub _score_for_locales {
+    my ($urpm, $db, $pkg) = @_;
+
+    my @r = $pkg->requires_nosense;
+
+    if (my ($specific_locales) = grep { /locales-(?!en)/ } @r) {
+	if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
+	      $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
+	      3; # good locale
+	  } else {
+	      0; # bad locale
+	  }
+    } elsif (grep { /locales-en/ } @r) {
+	2; # 
+    } else {
+	1;
+    }
 }
 
 sub find(&@) {
@@ -233,20 +245,6 @@ sub pkg2media {
    my ($mediums, $p) = @_; 
    my $id = $p->id;
    find { $id >= $_->{start} && $id <= $_->{end} } @$mediums;
-}
-
-sub sort_package_result { 
-    my ($urpm, @l) = @_;
-    if ($urpm->{media}) {
-	map { $_->[0] } sort {
-	    $a->[1] != $b->[1] ? 
-	       $a->[0]->id <=> $b->[0]->id : 
-	       $b->[0]->compare_pkg($a->[0]);
-	} map { [ $_, pkg2media($urpm->{media}, $_) ] } @l;
-    } else {
-	$urpm->{debug_URPM}("can't sort choices by media") if $urpm->{debug_URPM};
-	sort { $b->compare_pkg($a) || $a->id <=> $b->id } @l;
-    }
 }
 
 sub whatrequires {
