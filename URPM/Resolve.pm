@@ -143,9 +143,18 @@ sub find_chosen_packages {
 	#- probability of being chosen) and ask the user.
 	#- Packages with more compatibles architectures are always preferred.
 	#- Puts the results in @chosen. Other are left unordered.
-	foreach my $p (values(%packages)) {
+	foreach my $p (values(%$packages)) {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $p);
 	}
+
+	_find_chosen_packages__sort($urpm, $db, \%packages);
+    } else {
+	values(%packages);
+    }
+}
+
+sub _find_chosen_packages__sort {
+    my ($urpm, $db, $packages) = @_;
 
 	my ($best, @other) = sort { 
 	    $a->[1] <=> $b->[1] #- we want the lowest (ie preferred arch)
@@ -155,7 +164,7 @@ sub find_chosen_packages {
 	    $score += 2 if $_->flag_requested;
 	    $score += $_->flag_upgrade ? 1 : -1 if $_->flag_installed;
 	    [ $_, $_->is_arch_compat, $score ];
-	} values %packages;
+	} values %$packages;
 
 	my @chosen_with_score = ($best, grep { $_->[1] == $best->[1] && $_->[2] == $best->[2] } @other);
 	my @chosen = map { $_->[0] } @chosen_with_score;
@@ -213,9 +222,6 @@ sub find_chosen_packages {
 	       sort_package_result($urpm, @chosen_other_en),
 	       sort_package_result($urpm, @chosen_other),
 	       sort_package_result($urpm, @chosen_bad_locales);
-    } else {
-	return values(%packages);
-    }
 }
 
 sub find(&@) {
