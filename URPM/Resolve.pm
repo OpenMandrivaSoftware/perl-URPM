@@ -82,7 +82,10 @@ sub get_installed_arch {
     $arch;
 }
 
-sub find_chosen_packages {
+# deprecated function name
+sub find_chosen_packages { &find_required_package }
+
+sub find_required_package {
     my ($urpm, $db, $state, $id_prop) = @_;
     my %packages;
     my %installed_arch;
@@ -147,13 +150,13 @@ sub find_chosen_packages {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $p);
 	}
 
-	_find_chosen_packages__sort($urpm, $db, \%packages);
+	_find_required_package__sort($urpm, $db, \%packages);
     } else {
 	[ values(%packages) ];
     }
 }
 
-sub _find_chosen_packages__sort {
+sub _find_required_package__sort {
     my ($urpm, $db, $packages) = @_;
 
 	my ($best, @other) = sort { 
@@ -602,7 +605,7 @@ sub resolve_requested__no_suggests {
 	    }
 
 	    #- take the best choice possible.
-	    my ($chosen, $prefered) = find_chosen_packages($urpm, $db, $state, $dep->{required});
+	    my ($chosen, $prefered) = find_required_package($urpm, $db, $state, $dep->{required});
 
 	    #- If no choice is found, this means that nothing can be possibly selected
 	    #- according to $dep, so we need to retry the selection, allowing all
