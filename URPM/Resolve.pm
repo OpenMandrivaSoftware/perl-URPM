@@ -143,7 +143,7 @@ sub find_chosen_packages {
 	#- probability of being chosen) and ask the user.
 	#- Packages with more compatibles architectures are always preferred.
 	#- Puts the results in @chosen. Other are left unordered.
-	foreach my $p (values(%$packages)) {
+	foreach my $p (values(%packages)) {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $p);
 	}
 
