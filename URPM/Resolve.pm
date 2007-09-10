@@ -95,7 +95,7 @@ sub find_chosen_packages {
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this package is better than a possibly previously chosen package.
-	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
+	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return [$pkg];
 	    if ($strict_arch && $pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
 		my $n = $pkg->name;
 		defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
@@ -118,7 +118,7 @@ sub find_chosen_packages {
 		#- check if at least one provide of the package overlaps the property
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this package is better than a possibly previously chosen package.
-		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return $pkg;
+		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return [$pkg];
 		    if ($strict_arch && $pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
 			my $n = $pkg->name;
 			defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
@@ -149,7 +149,7 @@ sub find_chosen_packages {
 
 	_find_chosen_packages__sort($urpm, $db, \%packages);
     } else {
-	values(%packages);
+	[ values(%packages) ];
     }
 }
 
@@ -170,12 +170,12 @@ sub _find_chosen_packages__sort {
 	my @chosen = map { $_->[0] } @chosen_with_score;
 
 	#- return immediately if there is only one chosen package
-	if (@chosen == 1) { return @chosen }
+	if (@chosen == 1) { return \@chosen }
 
 	#- if several packages were selected to match a requested installation,
 	#- and if --more-choices wasn't given, trim the choices to the first one.
 	if (!$urpm->{options}{morechoices} && $chosen_with_score[0][2] == 3) {
-	    return $chosen[0];
+	    return [ $chosen[0] ];
 	}
 
 	#- prefer kernel-source-stripped over kernel-source
@@ -189,7 +189,7 @@ sub _find_chosen_packages__sort {
 		    push @k_chosen, $p;
 		}
 	    }
-	    return @k_chosen if $stripped_kernel;
+	    return \@k_chosen if $stripped_kernel;
 	}
 
     if ($urpm->{media}) {
@@ -211,7 +211,10 @@ sub _find_chosen_packages__sort {
 	    @chosen_with_score = @valid_locales;
 	}
     }
-    map { $_->[0] } @chosen_with_score;
+    # propose to select all packages for installed locales
+    my @prefered = grep { $_->[1] == 3 } @chosen_with_score;
+
+    [ map { $_->[0] } @chosen_with_score ], [ map { $_->[0] } @prefered ];
 }
 
 #- Packages that require locales-xxx when the corresponding locales are
@@ -599,7 +602,7 @@ sub resolve_requested__no_suggests {
 	    }
 
 	    #- take the best choice possible.
-	    my @chosen = find_chosen_packages($urpm, $db, $state, $dep->{required});
+	    my ($chosen, $prefered) = find_chosen_packages($urpm, $db, $state, $dep->{required});
 
 	    #- If no choice is found, this means that nothing can be possibly selected
 	    #- according to $dep, so we need to retry the selection, allowing all
@@ -607,12 +610,12 @@ sub resolve_requested__no_suggests {
 	    #- tried. Backtracking is used to avoid trying multiple times the same
 	    #- packages. If multiple packages are possible, simply ask the user which
 	    #- one to choose; else take the first one available.
-	    if (!@chosen) {
+	    if (!@$chosen) {
 		$urpm->{debug_URPM}("no packages match " . _id_to_name($urpm, $dep->{required}) . " (it may be in skip.list)") if $urpm->{debug_URPM};
 		unshift @properties, backtrack_selected($urpm, $db, $state, $dep, %options);
 		next; #- backtrack code choose to continue with same package or completely new strategy.
-	    } elsif ($options{callback_choices} && @chosen > 1) {
-		my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, \@chosen, _id_to_name($urpm, $dep->{required}));
+	    } elsif ($options{callback_choices} && @$chosen > 1) {
+		my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _id_to_name($urpm, $dep->{required}), $prefered);
 		$urpm->{debug_URPM}("replacing " . _id_to_name($urpm, $dep->{required}) . " with " . 
 				    join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
 		unshift @properties, map {
@@ -627,10 +630,10 @@ sub resolve_requested__no_suggests {
 	    }
 
 	    #- now do the real work, select the package.
-	    my $pkg = shift @chosen;
+	    my $pkg = shift @$chosen;
 	    if ($urpm->{debug_URPM} && $pkg->name ne _id_to_name($urpm, $dep->{required})) {
 		$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _id_to_name($urpm, $dep->{required}));
-		@chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @chosen));
+		@$chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @$chosen));
 	    }
 
 	    #- cancel flag if this package should be cancelled but too late (typically keep options).
