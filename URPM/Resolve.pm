@@ -48,6 +48,11 @@ sub find_candidate_packages {
     }
     \%packages;
 }
+sub find_candidate_packages_ {
+    my ($urpm, $id_prop, $o_rejected) = @_;
+    my $packages = find_candidate_packages($urpm, $id_prop, $o_rejected);
+    map { @$_ } values %$packages;
+}
 
 sub get_installed_arch {
     my ($db, $n) = @_;
@@ -326,10 +331,9 @@ sub backtrack_selected {
 
 	    #- search for all possible packages, first is to try the selection, then if it is
 	    #- impossible, backtrack the origin.
-	    my $packages = find_candidate_packages($urpm, $dep->{required});
+	    my @packages = find_candidate_packages_($urpm, $dep->{required});
 
-	    foreach (values %$packages) {
-		foreach (@$_) {
+	    foreach (@packages) {
 		    #- avoid dead loop.
 		    exists $state->{backtrack}{selected}{$_->id} and next;
 		    #- a package if found is problably rejected or there is a problem.
@@ -357,7 +361,6 @@ sub backtrack_selected {
 			     exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 			     exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
 			   };
-		}
 	    }
 	}
     }
@@ -551,11 +554,8 @@ sub resolve_requested__no_suggests {
     while (my ($r, $v) = each %$requested) {
 	unless ($options{keep_requested_flag}) {
 	    #- keep track of requested packages by propating the flag.
-	    my $packages = find_candidate_packages($urpm, $r);
-	    foreach (values %$packages) {
-		foreach (@$_) {
+	    foreach (find_candidate_packages_($urpm, $r)) {
 		    $_->set_flag_requested;
-		}
 	    }
 	}
 	#- keep value to be available from selected hash.
@@ -842,13 +842,13 @@ sub _handle_diff_provides {
 	#- try if upgrading the package will be satisfying all the requires...
 	#- there is no need to avoid promoting epoch as the package examined is not
 	#- already installed.
-	my $packages = find_candidate_packages($urpm, $p->name, $state->{rejected});
+	my @packages = find_candidate_packages_($urpm, $p->name, $state->{rejected});
 	my $best = join '|', map { $_->id }
 	  grep { ($_->name eq $p->name ||
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
 		   && $_->fullname ne $p->fullname &&
 		     unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0 }
-	    map { @{$_ || []} } values %$packages;
+	    @packages;
 
 	if (length $best) {
 	    $urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
@@ -858,10 +858,10 @@ sub _handle_diff_provides {
 	    #- there exists enough packages that provided the unsatisfied requires.
 	    my @best;
 	    foreach (@l) {
-		$packages = find_candidate_packages($urpm, $_, $state->{rejected});
+		my @packages = find_candidate_packages_($urpm, $_, $state->{rejected});
 		$best = join('|', map { $_->id }
 			          grep { $_->fullname ne $p->fullname }
-				  map { @{$_ || []} } values %$packages);
+				  @packages);
 		$best and push @best, $best;
 	    }
 
