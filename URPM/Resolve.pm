@@ -680,8 +680,8 @@ sub resolve_requested__no_suggests {
 		unshift @properties, backtrack_selected($urpm, $db, $state, +{ keep => \@keep, psel => $pkg }, %options);
 	    }
 	}
-	if (defined ($dep = shift @diff_provides)) {
-	    _handle_diff_provides($urpm, $db, $state, \@properties, $dep->{name}, $dep->{pkg}, %options);
+	if (defined (my $diff = shift @diff_provides)) {
+	    _handle_diff_provides($urpm, $db, $state, \@properties, $diff->{name}, $diff->{pkg}, %options);
 	}
     } while @diff_provides || @properties;
 
