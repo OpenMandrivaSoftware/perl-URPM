@@ -802,7 +802,7 @@ B<selected>: { id => {
 
 B<rejected>: { fullname => { 
      size => int, removed => bool, obsoleted => bool,
-     backtrack => { 
+     backtrack => { # those info are only used to display why package is unselected
          promote => [ name ], keep => [ fullname ], 
          unsatisfied => [ id|property ], 
          closure => { fullname => { old_requested => bool, 
@@ -812,6 +812,9 @@ B<rejected>: { fullname => {
 
 B<whatrequires>: { name => { id => undef } }
    # reversed requires_nosense for selected packages
+
+B<unselected_uninstalled>: [ pkg ]
+   # (old) packages which are needed, but installed package is newer
 
 more fields only used in build_transaction_set and its callers):
 
