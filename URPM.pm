@@ -780,6 +780,45 @@ lower is prefered.
 
 =back
 
+=head2 The $state object
+
+It has the following fields:
+
+B<backtrack>: { 
+   selected => { id => undef }, 
+   deadlock => { id|property => undef },
+ }
+
+B<cached_installed>: { property_name => { fullname => undef } }
+
+B<oldpackage>: int
+   # will be passed to $trans->run to set RPMPROB_FILTER_OLDPACKAGE
+
+B<selected>: { id => { 
+     requested => bool, install => bool,
+     from => pkg, psel => pkg,
+     promote => name, unsatisfied => [ id|property ]
+ } }
+
+B<rejected>: { fullname => { 
+     size => int, removed => bool, obsoleted => bool,
+     backtrack => { 
+         promote => [ name ], keep => [ fullname ], 
+         unsatisfied => [ id|property ], 
+         closure => { fullname => { old_requested => bool, 
+                                    unsatisfied => [ id|property ] } },
+     },
+ } }
+
+B<whatrequires>: { name => { id => undef } }
+   # reversed requires_nosense for selected packages
+
+more fields only used in build_transaction_set and its callers):
+
+B<transaction>: [ { upgrade => [ id ], remove => [ fullname ] } ]
+
+B<transaction_state>: $state object
+
 =head1 COPYRIGHT
 
 Copyright 2002, 2003, 2004, 2005 MandrakeSoft SA
