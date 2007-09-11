@@ -1433,7 +1433,7 @@ Pkg_is_arch_compat(pkg)
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     *eos = 0;
 #ifdef RPM_448
-    if ($platform) platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+    if (platform) platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
 #else
     RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
