@@ -549,28 +549,27 @@ sub resolve_requested {
 #-   nodeps :
 sub resolve_requested__no_suggests {
     my ($urpm, $db, $state, $requested, %options) = @_;
-    my (@diff_provides, @properties, @selected);
 
-    #- populate properties with backtrack informations.
-    while (my ($r, $v) = each %$requested) {
-	unless ($options{keep_requested_flag}) {
+    if (!$options{keep_requested_flag}) {
+	foreach (keys %$requested) {
 	    #- keep track of requested packages by propating the flag.
-	    foreach (find_candidate_packages_($urpm, $r)) {
-		    $_->set_flag_requested;
+	    foreach (find_candidate_packages_($urpm, $_)) {
+		$_->set_flag_requested;
 	    }
 	}
-	#- keep value to be available from selected hash.
-	push @properties, { required => $r,
-			    requested => $v,
-			  };
     }
+    my @properties = map {
+	{ required => $_, requested => $requested->{$_} };
+    } keys %$requested;
+
+    my (@diff_provides, @selected);
 
     #- for each dep property evaluated, examine which package will be obsoleted on $db,
     #- then examine provides that will be removed (which need to be satisfied by another
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     do {
-	while (defined (my $dep = shift @properties)) {
+	while (my $dep = shift @properties) {
 	    #- in case of keep_unrequested_dependencies option is not set, we need to avoid
 	    #- selecting packages if the source has been disabled.
 	    if (exists $dep->{from} && !$options{keep_unrequested_dependencies}) {
@@ -680,7 +679,7 @@ sub resolve_requested__no_suggests {
 		unshift @properties, backtrack_selected($urpm, $db, $state, +{ keep => \@keep, psel => $pkg }, %options);
 	    }
 	}
-	if (defined (my $diff = shift @diff_provides)) {
+	if (my $diff = shift @diff_provides) {
 	    _handle_diff_provides($urpm, $db, $state, \@properties, $diff->{name}, $diff->{pkg}, %options);
 	}
     } while @diff_provides || @properties;
