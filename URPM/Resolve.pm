@@ -322,9 +322,9 @@ sub with_db_unsatisfied_requires {
     });
 }
 
+# used when a require is not available
 sub backtrack_selected {
     my ($urpm, $db, $state, $dep, %options) = @_;
-    my @properties;
 
     if (defined $dep->{required}) {
 	#- avoid deadlock here...
@@ -393,22 +393,13 @@ sub backtrack_selected {
 	}
     }
 
+    my @properties;
     if (defined $dep->{psel}) {
 	if ($options{keep}) {
-	    #- we shouldn't try to remove packages, so psel which leads to this need to be unselected.
-	    unless (exists $state->{rejected}{$dep->{psel}->fullname}) {
-		#- package is not currently rejected, compute the closure now.
-		my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $dep->{psel});
-		foreach (@l) {
-		    #- disable all these packages in order to avoid selecting them again.
-		    $_->fullname eq $dep->{psel}->fullname or
-		      $state->{rejected}{$_->fullname}{backtrack}{closure}{$dep->{psel}->fullname} = undef;
-		}
-	    }
+	    backtrack_selected_psel_keep($urpm, $db, $state, $dep->{psel}, $dep->{keep});
+
 	    #- the package is already rejected, we assume we can add another reason here!
 	    defined $dep->{promote} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{promote}}, $dep->{promote};
-	    #- to simplify, a reference to list or standalone elements may be set in keep.
-	    defined $dep->{keep} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{keep}}, @{$dep->{keep}};
 	} else {
 	    #- the backtrack need to examine diff_provides promotion on $n.
 	    with_db_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
@@ -425,6 +416,23 @@ sub backtrack_selected {
     #- some packages may have been removed because of selection of this one.
     #- the rejected flags should have been cleaned by disable_selected above.
     @properties;
+}
+
+sub backtrack_selected_psel_keep {
+    my ($urpm, $db, $state, $psel, $keep) = @_;
+
+    #- we shouldn't try to remove packages, so psel which leads to this need to be unselected.
+    unless (exists $state->{rejected}{$psel->fullname}) {
+	#- package is not currently rejected, compute the closure now.
+	my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $psel);
+	foreach (@l) {
+	    #- disable all these packages in order to avoid selecting them again.
+	    $_->fullname eq $psel->fullname or
+	      $state->{rejected}{$_->fullname}{backtrack}{closure}{$psel->fullname} = undef;
+	}
+    }
+    #- to simplify, a reference to list or standalone elements may be set in keep.
+    $keep and push @{$state->{rejected}{$psel->fullname}{backtrack}{keep}}, @$keep;
 }
 
 sub resolve_rejected {
@@ -679,7 +687,7 @@ sub resolve_requested__no_suggests_ {
 
 	    #- keep existing package and therefore cancel current one.
 	    if (@keep) {
-		unshift @properties, backtrack_selected($urpm, $db, $state, +{ keep => \@keep, psel => $pkg }, %options);
+		unshift @properties, backtrack_selected_psel_keep($urpm, $db, $state, $pkg, \@keep);
 	    }
 	}
 	if (my $diff = shift @diff_provides) {
@@ -873,9 +881,7 @@ sub _handle_diff_provides {
 	    } else {
 		if ($options{keep}) {
 		    unshift @$properties, 
-		      backtrack_selected($urpm, $db, $state,
-						{ keep => [ scalar $p->fullname ], psel => $pkg },
-						%options);
+		      backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
 		    resolve_rejected_($urpm, $db, $state, $p, $properties,
 				      removed => 1,
