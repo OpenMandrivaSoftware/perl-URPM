@@ -799,10 +799,9 @@ sub _compute_diff_provides_one {
 		    #- since the originally requested packages (or other
 		    #- non-installed ones) could be unselected by the following
 		    #- operation, remember them, to warn the user
-		    my @unselected_uninstalled = grep {
+		    $state->{unselected_uninstalled} = [ grep {
 			!$_->flag_installed;
-		    } disable_selected($urpm, $db, $state, $pkg);
-		    $state->{unselected_uninstalled} = \@unselected_uninstalled;
+		    } disable_selected($urpm, $db, $state, $pkg) ];
 		}
 	    } elsif ($satisfied) {
 		$rv->{obsoleted} = 1;
