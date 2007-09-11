@@ -320,7 +320,7 @@ sub backtrack_selected {
     if (defined $dep->{required}) {
 	#- avoid deadlock here...
 	if (exists $state->{backtrack}{deadlock}{$dep->{required}}) {
-	    $options{keep} = 1; #- force keeping package to that backtrakc is doing something.
+	    $options{keep} = 1; #- force keeping package to that backtrack is doing something.
 	} else {
 	    $state->{backtrack}{deadlock}{$dep->{required}} = undef;
 
