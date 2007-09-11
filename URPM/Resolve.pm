@@ -543,21 +543,26 @@ sub resolve_requested {
 #-   callback_choices : subroutine to be called to ask the user to choose
 #-     between several possible packages. Returns an array of URPM::Package
 #-     objects, or an empty list eventually.
-#-   keep_requested_flag :
 #-   keep_unrequested_dependencies :
 #-   keep :
 #-   nodeps :
 sub resolve_requested__no_suggests {
     my ($urpm, $db, $state, $requested, %options) = @_;
 
-    if (!$options{keep_requested_flag}) {
-	foreach (keys %$requested) {
-	    #- keep track of requested packages by propating the flag.
-	    foreach (find_candidate_packages_($urpm, $_)) {
-		$_->set_flag_requested;
-	    }
+    foreach (keys %$requested) {
+	#- keep track of requested packages by propating the flag.
+	foreach (find_candidate_packages_($urpm, $_)) {
+	    $_->set_flag_requested;
 	}
     }
+
+    resolve_requested__no_suggests_($urpm, $db, $state, $requested, %options);
+}
+
+# same as resolve_requested__no_suggests, but do not modify requested_flag
+sub resolve_requested__no_suggests_ {
+    my ($urpm, $db, $state, $requested, %options) = @_;
+
     my @properties = map {
 	{ required => $_, requested => $requested->{$_} };
     } keys %$requested;
@@ -1487,10 +1492,9 @@ sub build_transaction_set {
 	    }
 	    my %requested = map { $_ => undef } @ids;
 
-		resolve_requested__no_suggests($urpm,
+		resolve_requested__no_suggests_($urpm,
 		    $db, $state->{transaction_state} ||= {},
 		    \%requested,
-		    keep_requested_flag => 1,
 		    defined $options{start} ? (start => $options{start}) : @{[]},
 		    defined $options{end}   ? (end   => $options{end}) : @{[]},
 		);
