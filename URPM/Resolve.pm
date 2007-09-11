@@ -363,7 +363,7 @@ sub backtrack_selected {
 		    my @l = map { $urpm->search($_, strict_fullname => 1) }
 		      keys %{($state->{rejected}{$_->fullname} || {})->{closure}};
 
-		    disable_selected_unrequested_dependencies($urpm, $db, $state, @l);
+		    disable_selected_and_unrequested_dependencies($urpm, $db, $state, @l);
 
 		    return { required => $_->id,
 			     exists $dep->{from} ? (from => $dep->{from}) : @{[]},
@@ -384,7 +384,7 @@ sub backtrack_selected {
 	    #- all selection tree, re-enabling removed and obsoleted packages as well.
 	    unless (exists $state->{rejected}{$dep->{from}->fullname}) {
 		#- package is not currently rejected, compute the closure now.
-		my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $dep->{from});
+		my @l = disable_selected_and_unrequested_dependencies($urpm, $db, $state, $dep->{from});
 		foreach (@l) {
 		    #- disable all these packages in order to avoid selecting them again.
 		    $_->fullname eq $dep->{from}->fullname or
@@ -429,7 +429,7 @@ sub backtrack_selected_psel_keep {
     #- we shouldn't try to remove packages, so psel which leads to this need to be unselected.
     unless (exists $state->{rejected}{$psel->fullname}) {
 	#- package is not currently rejected, compute the closure now.
-	my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $psel);
+	my @l = disable_selected_and_unrequested_dependencies($urpm, $db, $state, $psel);
 	foreach (@l) {
 	    #- disable all these packages in order to avoid selecting them again.
 	    $_->fullname eq $psel->fullname or
@@ -1047,7 +1047,7 @@ sub disable_selected {
 }
 
 #- determine dependencies that can safely been removed and are not requested
-sub disable_selected_unrequested_dependencies {
+sub disable_selected_and_unrequested_dependencies {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @all_unselected;
 
