@@ -65,14 +65,37 @@ sub get_installed_arch {
     $arch;
 }
 
+my %installed_arch;
+sub strict_arch_check {
+    my ($db, $pkg) = @_;
+    if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
+	my $n = $pkg->name;
+	defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
+	if ($installed_arch{$n} && $installed_arch{$n} ne 'noarch') {
+	    $pkg->arch eq $installed_arch{$n} or return;
+	}
+    }
+    1;
+}
+
 # deprecated function name
 sub find_chosen_packages { &find_required_package }
 
 sub find_required_package {
     my ($urpm, $db, $state, $id_prop) = @_;
     my %packages;
-    my %installed_arch;
     my $strict_arch = defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /x86_64|sparc64|ppc64/;
+
+    my $may_add_to_packages = sub {
+	my ($pkg) = @_;
+
+	if (my $p = $packages{$pkg->name}) {
+	    $pkg->flag_requested > $p->flag_requested ||
+	      $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
+	} else {
+	    $packages{$pkg->name} = $pkg;
+	}
+    };
 
     #- search for possible packages, try to be as fast as possible, backtrack can be longer.
     foreach (split /\|/, $id_prop) {
@@ -82,40 +105,20 @@ sub find_required_package {
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this package is better than a possibly previously chosen package.
 	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return [$pkg];
-	    if ($strict_arch && $pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
-		my $n = $pkg->name;
-		defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
-		if ($installed_arch{$n} && $installed_arch{$n} ne 'noarch') {
-		    $pkg->arch eq $installed_arch{$n} or next;
-		}
-	    }
-	    if (my $p = $packages{$pkg->name}) {
-		$pkg->flag_requested > $p->flag_requested ||
-		  $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
-	    } else {
-		$packages{$pkg->name} = $pkg;
-	    }
+	    !$strict_arch || strict_arch_check($db, $pkg) or next;
+	    $may_add_to_packages->($pkg);
 	} elsif (my $name = property2name($_)) {
 	    my $property = $_;
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
 		$pkg->is_arch_compat or next;
-		$pkg->flag_skip || exists $state->{rejected}{$pkg->fullname} and next;
+		$pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlaps the property
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return [$pkg];
-		    if ($strict_arch && $pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
-			my $n = $pkg->name;
-			defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
-			$installed_arch{$n} && $pkg->arch ne $installed_arch{$n} and next;
-		    }
-		    if (my $p = $packages{$pkg->name}) {
-			$pkg->flag_requested > $p->flag_requested ||
-			  $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
-		    } else {
-			$packages{$pkg->name} = $pkg;
-		    }
+		    !$strict_arch || strict_arch_check($db, $pkg) or next;
+		    $may_add_to_packages->($pkg);		    
 		}
 	    }
 	}
