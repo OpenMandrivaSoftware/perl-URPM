@@ -1182,6 +1182,7 @@ sub compute_flags {
 
     #- now search packages which fullname match given regexps
     if (@regex) {
+	#- very costly :-(
 	foreach my $pkg (@{$urpm->{depslist}}) {
 	    if (grep { $pkg->fullname =~ /$_/ } @regex) {
 		compute_flag($urpm, $pkg, %options);
