@@ -22,9 +22,9 @@ sub property2name_op_version {
 
 #- Find candidates packages from a require string (or id).
 #- Takes care of direct choices using the '|' separator.
-sub find_candidate_packages {
+sub find_candidate_packages_ {
     my ($urpm, $id_prop, $o_rejected) = @_;
-    my %packages;
+    my @packages;
 
     foreach (split /\|/, $id_prop) {
 	if (/^\d+$/) {
@@ -32,7 +32,7 @@ sub find_candidate_packages {
 	    $pkg->flag_skip and next;
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
 	    $o_rejected && exists $o_rejected->{$pkg->fullname} and next;
-	    push @{$packages{$pkg->name}}, $pkg;
+	    push @packages, $pkg;
 	} elsif (my $name = property2name($_)) {
 	    my $property = $_;
 	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
@@ -42,16 +42,20 @@ sub find_candidate_packages {
 		$o_rejected && exists $o_rejected->{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
 		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, 1)
-		    and push @{$packages{$pkg->name}}, $pkg;
+		    and push @packages, $pkg;
 	    }
 	}
     }
-    \%packages;
+    @packages;
 }
-sub find_candidate_packages_ {
+sub find_candidate_packages {
     my ($urpm, $id_prop, $o_rejected) = @_;
-    my $packages = find_candidate_packages($urpm, $id_prop, $o_rejected);
-    map { @$_ } values %$packages;
+
+    my %packages;
+    foreach (find_candidate_packages_($urpm, $id_prop, $o_rejected)) {
+	push @{$packages{$_->name}}, $_;
+    }
+    \%packages;
 }
 
 sub get_installed_arch {
