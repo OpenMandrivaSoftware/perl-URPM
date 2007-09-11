@@ -123,8 +123,9 @@ sub find_required_package {
 	    }
 	}
     }
+    my @packages = values %packages;
 
-    if (keys(%packages) > 1) {
+    if (@packages > 1) {
 	#- packages should be preferred if one of their provides is referenced
 	#- in the "requested" hash, or if the package itself is requested (or
 	#- required).
@@ -132,16 +133,17 @@ sub find_required_package {
 	#- probability of being chosen) and ask the user.
 	#- Packages with more compatibles architectures are always preferred.
 	#- Puts the results in @chosen. Other are left unordered.
-	foreach my $p (values(%packages)) {
-	    _set_flag_installed_and_upgrade_if_no_newer($db, $p);
+	foreach my $pkg (@packages) {
+	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 	}
 
-	_find_required_package__sort($urpm, $db, \%packages);
+	_find_required_package__sort($urpm, $db, \@packages);
     } else {
-	[ values(%packages) ];
+	\@packages;
     }
 }
 
+# nb: _set_flag_installed_and_upgrade_if_no_newer must be done on $packages
 sub _find_required_package__sort {
     my ($urpm, $db, $packages) = @_;
 
@@ -153,7 +155,7 @@ sub _find_required_package__sort {
 	    $score += 2 if $_->flag_requested;
 	    $score += $_->flag_upgrade ? 1 : -1 if $_->flag_installed;
 	    [ $_, $_->is_arch_compat, $score ];
-	} values %$packages;
+	} @$packages;
 
 	my @chosen_with_score = ($best, grep { $_->[1] == $best->[1] && $_->[2] == $best->[2] } @other);
 	my @chosen = map { $_->[0] } @chosen_with_score;
