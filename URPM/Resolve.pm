@@ -22,6 +22,8 @@ sub property2name_op_version {
 
 #- Find candidates packages from a require string (or id).
 #- Takes care of direct choices using the '|' separator.
+#-
+#- side-effects: none
 sub find_candidate_packages_ {
     my ($urpm, $id_prop, $o_rejected) = @_;
     my @packages;
@@ -48,6 +50,7 @@ sub find_candidate_packages_ {
     }
     @packages;
 }
+#- side-effects: none
 sub find_candidate_packages {
     my ($urpm, $id_prop, $o_rejected) = @_;
 
@@ -66,6 +69,7 @@ sub get_installed_arch {
 }
 
 my %installed_arch;
+#- side-effects: none (but uses a cache)
 sub strict_arch_check {
     my ($db, $pkg) = @_;
     if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
@@ -81,6 +85,7 @@ sub strict_arch_check {
 # deprecated function name
 sub find_chosen_packages { &find_required_package }
 
+#- side-effects: flag_install, flag_upgrade (and strict_arch_check cache)
 sub find_required_package {
     my ($urpm, $db, $state, $id_prop) = @_;
     my %packages;
@@ -253,6 +258,8 @@ sub whatrequires_id {
 }
 
 #- return unresolved requires of a package (a new one or an existing one).
+#-
+#- side-effects: none (but uses a $state->{cached_installed})
 sub unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, %options) = @_;
     my %unsatisfied;
@@ -315,6 +322,8 @@ sub unsatisfied_requires {
 #- this function is "suggests vs requires" safe:
 #-   'whatrequires' will give both requires & suggests, but unsatisfied_requires
 #-   will check $p->requires and so filter out suggests
+
+#- side-effects: only those done by $do
 sub with_db_unsatisfied_requires {
     my ($urpm, $db, $state, $name, $do) = @_;
 
@@ -328,6 +337,10 @@ sub with_db_unsatisfied_requires {
 }
 
 # used when a require is not available
+#
+#- side-effects: $state->{backtrack}, $state->{rejected}, $state->{selected}
+#-   + those of disable_selected_and_unrequested_dependencies ($state->{whatrequires}, flag_requested, flag_required)
+#-   + those of resolve_rejected_ ()
 sub backtrack_selected {
     my ($urpm, $db, $state, $dep, %options) = @_;
 
@@ -423,6 +436,8 @@ sub backtrack_selected {
     @properties;
 }
 
+#- side-effects: $state->{rejected}
+#-   + those of disable_selected_and_unrequested_dependencies ($state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub backtrack_selected_psel_keep {
     my ($urpm, $db, $state, $psel, $keep) = @_;
 
@@ -440,12 +455,15 @@ sub backtrack_selected_psel_keep {
     $keep and push @{$state->{rejected}{$psel->fullname}{backtrack}{keep}}, @$keep;
 }
 
+#- see resolve_rejected_ below
 sub resolve_rejected {
     my ($urpm, $db, $state, $pkg, %options) = @_;
     resolve_rejected_($urpm, $db, $state, $pkg, $options{unsatisfied}, %options);
 }
 
 #- close rejected (as urpme previously) for package to be removable without error.
+#-
+#- side-effects: $state->{rejected}, $properties
 sub resolve_rejected_ {
     my ($urpm, $db, $state, $pkg, $properties, %options) = @_;
 
@@ -558,6 +576,9 @@ sub resolve_requested {
 #-     objects, or an empty list eventually.
 #-   keep :
 #-   nodeps :
+#-
+#- side-effects: flag_requested
+#-   + those of resolve_requested__no_suggests_
 sub resolve_requested__no_suggests {
     my ($urpm, $db, $state, $requested, %options) = @_;
 
@@ -572,6 +593,14 @@ sub resolve_requested__no_suggests {
 }
 
 # same as resolve_requested__no_suggests, but do not modify requested_flag
+#-
+#- side-effects: $state->{selected}, flag_required, flag_installed, flag_upgrade
+#-   + those of backtrack_selected     (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{backtrack})
+#-   + those of _compute_diff_provides (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
+#-   + those of _handle_conflicts      ($state->{rejected})
+#-   + those of _handle_provides_overlap ($state->{rejected})
+#-   + those of backtrack_selected_psel_keep (flag_requested, $state->{whatrequires})
+#-   + those of _handle_diff_provides  (flag_requested, $state->{rejected}, $state->{whatrequires})
 sub resolve_requested__no_suggests_ {
     my ($urpm, $db, $state, $requested, %options) = @_;
 
@@ -705,6 +734,9 @@ sub resolve_requested__no_suggests_ {
     grep { exists $state->{selected}{$_->id} } @selected;
 }
 
+#- side-effects: $state->{rejected}
+#-   + those of resolve_rejected_ ($properties)
+#-   + those of _handle_provides_overlap ($properties, $keep)
 sub _handle_conflicts {
     my ($urpm, $db, $state, $pkg, $properties, $keep) = @_;
 
@@ -748,6 +780,8 @@ sub _handle_conflicts {
     }
 }
 
+#- side-effects:
+#-   + those of _compute_diff_provides (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
 sub _compute_diff_provides {
     my ($urpm, $db, $state, $pkg) = @_;
 
@@ -767,6 +801,8 @@ sub _compute_diff_provides {
     keys %diff_provides;
 }
 
+#- side-effects: $state->{rejected}, $state->{oldpackage}, $state->{unselected_uninstalled}
+#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
 sub _compute_diff_provides_one {
     my ($urpm, $db, $state, $pkg, $diff_provides, $n, $o, $v) = @_;
 
@@ -848,6 +884,9 @@ sub _compute_diff_provides_one {
     });
 }
 
+#- side-effects: $properties
+#-   + those of backtrack_selected_psel_keep ($state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
+#-   + those of resolve_rejected_ ($state->{rejected}, $properties)
 sub _handle_diff_provides {
     my ($urpm, $db, $state, $properties, $n, $pkg, %options) = @_;
 
@@ -898,6 +937,8 @@ sub _handle_diff_provides {
     });
 }
 
+#- side-effects: $properties, $keep, $state->{rejected}
+#-   + those of resolve_rejected_ ()
 sub _handle_provides_overlap {
     my ($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep) = @_;
     
@@ -934,6 +975,7 @@ sub _handle_provides_overlap {
     }
 }
 
+#- side-effects: none
 sub _id_to_name {
     my ($urpm, $id_prop) = @_;
     if ($id_prop =~ /^\d+/) {
@@ -943,17 +985,20 @@ sub _id_to_name {
 	$id_prop;
     }
 }
+#- side-effects: none
 sub _ids_to_names {
     my $urpm = shift;
 
     map { $urpm->{depslist}[$_]->name } @_;
 }
+#- side-effects: none
 sub _ids_to_fullnames {
     my $urpm = shift;
 
     map { scalar $urpm->{depslist}[$_]->fullname } @_;
 }
 
+#- side-effects: flag_installed, flag_upgrade
 sub _set_flag_installed_and_upgrade_if_no_newer {
     my ($db, $pkg) = @_;
 
@@ -968,6 +1013,7 @@ sub _set_flag_installed_and_upgrade_if_no_newer {
     $pkg->set_flag_upgrade($upgrade);
 }
 
+#- side-effects: none
 sub _no_more_recent_installed_and_providing {
     my ($urpm, $db, $pkg, $required) = @_;
 
@@ -993,7 +1039,8 @@ sub _no_more_recent_installed_and_providing {
 #-   unselect a package and extend to any package not requested that is no
 #-   longer needed by any other package.
 #- return the packages that have been deselected.
-#- removes things in $state->{selected}, $state->{rejected} and $state->{whatrequires}
+#-
+#- side-effects: flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}
 sub disable_selected {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @unselected;
@@ -1049,7 +1096,9 @@ sub disable_selected {
 
 #- determine dependencies that can safely been removed and are not requested
 #- return the packages that have been deselected.
-#- removes things in $state->{selected}, $state->{rejected} and $state->{whatrequires}
+#-
+#- side-effects: $state->{selected}, $state->{rejected}, $state->{whatrequires}
+#-   + those of disable_selected (flag_requested, flag_required)
 sub disable_selected_and_unrequested_dependencies {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @all_unselected;
@@ -1093,6 +1142,8 @@ sub disable_selected_and_unrequested_dependencies {
 }
 
 #- compute selected size by removing any removed or obsoleted package.
+#-
+#- side-effects: none
 sub selected_size {
     my ($urpm, $state) = @_;
     my $size;
@@ -1111,6 +1162,8 @@ sub selected_size {
 }
 
 #- compute installed flags for all packages in depslist.
+#-
+#- side-effects: flag_upgrade, flag_installed
 sub compute_installed_flags {
     my ($urpm, $db) = @_;
 
@@ -1134,6 +1187,7 @@ sub compute_installed_flags {
     });
 }
 
+#- side-effects: flag_skip, flag_disable_obsolete
 sub compute_flag {
     my ($urpm, $pkg, %options) = @_;
     foreach (qw(skip disable_obsolete)) {
@@ -1152,6 +1206,9 @@ sub compute_flag {
 #-   callback : sub to be called for each package where the flag is set
 #-   skip : if true, set the 'skip' flag
 #-   disable_obsolete : if true, set the 'disable_obsolete' flag
+#-
+#- side-effects: 
+#-   + those of compute_flag (flag_skip, flag_disable_obsolete)
 sub compute_flags {
     my ($urpm, $val, %options) = @_;
     if (ref $val eq 'HASH') { $val = [ keys %$val ] } #- compatibility with urpmi <= 4.5-13mdk
@@ -1182,6 +1239,10 @@ sub compute_flags {
 #- select packages to upgrade, according to package already registered.
 #- by default, only takes best package and its obsoleted and compute
 #- all installed or upgrade flag.
+#- (used for --auto-select)
+#-
+#- side-effects: 
+#-   + those of _request_packages_to_upgrade_2 (flag_install, flag_upgrade)
 sub request_packages_to_upgrade {
     my ($urpm, $db, $_state, $requested, %options) = @_;
 
@@ -1189,6 +1250,7 @@ sub request_packages_to_upgrade {
     _request_packages_to_upgrade_2($urpm, $db, $requested, $names, $obsoletes, %options);
 }
 
+#- side-effects: none
 sub _request_packages_to_upgrade_1 {
     my ($urpm, %options) = @_;
     my (%names, %skip);
@@ -1227,6 +1289,7 @@ sub _request_packages_to_upgrade_1 {
     \%names, \%obsoletes;
 }
 
+#- side-effects: flag_installed, flag_upgrade
 sub _request_packages_to_upgrade_2 {
     my ($_urpm, $db, $requested, $names, $obsoletes, %options) = @_;
     my %names = %$names;
@@ -1305,6 +1368,7 @@ sub _request_packages_to_upgrade_2 {
     $requested;
 }
 
+#- side-effects: none
 sub _sort_by_dependencies_get_graph {
     my ($urpm, $state, $l) = @_;
     my %edges;
@@ -1319,6 +1383,7 @@ sub _sort_by_dependencies_get_graph {
     \%edges;
 }
 
+#- side-effects: none
 sub reverse_multi_hash {
     my ($h) = @_;
     my %r;
@@ -1330,6 +1395,8 @@ sub reverse_multi_hash {
 }
 
 #- nb: this handles $nodes list not containing all $nodes that can be seen in $edges
+#-
+#- side-effects: none
 sub sort_graph {
     my ($nodes, $edges) = @_;
 
@@ -1409,6 +1476,7 @@ sub sort_graph {
     @sorted;
 }
 
+#- side-effects: none
 sub check_graph_is_sorted {
     my ($sorted, $nodes, $edges) = @_;
 
@@ -1435,6 +1503,7 @@ sub check_graph_is_sorted {
 }
 
 
+#- side-effects: none
 sub _sort_by_dependencies__add_obsolete_edges {
     my ($urpm, $state, $l, $requires) = @_;
 
@@ -1450,6 +1519,7 @@ sub _sort_by_dependencies__add_obsolete_edges {
     }
 }
 
+#- side-effects: none
 sub sort_by_dependencies {
     my ($urpm, $state, @list_unsorted) = @_;
     @list_unsorted = sort { $a <=> $b } @list_unsorted; # sort by ids to be more reproductable
@@ -1472,6 +1542,8 @@ sub sorted_rpms_to_string {
 }
 
 #- build transaction set for given selection
+#-
+#- side-effects: $state->{transaction}, $state->{transaction_state}
 sub build_transaction_set {
     my ($urpm, $db, $state, %options) = @_;
 
