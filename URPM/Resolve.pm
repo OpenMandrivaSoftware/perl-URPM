@@ -922,12 +922,12 @@ sub _handle_provides_overlap {
 }
 
 sub _id_to_name {
-    my ($urpm, $dep) = @_;
-    if ($dep =~ /^\d+/) {
-	my $pkg = $urpm->{depslist}[$dep];
+    my ($urpm, $id_prop) = @_;
+    if ($id_prop =~ /^\d+/) {
+	my $pkg = $urpm->{depslist}[$id_prop];
 	$pkg && $pkg->name;
     } else {
-	$dep;
+	$id_prop;
     }
 }
 sub _ids_to_names {
