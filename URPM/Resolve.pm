@@ -358,7 +358,7 @@ sub backtrack_selected {
 		    my @l = map { $urpm->search($_, strict_fullname => 1) }
 		      keys %{($state->{rejected}{$_->fullname} || {})->{closure}};
 
-		    disable_selected_unrequested_dependencies($urpm, $db, $state, $options{keep_unrequested_dependencies}, @l);
+		    disable_selected_unrequested_dependencies($urpm, $db, $state, @l);
 
 		    return { required => $_->id,
 			     exists $dep->{from} ? (from => $dep->{from}) : @{[]},
@@ -379,7 +379,7 @@ sub backtrack_selected {
 	    #- all selection tree, re-enabling removed and obsoleted packages as well.
 	    unless (exists $state->{rejected}{$dep->{from}->fullname}) {
 		#- package is not currently rejected, compute the closure now.
-		my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $options{keep_unrequested_dependencies}, $dep->{from});
+		my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $dep->{from});
 		foreach (@l) {
 		    #- disable all these packages in order to avoid selecting them again.
 		    $_->fullname eq $dep->{from}->fullname or
@@ -398,7 +398,7 @@ sub backtrack_selected {
 	    #- we shouldn't try to remove packages, so psel which leads to this need to be unselected.
 	    unless (exists $state->{rejected}{$dep->{psel}->fullname}) {
 		#- package is not currently rejected, compute the closure now.
-		my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $options{keep_unrequested_dependencies}, $dep->{psel});
+		my @l = disable_selected_unrequested_dependencies($urpm, $db, $state, $dep->{psel});
 		foreach (@l) {
 		    #- disable all these packages in order to avoid selecting them again.
 		    $_->fullname eq $dep->{psel}->fullname or
@@ -543,7 +543,6 @@ sub resolve_requested {
 #-   callback_choices : subroutine to be called to ask the user to choose
 #-     between several possible packages. Returns an array of URPM::Package
 #-     objects, or an empty list eventually.
-#-   keep_unrequested_dependencies :
 #-   keep :
 #-   nodeps :
 sub resolve_requested__no_suggests {
@@ -575,9 +574,8 @@ sub resolve_requested__no_suggests_ {
     #- finally conflicts that will force a new upgrade or a remove.
     do {
 	while (my $dep = shift @properties) {
-	    #- in case of keep_unrequested_dependencies option is not set, we need to avoid
-	    #- selecting packages if the source has been disabled.
-	    if (exists $dep->{from} && !$options{keep_unrequested_dependencies}) {
+	    #- we need to avoid selecting packages if the source has been disabled.
+	    if (exists $dep->{from}) {
 		exists $state->{selected}{$dep->{from}->id} or next;
 	    }
 
@@ -1039,7 +1037,7 @@ sub disable_selected {
 
 #- determine dependencies that can safely been removed and are not requested
 sub disable_selected_unrequested_dependencies {
-    my ($urpm, $db, $state, $keep_unrequested_dependencies, @pkgs_todo) = @_;
+    my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @all_unselected;
 
     #- disable selected packages, then extend unselection to all required packages
@@ -1049,8 +1047,6 @@ sub disable_selected_unrequested_dependencies {
 
 	#- keep in the packages that had to be unselected.
 	@all_unselected or push @all_unselected, @unselected;
-
-	$keep_unrequested_dependencies and last; #- do not recurse
 
 	#- search for unrequested required packages.
 	foreach (@unselected) {
