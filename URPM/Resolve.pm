@@ -334,9 +334,6 @@ sub backtrack_selected {
 		    exists $state->{backtrack}{selected}{$_->id} and next;
 		    #- a package if found is problably rejected or there is a problem.
 		    if ($state->{rejected}{$_->fullname}) {
-			if (!$options{callback_backtrack} ||
-			    $options{callback_backtrack}->($urpm, $db, $state, $_,
-							   dep => $dep, alternatives => $packages, %options) <= 0) {
 			    #- keep in mind a backtrack has happening here...
 			    $state->{rejected}{$_->fullname}{backtrack} ||=
 			      { exists $dep->{promote} ? (promote => [ $dep->{promote} ]) : @{[]},
@@ -345,7 +342,6 @@ sub backtrack_selected {
 			    #- backtrack callback should return a strictly positive value if the selection of the new
 			    #- package is prefered over the currently selected package.
 			    next;
-			}
 		    }
 		    $state->{backtrack}{selected}{$_->id} = undef;
 
