@@ -111,6 +111,10 @@ void rpmError_callback() {
   }
 }
 
+#ifdef RPM_448
+static char *platform = NULL;
+#endif
+
 /* needed for importing keys (from rpmio) */
 int rpmioSlurp(const char * fn, const byte ** bp, ssize_t * blenp);
 int b64decode (const char * s, void ** datap, size_t *lenp);
@@ -1420,8 +1424,6 @@ Pkg_arch(pkg)
 int
 Pkg_is_arch_compat(pkg)
   URPM::Package pkg
-  INIT:
-  char * platform;
   CODE:
   read_config_files(0);
   if (pkg->info) {
@@ -1431,9 +1433,8 @@ Pkg_is_arch_compat(pkg)
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     *eos = 0;
 #ifdef RPM_448
-    platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+    if ($platform) platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
-    _free(platform);
 #else
     RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
 #endif
@@ -1441,9 +1442,8 @@ Pkg_is_arch_compat(pkg)
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     char *arch = get_name(pkg->h, RPMTAG_ARCH);
 #ifdef RPM_448
-    platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+    if (!platform) platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
-    _free(platform);
 #else
     RETVAL = rpmMachineScore(RPM_MACHTABLE_INSTARCH, arch);
 #endif

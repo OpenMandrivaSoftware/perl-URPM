@@ -1,3 +1,4 @@
+- speedup is_arch_compat (7 times faster) by keeping the platform in a cache
 - do not propose packages for non installed locales
 - pass the prefered choices to {callback_choices}: this allows urpmi to select
   all the prefered packages according to installed locales
