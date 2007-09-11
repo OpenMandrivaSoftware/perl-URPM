@@ -806,7 +806,8 @@ B<rejected>: { fullname => {
          promote => [ name ], keep => [ fullname ], 
          unsatisfied => [ id|property ], 
          closure => { fullname => { old_requested => bool, 
-                                    unsatisfied => [ id|property ] } },
+                                    unsatisfied => [ id|property ],
+                                    conflicts => property } },
      },
  } }
 
