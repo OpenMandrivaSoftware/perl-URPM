@@ -549,7 +549,7 @@ sub resolve_requested {
 #-   nodeps :
 sub resolve_requested__no_suggests {
     my ($urpm, $db, $state, $requested, %options) = @_;
-    my ($dep, @diff_provides, @properties, @selected);
+    my (@diff_provides, @properties, @selected);
 
     #- populate properties with backtrack informations.
     while (my ($r, $v) = each %$requested) {
@@ -570,7 +570,7 @@ sub resolve_requested__no_suggests {
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
     do {
-	while (defined ($dep = shift @properties)) {
+	while (defined (my $dep = shift @properties)) {
 	    #- in case of keep_unrequested_dependencies option is not set, we need to avoid
 	    #- selecting packages if the source has been disabled.
 	    if (exists $dep->{from} && !$options{keep_unrequested_dependencies}) {
