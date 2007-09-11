@@ -989,10 +989,11 @@ sub _no_more_recent_installed_and_providing {
     $allow;
 }
 
-#- do the opposite of the above, unselect a package and extend
-#- to any package not requested that is no longer needed by
-#- any other package.
+#- do the opposite of the resolve_requested:
+#-   unselect a package and extend to any package not requested that is no
+#-   longer needed by any other package.
 #- return the packages that have been deselected.
+#- removes things in $state->{selected}, $state->{rejected} and $state->{whatrequires}
 sub disable_selected {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @unselected;
@@ -1047,6 +1048,8 @@ sub disable_selected {
 }
 
 #- determine dependencies that can safely been removed and are not requested
+#- return the packages that have been deselected.
+#- removes things in $state->{selected}, $state->{rejected} and $state->{whatrequires}
 sub disable_selected_and_unrequested_dependencies {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @all_unselected;
