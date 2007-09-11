@@ -458,7 +458,9 @@ sub resolve_rejected_ {
 			    #- a selected package requires something that is no more available
 			    #- and should be tried to be re-selected if possible.
 			    if ($properties) {
-				push @$properties, map { { required => $_, rejected => scalar $pkg->fullname } } @l;
+				push @$properties, map { 
+				    { required => $_, rejected => scalar $pkg->fullname }; # rejected is only there for debugging purpose (??)
+				} @l;
 			    }
 			}
 		    }
