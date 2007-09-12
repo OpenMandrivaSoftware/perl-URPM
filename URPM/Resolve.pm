@@ -506,8 +506,8 @@ sub set_rejected {
 
     #- keep track of what causes closure.
     if ($options{from}) {
-	my %d; @d{@{$rv->{closure}{$options{from}->fullname}{unsatisfied} ||= []}} = ();
-	push @{$rv->{closure}{$options{from}->fullname}{unsatisfied}}, grep { ! exists $d{$_} } @{$options{why}};
+	my $unsatisfied = $rv->{closure}{$options{from}->fullname}{unsatisfied} ||= [];
+	@$unsatisfied = uniq(@$unsatisfied, @{$options{why}});
     }
 
     #- set removed and obsoleted level.
