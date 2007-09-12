@@ -539,7 +539,8 @@ sub resolve_rejected {
 
 #- close rejected (as urpme previously) for package to be removable without error.
 #-
-#- side-effects: $state->{rejected}, $properties
+#- side-effects: $properties
+#-   + those of set_rejected ($state->{rejected})
 sub resolve_rejected_ {
     my ($urpm, $db, $state, $pkg, $properties, %options) = @_;
 
