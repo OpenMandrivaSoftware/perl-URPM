@@ -61,48 +61,6 @@ sub find_candidate_packages {
     \%packages;
 }
 
-#- side-effects: none
-sub _choose_required {
-    my ($urpm, $db, $state, $dep, $properties, %options) = @_;
-
-    #- take the best choice possible.
-    my ($chosen, $prefered) = find_required_package($urpm, $db, $state, $dep->{required});
-
-    #- If no choice is found, this means that nothing can be possibly selected
-    #- according to $dep, so we need to retry the selection, allowing all
-    #- packages that conflict or anything similar to see which strategy can be
-    #- tried. Backtracking is used to avoid trying multiple times the same
-    #- packages. If multiple packages are possible, simply ask the user which
-    #- one to choose; else take the first one available.
-    if (!@$chosen) {
-	$urpm->{debug_URPM}("no packages match " . _id_to_name($urpm, $dep->{required}) . " (it may be in skip.list)") if $urpm->{debug_URPM};
-	unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, %options);
-	return; #- backtrack code choose to continue with same package or completely new strategy.
-    } elsif ($options{callback_choices} && @$chosen > 1) {
-	my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _id_to_name($urpm, $dep->{required}), $prefered);
-	$urpm->{debug_URPM}("replacing " . _id_to_name($urpm, $dep->{required}) . " with " . 
-			      join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
-	unshift @$properties, map {
-	    +{
-		required => $_->id,
-		choices => $dep->{required},
-		exists $dep->{from} ? (from => $dep->{from}) : @{[]},
-		exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
-	    };
-	} @l;
-	return;			#- always redo according to choices.
-    }
-
-    #- now do the real work, select the package.
-    my $pkg = shift @$chosen;
-    if ($urpm->{debug_URPM} && $pkg->name ne _id_to_name($urpm, $dep->{required})) {
-	$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _id_to_name($urpm, $dep->{required}));
-	@$chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @$chosen));
-    }
-
-    $pkg;
-}
-
 sub get_installed_arch {
     my ($db, $n) = @_;
     my $arch;
@@ -275,6 +233,49 @@ sub _score_for_locales {
     } else {
 	1;
     }
+}
+
+#- side-effects: $properties
+#-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
+sub _choose_required {
+    my ($urpm, $db, $state, $dep, $properties, %options) = @_;
+
+    #- take the best choice possible.
+    my ($chosen, $prefered) = find_required_package($urpm, $db, $state, $dep->{required});
+
+    #- If no choice is found, this means that nothing can be possibly selected
+    #- according to $dep, so we need to retry the selection, allowing all
+    #- packages that conflict or anything similar to see which strategy can be
+    #- tried. Backtracking is used to avoid trying multiple times the same
+    #- packages. If multiple packages are possible, simply ask the user which
+    #- one to choose; else take the first one available.
+    if (!@$chosen) {
+	$urpm->{debug_URPM}("no packages match " . _id_to_name($urpm, $dep->{required}) . " (it may be in skip.list)") if $urpm->{debug_URPM};
+	unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, %options);
+	return; #- backtrack code choose to continue with same package or completely new strategy.
+    } elsif ($options{callback_choices} && @$chosen > 1) {
+	my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _id_to_name($urpm, $dep->{required}), $prefered);
+	$urpm->{debug_URPM}("replacing " . _id_to_name($urpm, $dep->{required}) . " with " . 
+			      join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
+	unshift @$properties, map {
+	    +{
+		required => $_->id,
+		choices => $dep->{required},
+		exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+		exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+	    };
+	} @l;
+	return; #- always redo according to choices.
+    }
+
+    #- now do the real work, select the package.
+    my $pkg = shift @$chosen;
+    if ($urpm->{debug_URPM} && $pkg->name ne _id_to_name($urpm, $dep->{required})) {
+	$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _id_to_name($urpm, $dep->{required}));
+	@$chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @$chosen));
+    }
+
+    $pkg;
 }
 
 sub find(&@) {
