@@ -666,9 +666,6 @@ sub resolve_requested__no_suggests_ {
 
 	    my $pkg = _choose_required($urpm, $db, $state, $dep, \@properties, %options) or next;
 
-	    #- cancel flag if this package should be cancelled but too late (typically keep options).
-	    my @keep;
-
 	    !$pkg || exists $state->{selected}{$pkg->id} and next;
 
 	    if ($pkg->arch eq 'src') {
@@ -715,6 +712,9 @@ sub resolve_requested__no_suggests_ {
 	    foreach ($pkg->requires_nosense) {
 		$state->{whatrequires}{$_}{$pkg->id} = undef;
 	    }
+
+	    #- cancel flag if this package should be cancelled but too late (typically keep options).
+	    my @keep;
 
 	    _handle_conflicts($urpm, $db, $state, $pkg, \@properties, $options{keep} && \@keep);
 
