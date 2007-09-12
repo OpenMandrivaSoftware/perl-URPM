@@ -522,7 +522,6 @@ sub resolve_rejected_ {
 	foreach (qw(removed obsoleted)) {
 	    $options{$_} and $state->{rejected}{$pkg->fullname}{$_} = $options{$_};
 	}
-	$options{closure_as_removed} and $options{removed} ||= delete $options{obsoleted};
 
 	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
