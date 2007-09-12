@@ -467,7 +467,7 @@ sub backtrack_selected {
 				      my ($p, @l) = @_;
 				      #- typically a redo of the diff_provides code should be applied...
 				      resolve_rejected_($urpm, $db, $state, \@properties, {
-							      required_pkg => $p, removed => 1,
+							      rejected_pkg => $p, removed => 1,
 							      from => $dep->{psel},
 							      why => { unsatisfied => \@l }
 							  });
@@ -542,7 +542,7 @@ sub _set_rejected_from {
 sub set_rejected {
     my ($urpm, $state, $rdep) = @_;
 
-    my $fullname = $rdep->{required_pkg}->fullname;
+    my $fullname = $rdep->{rejected_pkg}->fullname;
     my $rv = $state->{rejected}{$fullname} ||= {};
 
     my $newly_rejected = !exists $rv->{size};
@@ -550,7 +550,7 @@ sub set_rejected {
     if ($newly_rejected) {
 	$urpm->{debug_URPM}("set_rejected: $fullname") if $urpm->{debug_URPM};
 	#- keep track of size of package which are finally removed.
-	$rv->{size} = $rdep->{required_pkg}->size;
+	$rv->{size} = $rdep->{rejected_pkg}->size;
     }
 
     #- keep track of what causes closure.
@@ -575,7 +575,7 @@ sub set_rejected {
 #- see resolve_rejected_ below
 sub resolve_rejected {
     my ($urpm, $db, $state, $pkg, %rdep) = @_;
-    $rdep{required_pkg} = $pkg;
+    $rdep{rejected_pkg} = $pkg;
     resolve_rejected_($urpm, $db, $state, $rdep{unsatisfied}, \%rdep);
 }
 
@@ -586,7 +586,7 @@ sub resolve_rejected {
 sub resolve_rejected_ {
     my ($urpm, $db, $state, $properties, $rdep) = @_;
 
-    $urpm->{debug_URPM}("resolve_rejected: " . $rdep->{required_pkg}->fullname) if $urpm->{debug_URPM};
+    $urpm->{debug_URPM}("resolve_rejected: " . $rdep->{rejected_pkg}->fullname) if $urpm->{debug_URPM};
 
     #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
@@ -594,7 +594,7 @@ sub resolve_rejected_ {
 
     $newly_rejected or return;
 
-	my @pkgs_todo = $rdep->{required_pkg};
+	my @pkgs_todo = $rdep->{rejected_pkg};
 
 	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
@@ -614,8 +614,8 @@ sub resolve_rejected_ {
 			    my ($p, @l) = @_;
 
 			    my $newly_rejected = set_rejected($urpm, $state, {
-				required_pkg => $p,
-				from => $rdep->{required_pkg}, 
+				rejected_pkg => $p,
+				from => $rdep->{rejected_pkg}, 
 				why => { unsatisfied => \@l },
 				obsoleted => $rdep->{obsoleted},
 				removed => $rdep->{removed},
@@ -830,7 +830,7 @@ sub _handle_conflicts {
 		} else {
 		    #- all these package should be removed.
 		    resolve_rejected_($urpm, $db, $state, $properties, {
-				      required_pkg => $p, removed => 1,
+				      rejected_pkg => $p, removed => 1,
 				      from => $pkg,
 				      why => { conflicts => $file },
 				  });
@@ -996,7 +996,7 @@ sub _handle_diff_provides {
 		    backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
 		    resolve_rejected_($urpm, $db, $state, $properties, {
-				      required_pkg => $p, removed => 1,
+				      rejected_pkg => $p, removed => 1,
 				      from => $pkg,
 				      why => { unsatisfied => \@l },
 				  });
@@ -1031,7 +1031,7 @@ sub _handle_provides_overlap {
 	} else {
 	    #- no package has been found, we need to remove the package examined.
 	    resolve_rejected_($urpm, $db, $state, $properties, {
-		required_pkg => $p, removed => 1,
+		rejected_pkg => $p, removed => 1,
 		from => $pkg,
 		why => { conflicts => $property },
 	    });
