@@ -468,7 +468,7 @@ sub backtrack_selected {
 				      #- typically a redo of the diff_provides code should be applied...
 				      resolve_rejected_($urpm, $db, $state, $p, \@properties,
 							      removed => 1,
-							      from => scalar $dep->{psel}->fullname,
+							      from => $dep->{psel},
 							      why => { unsatisfied => \@l });
 			      });
 	}
@@ -500,7 +500,7 @@ sub backtrack_selected_psel_keep {
 
 #- side-effects: $state->{rejected}
 sub set_rejected {
-    my ($state, $pkg, %options) = @_;
+    my ($urpm, $state, $pkg, %options) = @_;
 
     my $newly_rejected = !$state->{rejected}{$pkg->fullname};
 
@@ -514,7 +514,7 @@ sub set_rejected {
 
     #- keep track of what causes closure.
     if ($options{from}) {
-	my $closure = $rv->{closure}{$options{from}} ||= {};
+	my $closure = $rv->{closure}{scalar $options{from}->fullname} ||= {};
 	if (my $l = delete $options{why}{unsatisfied}) {
 	    my $unsatisfied = $closure->{unsatisfied} ||= [];
 	    @$unsatisfied = uniq(@$unsatisfied, @$l);
@@ -547,7 +547,7 @@ sub resolve_rejected_ {
 
     #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
-    my $newly_rejected = set_rejected($state, $pkg, %options);
+    my $newly_rejected = set_rejected($urpm, $state, $pkg, %options);
 
     $newly_rejected or return;
 
@@ -570,8 +570,8 @@ sub resolve_rejected_ {
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
 			    my ($p, @l) = @_;
 
-			    my $newly_rejected = set_rejected($state, $p, %options, 
-						  from => scalar $pkg->fullname, 
+			    my $newly_rejected = set_rejected($urpm, $state, $p, %options, 
+						  from => $pkg, 
 						  why => { unsatisfied => \@l });
 
 			    #- continue the closure unless already examined.
@@ -783,7 +783,7 @@ sub _handle_conflicts {
 		    #- all these package should be removed.
 		    resolve_rejected_($urpm, $db, $state, $p, $properties,
 				      removed => 1,
-				      from => scalar $pkg->fullname,
+				      from => $pkg,
 				      why => { conflicts => $file },
 				  );
 		}
@@ -949,7 +949,7 @@ sub _handle_diff_provides {
 		} else {
 		    resolve_rejected_($urpm, $db, $state, $p, $properties,
 				      removed => 1,
-				      from => scalar $pkg->fullname,
+				      from => $pkg,
 				      why => { unsatisfied => \@l });
 		}
 	    }
@@ -988,7 +988,7 @@ sub _handle_provides_overlap {
 	    }
 	    resolve_rejected_($urpm, $db, $state, $p, $properties,
 		($obsoleted ? 'obsoleted' : 'removed') => 1,
-		from => scalar $pkg->fullname,
+		from => $pkg,
 		why => { conflicts => $property },
 	    );
 	}
