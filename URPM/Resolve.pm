@@ -444,7 +444,7 @@ sub backtrack_selected {
 		foreach (@l) {
 		    #- disable all these packages in order to avoid selecting them again.
 		    $_->fullname eq $dep->{from}->fullname or
-		      $state->{rejected}{$_->fullname}{backtrack}{closure}{$dep->{from}->fullname} = undef;
+		      $state->{rejected}{$_->fullname}{closure}{$dep->{from}->fullname} ||= undef;
 		}
 	    }
 	    #- the package is already rejected, we assume we can add another reason here!
@@ -491,7 +491,7 @@ sub backtrack_selected_psel_keep {
 	foreach (@l) {
 	    #- disable all these packages in order to avoid selecting them again.
 	    $_->fullname eq $psel->fullname or
-	      $state->{rejected}{$_->fullname}{backtrack}{closure}{$psel->fullname} = undef;
+	      $state->{rejected}{$_->fullname}{closure}{$psel->fullname} ||= undef;
 	}
     }
     #- to simplify, a reference to list or standalone elements may be set in keep.
