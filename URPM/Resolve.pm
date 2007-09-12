@@ -498,6 +498,27 @@ sub backtrack_selected_psel_keep {
     $keep and push @{$state->{rejected}{$psel->fullname}{backtrack}{keep}}, @$keep;
 }
 
+
+sub set_rejected {
+    my ($state, $pkg, %options) = @_;
+
+    my $rv = $state->{rejected}{$pkg->fullname} ||= {};
+
+    #- keep track of what causes closure.
+    if ($options{from}) {
+	my %d; @d{@{$rv->{closure}{$options{from}->fullname}{unsatisfied} ||= []}} = ();
+	push @{$rv->{closure}{$options{from}->fullname}{unsatisfied}}, grep { ! exists $d{$_} } @{$options{why}};
+    }
+
+    #- set removed and obsoleted level.
+    foreach (qw(removed obsoleted)) {
+	$options{$_} && (! exists $rv->{$_} || $options{$_} <= $rv->{$_})
+	  and $rv->{$_} = $options{$_};
+    }
+
+    $rv;
+}
+
 #- see resolve_rejected_ below
 sub resolve_rejected {
     my ($urpm, $db, $state, $pkg, %options) = @_;
@@ -539,17 +560,8 @@ sub resolve_rejected_ {
 		    }
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
 			    my ($p, @l) = @_;
-			    my $rv = $state->{rejected}{$p->fullname} ||= {};
 
-			    #- keep track of what causes closure.
-			    my %d; @d{@{$rv->{closure}{$pkg->fullname}{unsatisfied} ||= []}} = ();
-			    push @{$rv->{closure}{$pkg->fullname}{unsatisfied}}, grep { ! exists $d{$_} } @l;
-
-			    #- set removed and obsoleted level.
-			    foreach (qw(removed obsoleted)) {
-				$options{$_} && (! exists $rv->{$_} || $options{$_} <= $rv->{$_})
-				    and $rv->{$_} = $options{$_};
-			    }
+			    my $rv = set_rejected($state, $p, from => $pkg, why => \@l);
 
 			    #- continue the closure unless already examined.
 			    exists $rv->{size} and return;
