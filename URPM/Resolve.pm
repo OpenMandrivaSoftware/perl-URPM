@@ -260,7 +260,7 @@ sub _choose_required {
 	unshift @$properties, map {
 	    +{
 		required => $_->id,
-		choices => $dep->{required},
+		_choices => $dep->{required},
 		exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 		exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
 	    };
