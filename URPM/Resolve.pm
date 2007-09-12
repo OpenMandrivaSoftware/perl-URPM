@@ -870,7 +870,8 @@ sub _compute_diff_provides {
     keys %diff_provides;
 }
 
-#- side-effects: $state->{rejected}, $state->{oldpackage}, $state->{unselected_uninstalled}
+#- side-effects: $state->{oldpackage}, $state->{unselected_uninstalled}
+#-   + those of set_rejected ($state->{rejected})
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
 sub _compute_diff_provides_one {
@@ -899,14 +900,8 @@ sub _compute_diff_provides_one {
 	#- $satisfied is true if installed package has version newer or equal.
 	my $comparison = $p->compare($v);
 	my $satisfied = !$o || eval($comparison . $o . 0);
-	$p->name eq $pkg->name || $satisfied or return;
-	
-	#- do not propagate now the broken dependencies as they are
-	#- computed later.
-	my $rv = $state->{rejected}{$p->fullname} ||= {};
-	$rv->{closure}{$pkg->fullname} = undef;
-	$rv->{size} = $p->size;
 
+	my $obsoleted;
 	if ($p->name eq $pkg->name) {
 	    #- all packages older than the current one are obsoleted,
 	    #- the others are simply removed (the result is the same).
@@ -922,17 +917,24 @@ sub _compute_diff_provides_one {
 		    $state->{unselected_uninstalled} = [ grep {
 			!$_->flag_installed;
 		    } disable_selected($urpm, $db, $state, $pkg) ];
+
+		    return;
 		}
 	    } elsif ($satisfied) {
-		$rv->{obsoleted} = 1;
-	    } else {
-		$rv->{closure}{$pkg->fullname} = { old_requested => 1 };
-		$rv->{removed} = 1;
-		++$state->{oldpackage};
+		$obsoleted = 1;
 	    }
+	} elsif ($satisfied) {
+	    $obsoleted = 1;
 	} else {
-	    $rv->{obsoleted} = 1;
+	    return;
 	}
+
+	set_rejected($urpm, $state, { 
+	    rejected_pkg => $p,
+	    obsoleted => $obsoleted, removed => !$obsoleted,
+	    from => $pkg, why => $obsoleted ? () : { old_requested => 1 },
+	});
+	$obsoleted or ++$state->{oldpackage};
 
 	#- diff_provides on obsoleted provides are needed.
 	foreach ($p->provides) {
