@@ -1,3 +1,790 @@
+2007-09-12 15:11  Pixel <pixel at mandriva.com>
+
+	* : better indicate the test case in urpmi
+
+2007-09-12 15:04  Pixel <pixel at mandriva.com>
+
+	* : update doc
+
+2007-09-12 15:04  Pixel <pixel at mandriva.com>
+
+	* : update doc
+
+2007-09-12 15:01  Pixel <pixel at mandriva.com>
+
+	* : update doc
+
+2007-09-12 15:00  Pixel <pixel at mandriva.com>
+
+	* : create _remove_all_rejected_from() out of disable_selected()
+
+2007-09-12 14:57  Pixel <pixel at mandriva.com>
+
+	* : create _remove_rejected_from()
+
+2007-09-12 14:47  Pixel <pixel at mandriva.com>
+
+	* : update doc
+
+2007-09-12 14:44  Pixel <pixel at mandriva.com>
+
+	* : factorize code into _set_rejected_from()
+
+2007-09-12 14:38  Pixel <pixel at mandriva.com>
+
+	* : replacing {backtrack}{closure} with {closure} since it looks
+	  like it was a typo
+
+2007-09-12 14:27  Pixel <pixel at mandriva.com>
+
+	* : adapt doc to is really done (may kill {backtrack}{closure}
+	  later)
+
+2007-09-12 13:16  Pixel <pixel at mandriva.com>
+
+	* : update doc
+
+2007-09-12 13:12  Pixel <pixel at mandriva.com>
+
+	* : - fix typo in previous commit: pass $urpm to set_selected() for
+	  debug message
+	  - {from} options to resolve_rejected_ and set_selected is now a
+	  pkg object
+	  instead of a fullname string
+
+2007-09-12 13:08  Pixel <pixel at mandriva.com>
+
+	* : add debug message
+
+2007-09-12 13:07  Pixel <pixel at mandriva.com>
+
+	* : simplify
+
+2007-09-12 13:06  Pixel <pixel at mandriva.com>
+
+	* : handle {size} in set_rejected()
+
+2007-09-12 12:59  Pixel <pixel at mandriva.com>
+
+	* : - add ability to merge {closure} fields in set_rejected (from
+	  $options{why})
+	  - {from} is a fullname here
+	  - {why} is a hash
+	  - use set_rejected() to factorize code
+
+2007-09-12 12:12  Pixel <pixel at mandriva.com>
+
+	* : cleanup
+
+2007-09-12 12:11  Pixel <pixel at mandriva.com>
+
+	* : fix typo in previous commit
+
+2007-09-12 12:03  Pixel <pixel at mandriva.com>
+
+	* : create set_rejected() out of resolve_rejected_()
+
+2007-09-12 11:03  Pixel <pixel at mandriva.com>
+
+	* : dep field "choices" is here for debug purpose, rename it
+	  _choices
+
+2007-09-12 11:00  Pixel <pixel at mandriva.com>
+
+	* : create _dep_to_name() and use it
+
+2007-09-12 10:50  Pixel <pixel at mandriva.com>
+
+	* : drop unused option "closure_as_removed"
+
+2007-09-12 10:14  Pixel <pixel at mandriva.com>
+
+	* : backtrack_selected() was always returning empty list, so
+	  backtrack_selected_psel_keep() should return empty list. but it's
+	  simply to
+	  modify callers to take into account the return value is ()
+
+2007-09-12 10:07  Pixel <pixel at mandriva.com>
+
+	* : move var declaration where it's used
+
+2007-09-12 10:06  Pixel <pixel at mandriva.com>
+
+	* : move function created in previous commit
+
+2007-09-12 10:04  Pixel <pixel at mandriva.com>
+
+	* : create _choose_required() out of
+	  resolve_requested__no_suggests_()
+
+2007-09-12 09:50  Pixel <pixel at mandriva.com>
+
+	* : this is good to have in NEWS
+
+2007-09-11 16:27  Pixel <pixel at mandriva.com>
+
+	* : document side-effects of each functions
+
+2007-09-11 15:41  Pixel <pixel at mandriva.com>
+
+	* : add some doc
+
+2007-09-11 15:35  Pixel <pixel at mandriva.com>
+
+	* : rename disable_selected_unrequested_dependencies() into
+	  disable_selected_and_unrequested_dependencies()
+
+2007-09-11 15:09  Pixel <pixel at mandriva.com>
+
+	* : don't keep a hash when we really want its values
+
+2007-09-11 15:03  Pixel <pixel at mandriva.com>
+
+	* : - create strict_arch_check() out of find_required_package()
+	  - and factorize some more code into $may_add_to_packages
+
+2007-09-11 14:46  Pixel <pixel at mandriva.com>
+
+	* : create backtrack_selected_psel_keep() out of
+	  backtrack_selected() and use it
+
+2007-09-11 14:12  Pixel <pixel at mandriva.com>
+
+	* : drop keep_unrequested_dependencies option (it is unused)
+
+2007-09-11 14:10  Pixel <pixel at mandriva.com>
+
+	* : drop keep_requested_flag by creating
+	  resolve_requested__no_suggests_()
+
+2007-09-11 14:04  Pixel <pixel at mandriva.com>
+
+	* : simplify
+
+2007-09-11 14:00  Pixel <pixel at mandriva.com>
+
+	* : define var where it's needed
+
+2007-09-11 13:59  Pixel <pixel at mandriva.com>
+
+	* : rename var, $dep will only be used as an element from
+	  @properties
+
+2007-09-11 13:58  Pixel <pixel at mandriva.com>
+
+	* : rename var, $dep will only be used as an element from
+	  @properties
+
+2007-09-11 13:52  Pixel <pixel at mandriva.com>
+
+	* : add doc
+
+2007-09-11 13:37  Pixel <pixel at mandriva.com>
+
+	* : add some doc
+
+2007-09-11 13:37  Pixel <pixel at mandriva.com>
+
+	* : simplify
+
+2007-09-11 13:32  Pixel <pixel at mandriva.com>
+
+	* : simplify
+
+2007-09-11 13:24  Pixel <pixel at mandriva.com>
+
+	* : simplify: make find_candidate_packages() the wrapper around
+	  find_candidate_packages_() instead of the other way round
+
+2007-09-11 13:21  Pixel <pixel at mandriva.com>
+
+	* : create find_candidate_packages_(), wrapper around
+	  find_candidate_packages()
+
+2007-09-11 13:16  Pixel <pixel at mandriva.com>
+
+	* : drop callback_backtrack, unused for a long time
+
+2007-09-11 11:54  Pixel <pixel at mandriva.com>
+
+	* : fix old typo in comment
+
+2007-09-11 11:51  Pixel <pixel at mandriva.com>
+
+	* : add a comment
+
+2007-09-11 10:54  Pixel <pixel at mandriva.com>
+
+	* : fix old typo (rejected field is unused anyway afaik)
+
+2007-09-11 10:00  Pixel <pixel at mandriva.com>
+
+	* : fix typo in previous typo fix
+
+2007-09-11 10:00  Pixel <pixel at mandriva.com>
+
+	* : fix typo in previous commit :-/
+
+2007-09-11 09:58  Pixel <pixel at mandriva.com>
+
+	* : - speedup is_arch_compat (x7) by keeping the platform in a
+	  cache
+
+2007-09-11 09:55  Pixel <pixel at mandriva.com>
+
+	* : add missing free()
+
+2007-09-11 08:44  Pixel <pixel at mandriva.com>
+
+	* : move doc where it belongs
+
+2007-09-11 07:28  Pixel <pixel at mandriva.com>
+
+	* : add comment
+
+2007-09-10 16:58  Pixel <pixel at mandriva.com>
+
+	* : simplify prototype of find_candidate_packages()
+
+2007-09-10 16:56  Pixel <pixel at mandriva.com>
+
+	* : rename find_chosen_packages() into find_required_package()
+	  (better name)
+
+2007-09-10 16:49  Pixel <pixel at mandriva.com>
+
+	* : - pass the prefered choices to {callback_choices}: this allows
+	  urpmi to select
+	  all the prefered packages according to installed locales
+
+2007-09-10 15:48  Pixel <pixel at mandriva.com>
+
+	* : - do not propose packages for non installed locales
+
+2007-09-10 15:48  Pixel <pixel at mandriva.com>
+
+	* : - do not propose packages for non installed locales
+	  - cleanup code
+
+2007-09-10 15:46  Pixel <pixel at mandriva.com>
+
+	* : fix typo in previous commit
+
+2007-09-10 15:16  Pixel <pixel at mandriva.com>
+
+	* : create _find_chosen_packages__sort() out of
+	  find_chosen_packages()
+
+2007-09-08 20:29  Pixel <pixel at mandriva.com>
+
+	* : more detailed doc
+
+2007-09-08 09:24  Pixel <pixel at mandriva.com>
+
+	* : typo in comment
+
+2007-09-08 09:16  Pixel <pixel at mandriva.com>
+
+	* : rename lists with "closure" in the name to things like
+	  "xxx_todo" or
+	  "all_xxx", i find it more readable, and it helps making the
+	  difference with
+	  {closure} field
+
+2007-09-08 09:10  Pixel <pixel at mandriva.com>
+
+	* : rename local var for clarity
+
+2007-09-08 09:07  Pixel <pixel at mandriva.com>
+
+	* : rename local var
+
+2007-09-08 09:05  Pixel <pixel at mandriva.com>
+
+	* : document $state fields
+
+2007-09-08 08:10  Pixel <pixel at mandriva.com>
+
+	* : rename a local variable for clarity
+
+2007-09-08 08:09  Pixel <pixel at mandriva.com>
+
+	* : create _handle_conflicts() out of
+	  resolve_requested__no_suggests()
+
+2007-09-08 07:39  Pixel <pixel at mandriva.com>
+
+	* : fix typo in older commit
+
+2007-09-08 07:38  Pixel <pixel at mandriva.com>
+
+	* : use function calls instead of method calls (it allows
+	  perl_checker checks when
+	  temporarilly renaming URPM/Resolve.pm package name to URPM)
+
+2007-09-07 21:56  Pixel <pixel at mandriva.com>
+
+	* : create _handle_diff_provides() out of
+	  resolve_requested__no_suggests()
+
+2007-09-07 20:49  Pixel <pixel at mandriva.com>
+
+	* : create _compute_diff_provides() and
+	  _compute_diff_provides_one() out of
+	  resolve_requested__no_suggests()
+
+2007-09-07 20:31  Pixel <pixel at mandriva.com>
+
+	* : factorize regexps into functions
+
+2007-09-07 19:45  Pixel <pixel at mandriva.com>
+
+	* : make it more clear
+
+2007-09-07 19:35  Pixel <pixel at mandriva.com>
+
+	* : cleanup
+
+2007-09-07 19:32  Pixel <pixel at mandriva.com>
+
+	* : create _ids_to_fullnames() and _ids_to_names()
+
+2007-09-07 19:19  Pixel <pixel at mandriva.com>
+
+	* : fix typo in recent commit
+
+2007-09-07 19:18  Pixel <pixel at mandriva.com>
+
+	* : make it clear that resolve_rejected_ is modifying @properties
+	  from
+	  resolve_requested()
+
+2007-09-07 18:39  Pixel <pixel at mandriva.com>
+
+	* : revert previous commit: compute_deps() is still used by mkcd
+
+2007-09-07 17:55  Pixel <pixel at mandriva.com>
+
+	* : remove unused compute_deps() \o/
+
+2007-09-07 17:49  Pixel <pixel at mandriva.com>
+
+	* : simplify: nopromoteepoch is always 1 (no caller ever define it)
+
+2007-09-07 17:43  Pixel <pixel at mandriva.com>
+
+	* : cleanup: nopromoteepoch is 1 by default in
+	  find_candidate_packages
+
+2007-09-07 15:44  Pixel <pixel at mandriva.com>
+
+	* : factorize code in functions whatrequires() and
+	  whatrequires_id()
+
+2007-09-07 15:30  Pixel <pixel at mandriva.com>
+
+	* : simplify: whatrequires is a hash with provides_nosense as key,
+	  don't need to
+	  use ->provides then remove the sense
+
+2007-09-07 15:19  Pixel <pixel at mandriva.com>
+
+	* : hoist a debug message so that it occurs for other uses of
+	  with_db_unsatisfied_requires()
+
+2007-09-07 15:06  Pixel <pixel at mandriva.com>
+
+	* : re-use same code for conflict from installed package as is used
+	  for conflict
+	  from selected package. this fixes test_gh() from urpmi
+	  split-transactions--promote test case
+
+2007-09-07 14:44  Pixel <pixel at mandriva.com>
+
+	* : move code from resolve_requested__no_suggests() into new
+	  function _handle_provides_overlap()
+
+2007-09-07 14:30  Pixel <pixel at mandriva.com>
+
+	* : prepare to factorize code handling property becoming
+	  unavailable.
+	  
+	  it really seems {why}{conflicts} is only used for debugging
+	  purpose, so this
+	  change won't break.
+
+2007-09-07 14:24  Pixel <pixel at mandriva.com>
+
+	* : one more debug message
+
+2007-09-07 11:26  Pixel <pixel at mandriva.com>
+
+	* : small cleanup
+
+2007-09-07 11:26  Pixel <pixel at mandriva.com>
+
+	* : add some debug messages
+
+2007-09-05 15:19  Pixel <pixel at mandriva.com>
+
+	* : - fix displaying @sorted whereas some elements have been
+	  removed from it
+	  - more complete error message
+
+2007-09-05 09:37  Pixel <pixel at mandriva.com>
+
+	* : add debug code
+
+2007-09-03 15:21  Pixel <pixel at mandriva.com>
+
+	* : 1.80, bugfix release
+
+2007-09-03 15:21  Pixel <pixel at mandriva.com>
+
+	* : - fix bug in sort_graph (used by build_transaction_set)
+
+2007-09-03 15:20  Pixel <pixel at mandriva.com>
+
+	* : 1.79
+
+2007-09-03 12:59  Pixel <pixel at mandriva.com>
+
+	* : add a test
+
+2007-09-03 08:08  Pixel <pixel at mandriva.com>
+
+	* : - fix bug in sort_graph (used by build_transaction_set)
+
+2007-09-03 08:07  Pixel <pixel at mandriva.com>
+
+	* : 1.78
+
+2007-08-31 15:54  Pixel <pixel at mandriva.com>
+
+	* : fix dead-loop in build_transaction_set (#33020)
+	  
+	  and ensure the resulting graph is correct by checking it
+
+2007-08-31 07:02  Pixel <pixel at mandriva.com>
+
+	* : add a comment
+
+2007-08-29 09:33  Pixel <pixel at mandriva.com>
+
+	* : 1.77
+
+2007-08-29 09:33  Pixel <pixel at mandriva.com>
+
+	* : - disable "dropping tags from rpm header" until we can safely
+	  use it
+
+2007-08-29 09:32  Pixel <pixel at mandriva.com>
+
+	* : 1.76
+
+2007-08-28 14:12  Pixel <pixel at mandriva.com>
+
+	* : ensure #31969 doesn't occur anymore. if somethings goes wrong:
+	  - display error message
+	  - then default to one big transaction
+	  
+	  also display error message "using one big transaction" in the old
+	  check (which
+	  i don't really know what it does)
+
+2007-08-28 13:54  Pixel <pixel at mandriva.com>
+
+	* : - build_transaction_set: new sort algorithm which allow
+	  returning sets of
+	  circular dependent packages, taking into account obsoleted
+	  packages
+	  (fixes #31969). It may still fail in presence of conflicts
+	  
+	  a better fix would be to make ->resolve_requested__no_suggests
+	  handle
+	  obsolete. ie:
+	  - a requires b : bb or b
+	  - bb requires c-1
+	  - b requires c-2
+	  - b obsoletes bb
+	  => with a, bb and c-1 installed, "urpmi c" should upgrade bb into
+	  b instead of
+	  removing a and bb.
+
+2007-08-28 11:03  Pixel <pixel at mandriva.com>
+
+	* : - spec2srcheader: workaround parseSpec returning a header where
+	  ->arch is set
+	  to %{_target_cpu} whereas we really want a header similar to
+	  .src.rpm
+	  (see #32824)
+
+2007-08-24 12:01  Pixel <pixel at mandriva.com>
+
+	* : - fix split_length > 1
+	  (eg: "urpmi --split-length 2 a b c" will only install 2 pkgs)
+	  (this bug has not been reported, just discovered it while reading
+	  the code)
+	  
+	  - cleanup
+
+2007-08-24 11:50  Pixel <pixel at mandriva.com>
+
+	* : - more debug messages
+	  - little rewrite
+
+2007-08-23 13:22  Pixel <pixel at mandriva.com>
+
+	* : - allow running transaction with justdb option
+
+2007-08-12 20:45  Pixel <pixel at mandriva.com>
+
+	* : 1.75
+
+2007-08-12 20:44  Pixel <pixel at mandriva.com>
+
+	* : - fix dropping tags from rpm header.
+	  it hasn't work since MDK8.1 and rpm 4.0.
+	  it may break urpmi!! but potentially allows a much smaller
+	  hdlist.cz :)
+
+2007-08-12 11:32  Pixel <pixel at mandriva.com>
+
+	* : 1.74
+
+2007-08-12 11:29  Pixel <pixel at mandriva.com>
+
+	* : - sort choices per media, then per version
+	  
+	  nb:
+	  
+	  on 2004-12-13, rgs replaced "$a->id <=> $b->id" with
+	  "$b->compare_pkg($a) || $a->id <=> $b->id"
+	  
+	  Return the list of chosen packages sorted by descending
+	  version (bug #12645).
+	  
+	  the end result is the sorting by media was dropped :-/
+
+2007-08-12 10:15  Pixel <pixel at mandriva.com>
+
+	* : cleanup (easier to read)
+
+2007-08-11 12:21  Pixel <pixel at mandriva.com>
+
+	* : 1.73
+
+2007-08-11 12:21  Pixel <pixel at mandriva.com>
+
+	* : - allow running transaction with replagekgs option
+
+2007-08-10 18:01  Pixel <pixel at mandriva.com>
+
+	* : 1.72
+
+2007-08-10 17:50  Pixel <pixel at mandriva.com>
+
+	* : - modify parse_hdlist so that partial hdlist reading can be
+	  used
+	  (needed when some stuff is already done in the callback)
+
+2007-08-10 17:35  Pixel <pixel at mandriva.com>
+
+	* : add documentation
+
+2007-08-10 17:34  Pixel <pixel at mandriva.com>
+
+	* : there is no use retrying after a headerRead failure since
+	  headerRead may have
+	  consumed part of the input, and so next headerRead will read in
+	  the middle of
+	  a header, and so always fail. The only real solution is to ensure
+	  rpmlib don't
+	  timeout too quickly (and fd->rd_timeoutsecs is rpmlib internal
+	  only, so we
+	  can't hint it from here. in any case 1sec timeout is really too
+	  low)
+
+2007-08-09 15:25  Pixel <pixel at mandriva.com>
+
+	* : 1.71
+
+2007-08-09 15:24  Pixel <pixel at mandriva.com>
+
+	* : - compilation fixes on rpm < 4.4.8
+
+2007-08-09 14:58  Pixel <pixel at mandriva.com>
+
+	* : 1.70
+
+2007-08-09 14:58  Pixel <pixel at mandriva.com>
+
+	* : compilation fixes on rpm < 4.4.8
+
+2007-08-09 13:24  Pixel <pixel at mandriva.com>
+
+	* : 1.69
+
+2007-08-09 13:24  Pixel <pixel at mandriva.com>
+
+	* : - "suggests" are no more handled as "requires"
+	  - resolve_requested support "suggests": a newly suggested package
+	  is installed
+	  as if required (can be disabled with option no_suggests)
+	  
+	  nb: URPM.xs change is quite complex since suggests are mostly
+	  seen as requires
+	  inside rpmlib.
+
+2007-08-08 18:18  Pixel <pixel at mandriva.com>
+
+	* : factorize some code into with_db_unsatisfied_requires:
+	  
+	  #- this function is "suggests vs requires" safe:
+	  #- 'whatrequires' will give both requires & suggests, but
+	  unsatisfied_requires
+	  #- will check $p->requires and so filter out suggests
+
+2007-08-08 17:38  Pixel <pixel at mandriva.com>
+
+	* : "nopromoteepoch => 1" is the default option in
+	  ->unsatisfied_requires
+
+2007-08-03 14:43  Pixel <pixel at mandriva.com>
+
+	* : 1.68
+
+2007-08-03 14:42  Pixel <pixel at mandriva.com>
+
+	* : - add $trans->Element_version and $trans->Element_release
+
+2007-07-05 13:36  nanardon
+
+	* : - 0.67
+
+2007-07-04 22:26  nanardon
+
+	* : - Urpm_read_config_files properly return the value to perl
+	  - kill useless var dcl
+
+2007-07-04 22:21  nanardon
+
+	* : - fix parseSpec argument
+
+2007-07-04 16:43  nanardon
+
+	* : - add osscore() and archscore() function to evaluate computer
+	  compatiblity to an arbitrary value
+
+2007-07-04 15:53  nanardon
+
+	* : - add Pkg_is_platform_compat() and Urpm_platformscore() coming
+	  with rpm 4.4.8
+
+2007-07-02 15:14  Pixel <pixel at mandriva.com>
+
+	* : 1.66
+
+2007-07-02 15:11  Pixel <pixel at mandriva.com>
+
+	* : - fix --auto-select skipping some packages because of other
+	  packages providing
+	  a more recent version, but no obsolete between those packages.
+	  the fix is to revert commit from Aug 2002:
+	  "fixed propable old package (according provides) requested by
+	  request_packages_to_upgrade."
+	  
+	  hopefully this change won't break too much...
+	  
+	  for the record, a few issues:
+	  - skipping java-1.5.0-gcj-1.5.0.0-14.7mdv2008.0.i586 since
+	  java-1.7.0-icedtea-1.7.0.0-1.3mdv2008.0.i586 provides a more
+	  recent version of jre (1.7.0 vs 1.5.0)
+	  - skipping emacs-common-22.1-2mdv2008.0.i586 since
+	  gnus-emacs-5.10.8-1mdv2007.0.noarch provides a more recent vers
+	  whereas java-1.5.0-gcj-1.5.0.0-14.6mdv and emacs-common-22.1-1mdv
+	  are installed
+
+2007-07-02 15:05  Pixel <pixel at mandriva.com>
+
+	* : help perl_checker
+
+2007-07-02 14:38  Pixel <pixel at mandriva.com>
+
+	* : help debugging the strange behaviour of this code
+
+2007-06-21 14:13  nanardon
+
+	* : - 1.42
+
+2007-06-19 14:44  nanardon
+
+	* : - make is_arch_compat rpm 4.4.8 compliant
+
+2007-06-15 20:00  Pixel <pixel at mandriva.com>
+
+	* : document the fact that build_synthesis returns true on success
+
+2007-06-12 14:03  Pixel <pixel at mandriva.com>
+
+	* : fix release date
+
+2007-06-12 13:57  Pixel <pixel at mandriva.com>
+
+	* : 1.64
+
+2007-06-12 13:56  Pixel <pixel at mandriva.com>
+
+	* : - hack on $pkg->is_arch_compat to make it return true for
+	  noarch packages
+	  when using rpm 4.4.8 (#31314)
+
+2007-05-09 16:00  Pixel <pixel at mandriva.com>
+
+	* : - new release, 1.63
+	  - add $trans->Element_fullname
+
+2007-05-03 14:51  Pixel <pixel at mandriva.com>
+
+	* : 1.61 has not been released
+
+2007-05-03 14:49  Pixel <pixel at mandriva.com>
+
+	* : 1.62
+
+2007-05-03 14:49  Pixel <pixel at mandriva.com>
+
+	* : - pass the virtual package name as a parameter to
+	  {callback_choices} in
+	  ->resolve_requested
+
+2007-04-27 12:37  Pixel <pixel at mandriva.com>
+
+	* : re-sync after the big svn loss
+
+2007-04-27 12:37  Pixel <pixel at mandriva.com>
+
+	* : re-sync after the big svn loss
+
+2007-04-27 12:31  Pixel <pixel at mandriva.com>
+
+	* : - 1.61
+	  - add $trans->NElements and $trans->Element_name
+	  to be able to display name of uninstalled package in
+	  callback_uninst
+	  - fix b--obsoletes-->a and c--conflicts-->a prompting for
+	  upgrading a
+	  (need a fix in urpmi which rely on the $state->{rejected}
+	  to upgrade (-U) b instead of installing (-i) it)
+
+2007-04-27 12:30  Pixel <pixel at mandriva.com>
+
+	* : re-sync after the big svn loss
+
+2007-04-24 19:11  Pixel <pixel at mandriva.com>
+
+	* : re-sync after the big svn loss
+
 2006-12-04 10:28  Pixel <pixel at mandriva.com>
 
 	* URPM.xs: correctly set "\0"
