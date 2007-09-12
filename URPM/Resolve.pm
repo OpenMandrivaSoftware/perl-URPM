@@ -546,10 +546,11 @@ sub resolve_rejected_ {
 
     #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
-    if (! $state->{rejected}{$pkg->fullname}) {
-	my @pkgs_todo = $pkg;
+    my $newly_rejected = set_rejected($state, $pkg, %options);
 
-	set_rejected($state, $pkg, %options);
+    $newly_rejected or return;
+
+	my @pkgs_todo = $pkg;
 
 	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
@@ -580,11 +581,6 @@ sub resolve_rejected_ {
 		    });
 	    }
 	}
-    } else {
-	#- the package has already been rejected.
-	#- but do update {closure} and {required}, {obsoleted}
-	set_rejected($state, $pkg, %options);
-    }
 }
 
 # see resolve_requested__no_suggests below for information about usage
