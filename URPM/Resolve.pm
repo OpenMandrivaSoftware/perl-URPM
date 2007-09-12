@@ -466,10 +466,11 @@ sub backtrack_selected {
 	    with_db_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
 				      my ($p, @l) = @_;
 				      #- typically a redo of the diff_provides code should be applied...
-				      resolve_rejected_($urpm, $db, $state, $p, \@properties,
-							      removed => 1,
+				      resolve_rejected_($urpm, $db, $state, \@properties, {
+							      required_pkg => $p, removed => 1,
 							      from => $dep->{psel},
-							      why => { unsatisfied => \@l });
+							      why => { unsatisfied => \@l }
+							  });
 			      });
 	}
     }
@@ -539,32 +540,33 @@ sub _set_rejected_from {
 
 #- side-effects: $state->{rejected}
 sub set_rejected {
-    my ($urpm, $state, $pkg, %options) = @_;
+    my ($urpm, $state, $rdep) = @_;
 
-    my $rv = $state->{rejected}{$pkg->fullname} ||= {};
+    my $fullname = $rdep->{required_pkg}->fullname;
+    my $rv = $state->{rejected}{$fullname} ||= {};
 
     my $newly_rejected = !exists $rv->{size};
 
     if ($newly_rejected) {
-	$urpm->{debug_URPM}("set_rejected: " . $pkg->fullname) if $urpm->{debug_URPM};
+	$urpm->{debug_URPM}("set_rejected: $fullname") if $urpm->{debug_URPM};
 	#- keep track of size of package which are finally removed.
-	$rv->{size} = $pkg->size;
+	$rv->{size} = $rdep->{required_pkg}->size;
     }
 
     #- keep track of what causes closure.
-    if ($options{from}) {
-	my $closure = $rv->{closure}{scalar $options{from}->fullname} ||= {};
-	if (my $l = delete $options{why}{unsatisfied}) {
+    if ($rdep->{from}) {
+	my $closure = $rv->{closure}{scalar $rdep->{from}->fullname} ||= {};
+	if (my $l = delete $rdep->{why}{unsatisfied}) {
 	    my $unsatisfied = $closure->{unsatisfied} ||= [];
 	    @$unsatisfied = uniq(@$unsatisfied, @$l);
 	}
-	$closure->{$_} = $options{why}{$_} foreach keys %{$options{why}};
+	$closure->{$_} = $rdep->{why}{$_} foreach keys %{$rdep->{why}};
     }
 
     #- set removed and obsoleted level.
     foreach (qw(removed obsoleted)) {
-	$options{$_} && (! exists $rv->{$_} || $options{$_} <= $rv->{$_})
-	  and $rv->{$_} = $options{$_};
+	$rdep->{$_} && (! exists $rv->{$_} || $rdep->{$_} <= $rv->{$_})
+	  and $rv->{$_} = $rdep->{$_};
     }
 
     $newly_rejected;
@@ -572,8 +574,9 @@ sub set_rejected {
 
 #- see resolve_rejected_ below
 sub resolve_rejected {
-    my ($urpm, $db, $state, $pkg, %options) = @_;
-    resolve_rejected_($urpm, $db, $state, $pkg, $options{unsatisfied}, %options);
+    my ($urpm, $db, $state, $pkg, %rdep) = @_;
+    $rdep{required_pkg} = $pkg;
+    resolve_rejected_($urpm, $db, $state, $rdep{unsatisfied}, \%rdep);
 }
 
 #- close rejected (as urpme previously) for package to be removable without error.
@@ -581,17 +584,17 @@ sub resolve_rejected {
 #- side-effects: $properties
 #-   + those of set_rejected ($state->{rejected})
 sub resolve_rejected_ {
-    my ($urpm, $db, $state, $pkg, $properties, %options) = @_;
+    my ($urpm, $db, $state, $properties, $rdep) = @_;
 
-    $urpm->{debug_URPM}("resolve_rejected: " . $pkg->fullname) if $urpm->{debug_URPM};
+    $urpm->{debug_URPM}("resolve_rejected: " . $rdep->{required_pkg}->fullname) if $urpm->{debug_URPM};
 
     #- check if the package has already been asked to be rejected (removed or obsoleted).
     #- this means only add the new reason and return.
-    my $newly_rejected = set_rejected($urpm, $state, $pkg, %options);
+    my $newly_rejected = set_rejected($urpm, $state, $rdep);
 
     $newly_rejected or return;
 
-	my @pkgs_todo = $pkg;
+	my @pkgs_todo = $rdep->{required_pkg};
 
 	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
@@ -610,9 +613,13 @@ sub resolve_rejected_ {
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
 			    my ($p, @l) = @_;
 
-			    my $newly_rejected = set_rejected($urpm, $state, $p, %options, 
-						  from => $pkg, 
-						  why => { unsatisfied => \@l });
+			    my $newly_rejected = set_rejected($urpm, $state, {
+				required_pkg => $p,
+				from => $rdep->{required_pkg}, 
+				why => { unsatisfied => \@l },
+				obsoleted => $rdep->{obsoleted},
+				removed => $rdep->{removed},
+			    });				
 
 			    #- continue the closure unless already examined.
 			    $newly_rejected or return;
@@ -822,11 +829,11 @@ sub _handle_conflicts {
 		    push @$keep, scalar $p->fullname;
 		} else {
 		    #- all these package should be removed.
-		    resolve_rejected_($urpm, $db, $state, $p, $properties,
-				      removed => 1,
+		    resolve_rejected_($urpm, $db, $state, $properties, {
+				      required_pkg => $p, removed => 1,
 				      from => $pkg,
 				      why => { conflicts => $file },
-				  );
+				  });
 		}
 	    });
 	} elsif (my $name = property2name($_)) {
@@ -988,10 +995,11 @@ sub _handle_diff_provides {
 		if ($options{keep}) {
 		    backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
-		    resolve_rejected_($urpm, $db, $state, $p, $properties,
-				      removed => 1,
+		    resolve_rejected_($urpm, $db, $state, $properties, {
+				      required_pkg => $p, removed => 1,
 				      from => $pkg,
-				      why => { unsatisfied => \@l });
+				      why => { unsatisfied => \@l },
+				  });
 		}
 	    }
 	}
@@ -1022,11 +1030,11 @@ sub _handle_provides_overlap {
 	    push @$keep, scalar $p->fullname;
 	} else {
 	    #- no package has been found, we need to remove the package examined.
-	    resolve_rejected_($urpm, $db, $state, $p, $properties,
-		removed => 1,
+	    resolve_rejected_($urpm, $db, $state, $properties, {
+		required_pkg => $p, removed => 1,
 		from => $pkg,
 		why => { conflicts => $property },
-	    );
+	    });
 	}
     }
 }
