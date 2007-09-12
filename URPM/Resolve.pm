@@ -506,8 +506,12 @@ sub set_rejected {
 
     #- keep track of what causes closure.
     if ($options{from}) {
-	my $unsatisfied = $rv->{closure}{$options{from}->fullname}{unsatisfied} ||= [];
-	@$unsatisfied = uniq(@$unsatisfied, @{$options{why}});
+	my $closure = $rv->{closure}{$options{from}} ||= {};
+	if (my $l = delete $options{why}{unsatisfied}) {
+	    my $unsatisfied = $closure->{unsatisfied} ||= [];
+	    @$unsatisfied = uniq(@$unsatisfied, @$l);
+	}
+	$closure->{$_} = $options{why}{$_} foreach keys %{$options{why}};
     }
 
     #- set removed and obsoleted level.
@@ -538,11 +542,10 @@ sub resolve_rejected_ {
     if (! $state->{rejected}{$pkg->fullname}) {
 	my @pkgs_todo = $pkg;
 
+	set_rejected($state, $pkg, %options);
+
 	#- keep track of size of package which are finally removed.
 	$state->{rejected}{$pkg->fullname}{size} = $pkg->size;
-	foreach (qw(removed obsoleted)) {
-	    $options{$_} and $state->{rejected}{$pkg->fullname}{$_} = $options{$_};
-	}
 
 	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
@@ -561,7 +564,9 @@ sub resolve_rejected_ {
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
 			    my ($p, @l) = @_;
 
-			    my $rv = set_rejected($state, $p, %options, from => $pkg, why => \@l);
+			    my $rv = set_rejected($state, $p, %options, 
+						  from => scalar $pkg->fullname, 
+						  why => { unsatisfied => \@l });
 
 			    #- continue the closure unless already examined.
 			    exists $rv->{size} and return;
@@ -574,14 +579,9 @@ sub resolve_rejected_ {
 	}
     } else {
 	#- the package has already been rejected.
-	foreach (qw(removed obsoleted)) {
-	    $options{$_} && (! exists $state->{rejected}{$pkg->fullname}{$_} ||
-			     $options{$_} <= $state->{rejected}{$pkg->fullname}{$_})
-	      and $state->{rejected}{$pkg->fullname}{$_} = $options{$_};
-	}
+	#- but do update {closure} and {required}, {obsoleted}
+	set_rejected($state, $pkg, %options);
     }
-
-    $options{from} and $state->{rejected}{$pkg->fullname}{closure}{$options{from}} = $options{why};
 }
 
 # see resolve_requested__no_suggests below for information about usage
