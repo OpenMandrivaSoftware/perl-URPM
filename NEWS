@@ -2,6 +2,8 @@
 - do not propose packages for non installed locales
 - pass the prefered choices to {callback_choices}: this allows urpmi to select
   all the prefered packages according to installed locales
+- handle promote for conflict from installed package 
+  (fixes test_gh() from urpmi split-transactions--promote test case)
 
 Version 1.80 - 3 September 2007, by Pascal "Pixel" Rigaux
 
