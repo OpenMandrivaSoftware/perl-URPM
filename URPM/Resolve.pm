@@ -250,12 +250,12 @@ sub _choose_required {
     #- packages. If multiple packages are possible, simply ask the user which
     #- one to choose; else take the first one available.
     if (!@$chosen) {
-	$urpm->{debug_URPM}("no packages match " . _id_to_name($urpm, $dep->{required}) . " (it may be in skip.list)") if $urpm->{debug_URPM};
+	$urpm->{debug_URPM}("no packages match " . _dep_to_name($urpm, $dep) . " (it may be in skip.list)") if $urpm->{debug_URPM};
 	unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, %options);
 	return; #- backtrack code choose to continue with same package or completely new strategy.
     } elsif ($options{callback_choices} && @$chosen > 1) {
-	my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _id_to_name($urpm, $dep->{required}), $prefered);
-	$urpm->{debug_URPM}("replacing " . _id_to_name($urpm, $dep->{required}) . " with " . 
+	my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _dep_to_name($urpm, $dep), $prefered);
+	$urpm->{debug_URPM}("replacing " . _dep_to_name($urpm, $dep) . " with " . 
 			      join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
 	unshift @$properties, map {
 	    +{
@@ -270,8 +270,8 @@ sub _choose_required {
 
     #- now do the real work, select the package.
     my $pkg = shift @$chosen;
-    if ($urpm->{debug_URPM} && $pkg->name ne _id_to_name($urpm, $dep->{required})) {
-	$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _id_to_name($urpm, $dep->{required}));
+    if ($urpm->{debug_URPM} && $pkg->name ne _dep_to_name($urpm, $dep)) {
+	$urpm->{debug_URPM}("chosen " . $pkg->fullname . " for " . _dep_to_name($urpm, $dep));
 	@$chosen and $urpm->{debug_URPM}("  (it could also have chosen " . join(' ', map { scalar $_->fullname } @$chosen));
     }
 
@@ -983,6 +983,11 @@ sub _handle_provides_overlap {
     }
 }
 
+#- side-effects: none
+sub _dep_to_name {
+    my ($urpm, $dep) = @_;
+    _id_to_name($urpm, $dep->{required});
+}
 #- side-effects: none
 sub _id_to_name {
     my ($urpm, $id_prop) = @_;
