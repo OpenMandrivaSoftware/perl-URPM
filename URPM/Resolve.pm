@@ -1150,8 +1150,9 @@ sub disable_selected {
 #- determine dependencies that can safely been removed and are not requested
 #- return the packages that have been deselected.
 #-
-#- side-effects: $state->{selected}, $state->{rejected}, $state->{whatrequires}
-#-   + those of disable_selected (flag_requested, flag_required)
+#- side-effects:
+#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{whatrequires}, $state->{rejected})
+
 sub disable_selected_and_unrequested_dependencies {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @all_unselected;
