@@ -498,9 +498,11 @@ sub backtrack_selected_psel_keep {
     $keep and push @{$state->{rejected}{$psel->fullname}{backtrack}{keep}}, @$keep;
 }
 
-
+#- side-effects: $state->{rejected}
 sub set_rejected {
     my ($state, $pkg, %options) = @_;
+
+    my $newly_rejected = !$state->{rejected}{$pkg->fullname};
 
     my $rv = $state->{rejected}{$pkg->fullname} ||= {};
 
@@ -520,7 +522,12 @@ sub set_rejected {
 	  and $rv->{$_} = $options{$_};
     }
 
-    $rv;
+    if ($newly_rejected) {
+	#- keep track of size of package which are finally removed.
+	$rv->{size} = $pkg->size;
+    }
+
+    $newly_rejected;
 }
 
 #- see resolve_rejected_ below
@@ -544,9 +551,6 @@ sub resolve_rejected_ {
 
 	set_rejected($state, $pkg, %options);
 
-	#- keep track of size of package which are finally removed.
-	$state->{rejected}{$pkg->fullname}{size} = $pkg->size;
-
 	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
 	    foreach my $n ($cp->provides_nosense) {
@@ -564,13 +568,12 @@ sub resolve_rejected_ {
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
 			    my ($p, @l) = @_;
 
-			    my $rv = set_rejected($state, $p, %options, 
+			    my $newly_rejected = set_rejected($state, $p, %options, 
 						  from => scalar $pkg->fullname, 
 						  why => { unsatisfied => \@l });
 
 			    #- continue the closure unless already examined.
-			    exists $rv->{size} and return;
-			    $rv->{size} = $p->size;
+			    $newly_rejected or return;
 
 			    $p->pack_header; #- need to pack else package is no longer visible...
 			    push @pkgs_todo, $p;
