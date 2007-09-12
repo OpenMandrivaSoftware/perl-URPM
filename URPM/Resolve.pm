@@ -1017,7 +1017,7 @@ sub _handle_provides_overlap {
 	} else {
 	    #- no package has been found, we need to remove the package examined.
 	    my $obsoleted;
-	    #- force resolution (#12696, maybe #11885)
+	    #- force resolution (see urpmi test "handle-conflict-deps")
 	    if (my $prev = delete $state->{rejected}{$p->fullname}) {
 		$obsoleted = $prev->{obsoleted};
 	    }
