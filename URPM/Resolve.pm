@@ -522,6 +522,12 @@ sub _remove_rejected_from {
     }
 }
 
+#- useful to reject packages in advance
+#- eg when selecting "a" which conflict with "b", ensure we won't select "b"
+#- but it's somewhat dangerous because it's sometimes called on installed packages,
+#- and in that case, a real resolve_rejected_ must be done
+#- (that's why set_rejected ignores the effect of _set_rejected_from)
+#-
 #- side-effects: $state->{rejected}
 sub _set_rejected_from {
     my ($state, $pkg, $from_pkg) = @_;
@@ -535,9 +541,9 @@ sub _set_rejected_from {
 sub set_rejected {
     my ($urpm, $state, $pkg, %options) = @_;
 
-    my $newly_rejected = !$state->{rejected}{$pkg->fullname};
-
     my $rv = $state->{rejected}{$pkg->fullname} ||= {};
+
+    my $newly_rejected = !exists $rv->{size};
 
     if ($newly_rejected) {
 	$urpm->{debug_URPM}("set_rejected: " . $pkg->fullname) if $urpm->{debug_URPM};
@@ -1016,13 +1022,8 @@ sub _handle_provides_overlap {
 	    push @$keep, scalar $p->fullname;
 	} else {
 	    #- no package has been found, we need to remove the package examined.
-	    my $obsoleted;
-	    #- force resolution (see urpmi test "handle-conflict-deps")
-	    if (my $prev = delete $state->{rejected}{$p->fullname}) {
-		$obsoleted = $prev->{obsoleted};
-	    }
 	    resolve_rejected_($urpm, $db, $state, $p, $properties,
-		($obsoleted ? 'obsoleted' : 'removed') => 1,
+		removed => 1,
 		from => $pkg,
 		why => { conflicts => $property },
 	    );
