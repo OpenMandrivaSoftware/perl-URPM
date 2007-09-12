@@ -499,6 +499,21 @@ sub backtrack_selected_psel_keep {
 }
 
 #- side-effects: $state->{rejected}
+sub _remove_rejected_from {
+    my ($state, $fullname, $from_fullname) = @_;
+
+    my $rv = $state->{rejected}{$fullname} or return;
+    exists $rv->{closure}{$from_fullname} or return;
+    delete $rv->{closure}{$from_fullname};
+    if (%{$rv->{closure}}) {
+	0;
+    } else {
+	delete $state->{rejected}{$fullname};
+	1;
+    }
+}
+
+#- side-effects: $state->{rejected}
 sub _set_rejected_from {
     my ($state, $pkg, $from_pkg) = @_;
 
@@ -1093,10 +1108,7 @@ sub disable_selected {
 	while (my $fullname = shift @rejected_todo) {
 	    my @rejecteds = keys %{$state->{rejected}};
 	    foreach (@rejecteds) {
-		exists $state->{rejected}{$_} && exists $state->{rejected}{$_}{closure}{$fullname} or next;
-		delete $state->{rejected}{$_}{closure}{$fullname};
-		unless (%{$state->{rejected}{$_}{closure}}) {
-		    delete $state->{rejected}{$_};
+		if (_remove_rejected_from($state, $_, $fullname)) {
 		    push @rejected_todo, $_;
 		}
 	    }
