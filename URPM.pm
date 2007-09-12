@@ -805,9 +805,11 @@ B<rejected>: { fullname => {
      backtrack => { # those info are only used to display why package is unselected
          promote => [ name ], keep => [ fullname ], 
          unsatisfied => [ id|property ], 
-         closure => { fullname => { old_requested => bool, 
-                                    unsatisfied => [ id|property ],
-                                    conflicts => property } },
+         closure => { fullname => undef },
+     },
+     closure => { fullname => { old_requested => bool, 
+                                unsatisfied => [ id|property ],
+                                conflicts => property },
      },
  } }
 
