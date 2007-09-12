@@ -506,6 +506,12 @@ sub set_rejected {
 
     my $rv = $state->{rejected}{$pkg->fullname} ||= {};
 
+    if ($newly_rejected) {
+	$urpm->{debug_URPM}("set_rejected: " . $pkg->fullname) if $urpm->{debug_URPM};
+	#- keep track of size of package which are finally removed.
+	$rv->{size} = $pkg->size;
+    }
+
     #- keep track of what causes closure.
     if ($options{from}) {
 	my $closure = $rv->{closure}{$options{from}} ||= {};
@@ -520,11 +526,6 @@ sub set_rejected {
     foreach (qw(removed obsoleted)) {
 	$options{$_} && (! exists $rv->{$_} || $options{$_} <= $rv->{$_})
 	  and $rv->{$_} = $options{$_};
-    }
-
-    if ($newly_rejected) {
-	#- keep track of size of package which are finally removed.
-	$rv->{size} = $pkg->size;
     }
 
     $newly_rejected;
