@@ -561,7 +561,7 @@ sub resolve_rejected_ {
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
 			    my ($p, @l) = @_;
 
-			    my $rv = set_rejected($state, $p, from => $pkg, why => \@l);
+			    my $rv = set_rejected($state, $p, %options, from => $pkg, why => \@l);
 
 			    #- continue the closure unless already examined.
 			    exists $rv->{size} and return;
