@@ -383,7 +383,8 @@ sub with_db_unsatisfied_requires {
 #
 #- side-effects: $state->{backtrack}, $state->{rejected}, $state->{selected}
 #-   + those of disable_selected_and_unrequested_dependencies ($state->{whatrequires}, flag_requested, flag_required)
-#-   + those of resolve_rejected_ ()
+#-   + those of _set_rejected_from ($state->{rejected})
+#-   + those of resolve_rejected_ ($state->{rejected})
 sub backtrack_selected {
     my ($urpm, $db, $state, $dep, %options) = @_;
 
@@ -478,7 +479,8 @@ sub backtrack_selected {
     @properties;
 }
 
-#- side-effects: $state->{rejected}
+#- side-effects:
+#-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of disable_selected_and_unrequested_dependencies ($state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub backtrack_selected_psel_keep {
     my ($urpm, $db, $state, $psel, $keep) = @_;
@@ -763,7 +765,8 @@ sub resolve_requested__no_suggests_ {
     grep { exists $state->{selected}{$_->id} } @selected;
 }
 
-#- side-effects: $state->{rejected}
+#- side-effects:
+#-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of resolve_rejected_ ($properties)
 #-   + those of _handle_provides_overlap ($properties, $keep)
 sub _handle_conflicts {
@@ -831,6 +834,7 @@ sub _compute_diff_provides {
 }
 
 #- side-effects: $state->{rejected}, $state->{oldpackage}, $state->{unselected_uninstalled}
+#-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
 sub _compute_diff_provides_one {
     my ($urpm, $db, $state, $pkg, $diff_provides, $n, $o, $v) = @_;
