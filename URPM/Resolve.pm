@@ -1152,7 +1152,6 @@ sub disable_selected {
 #-
 #- side-effects:
 #-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{whatrequires}, $state->{rejected})
-
 sub disable_selected_and_unrequested_dependencies {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @all_unselected;
