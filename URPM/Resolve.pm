@@ -499,6 +499,15 @@ sub backtrack_selected_psel_keep {
 }
 
 #- side-effects: $state->{rejected}
+sub _remove_all_rejected_from {
+    my ($state, $from_fullname) = @_;
+
+    grep {
+	_remove_rejected_from($state, $_, $from_fullname);
+    } keys %{$state->{rejected}};
+}
+
+#- side-effects: $state->{rejected}
 sub _remove_rejected_from {
     my ($state, $fullname, $from_fullname) = @_;
 
@@ -1106,12 +1115,7 @@ sub disable_selected {
 	#- perform a closure on rejected packages (removed, obsoleted or avoided).
 	my @rejected_todo = scalar $pkg->fullname;
 	while (my $fullname = shift @rejected_todo) {
-	    my @rejecteds = keys %{$state->{rejected}};
-	    foreach (@rejecteds) {
-		if (_remove_rejected_from($state, $_, $fullname)) {
-		    push @rejected_todo, $_;
-		}
-	    }
+	    push @rejected_todo, _remove_all_rejected_from($state, $fullname);
 	}
 
 	#- the package being examined has to be unselected.
