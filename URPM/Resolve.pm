@@ -443,8 +443,7 @@ sub backtrack_selected {
 		my @l = disable_selected_and_unrequested_dependencies($urpm, $db, $state, $dep->{from});
 		foreach (@l) {
 		    #- disable all these packages in order to avoid selecting them again.
-		    $_->fullname eq $dep->{from}->fullname or
-		      $state->{rejected}{$_->fullname}{closure}{$dep->{from}->fullname} ||= undef;
+		    _set_rejected_from($state, $_, $dep->{from}); 
 		}
 	    }
 	    #- the package is already rejected, we assume we can add another reason here!
@@ -490,12 +489,20 @@ sub backtrack_selected_psel_keep {
 	my @l = disable_selected_and_unrequested_dependencies($urpm, $db, $state, $psel);
 	foreach (@l) {
 	    #- disable all these packages in order to avoid selecting them again.
-	    $_->fullname eq $psel->fullname or
-	      $state->{rejected}{$_->fullname}{closure}{$psel->fullname} ||= undef;
+	    _set_rejected_from($state, $_, $psel);
 	}
     }
     #- to simplify, a reference to list or standalone elements may be set in keep.
     $keep and push @{$state->{rejected}{$psel->fullname}{backtrack}{keep}}, @$keep;
+}
+
+#- side-effects: $state->{rejected}
+sub _set_rejected_from {
+    my ($state, $pkg, $from_pkg) = @_;
+
+    $pkg->fullname ne $from_pkg->fullname or return;
+
+    $state->{rejected}{$pkg->fullname}{closure}{$from_pkg->fullname} ||= undef;
 }
 
 #- side-effects: $state->{rejected}
@@ -771,7 +778,7 @@ sub _handle_conflicts {
 	    foreach my $p ($urpm->packages_providing($n)) {
 		$pkg == $p and next;
 		$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
-		$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} = undef;
+		_set_rejected_from($state, $p, $pkg);
 	    }
 	}
 	if (my ($file) = m!^(/[^\s\[]*)!) {
@@ -832,7 +839,6 @@ sub _compute_diff_provides_one {
     foreach my $p ($urpm->packages_providing($n)) {
 	if ($p->name eq $pkg->name) {
 	    #- all packages with the same name should now be avoided except when chosen.
-	    $p->fullname eq $pkg->fullname and next;
 	} else {
 	    #- in case of obsoletes, keep track of what should be avoided
 	    #- but only if package name equals the obsolete name.
@@ -840,7 +846,7 @@ sub _compute_diff_provides_one {
 	}
 	#- these packages are not yet selected, if they happen to be selected,
 	#- they must first be unselected.
-	$state->{rejected}{$p->fullname}{closure}{$pkg->fullname} ||= undef;
+	_set_rejected_from($state, $p, $pkg);
     }
 	
     #- examine rpm db too (but only according to package names as a fix in rpm itself)
