@@ -731,7 +731,7 @@ sub resolve_requested__no_suggests_ {
 
 	    #- keep existing package and therefore cancel current one.
 	    if (@keep) {
-		unshift @properties, backtrack_selected_psel_keep($urpm, $db, $state, $pkg, \@keep);
+		backtrack_selected_psel_keep($urpm, $db, $state, $pkg, \@keep);
 	    }
 	}
 	if (my $diff = shift @diff_provides) {
@@ -934,8 +934,7 @@ sub _handle_diff_provides {
 		push @$properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 	    } else {
 		if ($options{keep}) {
-		    unshift @$properties, 
-		      backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
+		    backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
 		    resolve_rejected_($urpm, $db, $state, $p, $properties,
 				      removed => 1,
