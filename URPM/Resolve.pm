@@ -1100,7 +1100,8 @@ sub _no_more_recent_installed_and_providing {
 #-   longer needed by any other package.
 #- return the packages that have been deselected.
 #-
-#- side-effects: flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}
+#- side-effects: flag_requested, flag_required, $state->{selected}, $state->{whatrequires}
+#-   + those of _remove_all_rejected_from ($state->{rejected})
 sub disable_selected {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @unselected;
