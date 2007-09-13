@@ -585,6 +585,16 @@ sub set_rejected {
     $newly_rejected;
 }
 
+#- side-effects:
+#-   + those of set_rejected ($state->{rejected})
+#-   + those of _compute_diff_provides_of_removed_pkg ($diff_provides_h)
+sub set_rejected_and_compute_diff_provides {
+    my ($urpm, $state, $diff_provides_h, $rdep) = @_;
+
+    set_rejected($urpm, $state, $rdep);
+    _compute_diff_provides_of_removed_pkg($urpm, $state, $diff_provides_h, $rdep->{rejected_pkg});
+}
+
 #- see resolve_rejected_ below
 sub resolve_rejected {
     my ($urpm, $db, $state, $pkg, %rdep) = @_;
@@ -748,6 +758,7 @@ sub resolve_requested__no_suggests_ {
 		    _no_more_recent_installed_and_providing($urpm, $db, $pkg, $dep->{required}) or next;
 		}
 	    }
+	    $urpm->{debug_URPM}("selecting " . $pkg->fullname) if $urpm->{debug_URPM};
 
 	    #- keep in mind the package has be selected, remove the entry in requested input hash,
 	    #- this means required dependencies have undef value in selected hash.
@@ -786,7 +797,7 @@ sub resolve_requested__no_suggests_ {
 	    #- cancel flag if this package should be cancelled but too late (typically keep options).
 	    my @keep;
 
-	    _handle_conflicts($urpm, $db, $state, $pkg, \@properties, $options{keep} && \@keep);
+	    _handle_conflicts($urpm, $db, $state, $pkg, \@properties, \%diff_provides_h, $options{keep} && \@keep);
 
 	    #- examine if an existing package does not conflict with this one.
 	    $db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
@@ -794,7 +805,7 @@ sub resolve_requested__no_suggests_ {
 		my ($p) = @_;
 		foreach my $property ($p->conflicts) {
 		    if ($pkg->provides_overlap($property)) {
-			_handle_conflict($urpm, $db, $state, $pkg, $p, $property, $pkg->name, \@properties, $options{keep} && \@keep);
+			_handle_conflict($urpm, $state, $pkg, $p, $property, $pkg->name, \@properties, \%diff_provides_h, $options{keep} && \@keep);
 		    }
 		}
 	    });
@@ -818,10 +829,10 @@ sub resolve_requested__no_suggests_ {
 
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
-#-   + those of resolve_rejected_ ($properties)
-#-   + those of _handle_conflict ($properties, $keep)
+#-   + those of set_rejected_and_compute_diff_provides ($state->{rejected}, $diff_provides_h)
+#-   + those of _handle_conflict ($properties, $keep, $diff_provides_h)
 sub _handle_conflicts {
-    my ($urpm, $db, $state, $pkg, $properties, $keep) = @_;
+    my ($urpm, $db, $state, $pkg, $properties, $diff_provides_h, $keep) = @_;
 
     #- examine conflicts, an existing package conflicting with this selection should
     #- be upgraded to a new version which will be safe, else it should be removed.
@@ -843,7 +854,7 @@ sub _handle_conflicts {
 		    push @$keep, scalar $p->fullname;
 		} else {
 		    #- all these package should be removed.
-		    resolve_rejected_($urpm, $db, $state, $properties, {
+		    set_rejected_and_compute_diff_provides($urpm, $state, $diff_provides_h, {
 				      rejected_pkg => $p, removed => 1,
 				      from => $pkg,
 				      why => { conflicts => $file },
@@ -856,7 +867,7 @@ sub _handle_conflicts {
 		$keep && @$keep and return;
 		my ($p) = @_;
 		if ($p->provides_overlap($property)) {
-		    _handle_conflict($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep);
+		    _handle_conflict($urpm, $state, $pkg, $p, $property, $name, $properties, $diff_provides_h, $keep);
 		}
 	    });
 	}
@@ -940,15 +951,12 @@ sub _unselect_package_deprecated_by_property {
 	    return;
 	}
 
-	set_rejected($urpm, $state, { 
+	set_rejected_and_compute_diff_provides($urpm, $state, $diff_provides_h, { 
 	    rejected_pkg => $p,
 	    obsoleted => $obsoleted, removed => !$obsoleted,
 	    from => $pkg, why => $obsoleted ? () : { old_requested => 1 },
 	});
 	$obsoleted or ++$state->{oldpackage};
-
-	#- diff_provides on obsoleted provides are needed.
-	_compute_diff_provides_of_removed_pkg($urpm, $state, $diff_provides_h, $p);
     });
 }
 
@@ -1028,9 +1036,9 @@ sub _handle_diff_provides {
 }
 
 #- side-effects: $properties, $keep
-#-   + those of resolve_rejected_ ($state->{rejected})
+#-   + those of set_rejected_and_compute_diff_provides ($state->{rejected}, $diff_provides_h)
 sub _handle_conflict {
-    my ($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep) = @_;
+    my ($urpm, $state, $pkg, $p, $property, $name, $properties, $diff_provides_h, $keep) = @_;
     
     $urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
 
@@ -1051,7 +1059,7 @@ sub _handle_conflict {
 	    push @$keep, scalar $p->fullname;
 	} else {
 	    #- no package has been found, we need to remove the package examined.
-	    resolve_rejected_($urpm, $db, $state, $properties, {
+	    set_rejected_and_compute_diff_provides($urpm, $state, $diff_provides_h, {
 		rejected_pkg => $p, removed => 1,
 		from => $pkg,
 		why => { conflicts => $property },

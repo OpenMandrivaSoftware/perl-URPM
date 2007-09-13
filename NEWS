@@ -4,6 +4,9 @@
   all the prefered packages according to installed locales
 - handle promote for conflict from installed package 
   (fixes test_gh() from urpmi split-transactions--promote test case)
+- handle promote from installed package which require a unselected package,
+  whereas new package does not require it anymore 
+  (cf test_d & test_e from split-transactions--conflict urpmi test case)
 
 Version 1.80 - 3 September 2007, by Pascal "Pixel" Rigaux
 
