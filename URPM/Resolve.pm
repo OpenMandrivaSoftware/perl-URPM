@@ -381,10 +381,11 @@ sub with_db_unsatisfied_requires {
 
 # used when a require is not available
 #
-#- side-effects: $state->{backtrack}, $state->{rejected}, $state->{selected}
+#- side-effects: $state->{backtrack}, $state->{selected}
 #-   + those of disable_selected_and_unrequested_dependencies ($state->{whatrequires}, flag_requested, flag_required)
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of resolve_rejected_ ($state->{rejected})
+#-   + those of _add_rejected_backtrack ($state->{rejected})
 sub backtrack_selected {
     my ($urpm, $db, $state, $dep, %options) = @_;
 
@@ -405,10 +406,10 @@ sub backtrack_selected {
 		    #- a package if found is problably rejected or there is a problem.
 		    if ($state->{rejected}{$_->fullname}) {
 			    #- keep in mind a backtrack has happening here...
-			    $state->{rejected}{$_->fullname}{backtrack} ||=
-			      { exists $dep->{promote} ? (promote => [ $dep->{promote} ]) : @{[]},
+			    _add_rejected_backtrack($state, $_, { 
+				exists $dep->{promote} ? (promote => [ $dep->{promote} ]) : @{[]},
 				exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
-			      };
+			      });
 			    #- backtrack callback should return a strictly positive value if the selection of the new
 			    #- package is prefered over the currently selected package.
 			    next;
@@ -450,7 +451,7 @@ sub backtrack_selected {
 	    #- the package is already rejected, we assume we can add another reason here!
 	    $urpm->{debug_URPM}("adding a reason to already rejected package " . $dep->{from}->fullname . ": unsatisfied " . $dep->{required}) if $urpm->{debug_URPM};
 	    
-	    push @{$state->{rejected}{$dep->{from}->fullname}{backtrack}{unsatisfied}}, $dep->{required};
+	    _add_rejected_backtrack($state, $dep->{from}, { unsatisfied => [ $dep->{required} ] });
 	}
     }
 
@@ -460,7 +461,7 @@ sub backtrack_selected {
 	    backtrack_selected_psel_keep($urpm, $db, $state, $dep->{psel}, $dep->{keep});
 
 	    #- the package is already rejected, we assume we can add another reason here!
-	    defined $dep->{promote} and push @{$state->{rejected}{$dep->{psel}->fullname}{backtrack}{promote}}, $dep->{promote};
+	    defined $dep->{promote} and _add_rejected_backtrack($state, $dep->{psel}, { promote => [ $dep->{promote} ] });
 	} else {
 	    #- the backtrack need to examine diff_provides promotion on $n.
 	    with_db_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
@@ -482,6 +483,7 @@ sub backtrack_selected {
 
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
+#-   + those of _add_rejected_backtrack ($state->{rejected})
 #-   + those of disable_selected_and_unrequested_dependencies ($state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub backtrack_selected_psel_keep {
     my ($urpm, $db, $state, $psel, $keep) = @_;
@@ -496,7 +498,7 @@ sub backtrack_selected_psel_keep {
 	}
     }
     #- to simplify, a reference to list or standalone elements may be set in keep.
-    $keep and push @{$state->{rejected}{$psel->fullname}{backtrack}{keep}}, @$keep;
+    $keep and _add_rejected_backtrack($state, $psel, { keep => $keep });
 }
 
 #- side-effects: $state->{rejected}
@@ -520,6 +522,17 @@ sub _remove_rejected_from {
     } else {
 	delete $state->{rejected}{$fullname};
 	1;
+    }
+}
+
+#- side-effects: $state->{rejected}
+sub _add_rejected_backtrack {
+    my ($state, $pkg, $backtrack) = @_;
+
+    my $bt = $state->{rejected}{$pkg->fullname}{backtrack} ||= {};
+
+    foreach (keys %$backtrack) {
+	push @{$bt->{$_}}, @{$backtrack->{$_}};
     }
 }
 
