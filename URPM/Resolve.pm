@@ -1021,8 +1021,8 @@ sub _handle_diff_provides {
     });
 }
 
-#- side-effects: $properties, $keep, $state->{rejected}
-#-   + those of resolve_rejected_ ()
+#- side-effects: $properties, $keep
+#-   + those of resolve_rejected_ ($state->{rejected})
 sub _handle_provides_overlap {
     my ($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep) = @_;
     
