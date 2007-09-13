@@ -863,7 +863,7 @@ sub _handle_conflicts {
 }
 
 #- side-effects:
-#-   + those of _unselect_package_deprecated_by (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
+#-   + those of _unselect_package_deprecated_by_property (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
 sub _unselect_package_deprecated_by {
     my ($urpm, $db, $state, $pkg) = @_;
 
