@@ -712,7 +712,7 @@ sub resolve_requested__no_suggests {
 #-   + those of backtrack_selected     (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{backtrack})
 #-   + those of _unselect_package_deprecated_by (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
 #-   + those of _handle_conflicts      ($state->{rejected})
-#-   + those of _handle_provides_overlap ($state->{rejected})
+#-   + those of _handle_conflict ($state->{rejected})
 #-   + those of backtrack_selected_psel_keep (flag_requested, $state->{whatrequires})
 #-   + those of _handle_diff_provides  (flag_requested, $state->{rejected}, $state->{whatrequires})
 sub resolve_requested__no_suggests_ {
@@ -795,7 +795,7 @@ sub resolve_requested__no_suggests_ {
 		my ($p) = @_;
 		foreach my $property ($p->conflicts) {
 		    if ($pkg->provides_overlap($property)) {
-			_handle_provides_overlap($urpm, $db, $state, $pkg, $p, $property, $pkg->name, \@properties, $options{keep} && \@keep);
+			_handle_conflict($urpm, $db, $state, $pkg, $p, $property, $pkg->name, \@properties, $options{keep} && \@keep);
 		    }
 		}
 	    });
@@ -818,7 +818,7 @@ sub resolve_requested__no_suggests_ {
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of resolve_rejected_ ($properties)
-#-   + those of _handle_provides_overlap ($properties, $keep)
+#-   + those of _handle_conflict ($properties, $keep)
 sub _handle_conflicts {
     my ($urpm, $db, $state, $pkg, $properties, $keep) = @_;
 
@@ -855,7 +855,7 @@ sub _handle_conflicts {
 		$keep && @$keep and return;
 		my ($p) = @_;
 		if ($p->provides_overlap($property)) {
-		    _handle_provides_overlap($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep);
+		    _handle_conflict($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep);
 		}
 	    });
 	}
@@ -1030,7 +1030,7 @@ sub _handle_diff_provides {
 
 #- side-effects: $properties, $keep
 #-   + those of resolve_rejected_ ($state->{rejected})
-sub _handle_provides_overlap {
+sub _handle_conflict {
     my ($urpm, $db, $state, $pkg, $p, $property, $name, $properties, $keep) = @_;
     
     $urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
