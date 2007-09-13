@@ -805,7 +805,7 @@ sub resolve_requested__no_suggests_ {
 		my ($p) = @_;
 		foreach my $property ($p->conflicts) {
 		    if ($pkg->provides_overlap($property)) {
-			_handle_conflict($urpm, $state, $pkg, $p, $property, $pkg->name, \@properties, \%diff_provides_h, $options{keep} && \@keep);
+			_handle_conflict($urpm, $state, $pkg, $p, $property, $property, \@properties, \%diff_provides_h, $options{keep} && \@keep);
 		    }
 		}
 	    });
@@ -867,7 +867,7 @@ sub _handle_conflicts {
 		$keep && @$keep and return;
 		my ($p) = @_;
 		if ($p->provides_overlap($property)) {
-		    _handle_conflict($urpm, $state, $pkg, $p, $property, $name, $properties, $diff_provides_h, $keep);
+		    _handle_conflict($urpm, $state, $pkg, $p, $property, scalar($pkg->fullname), $properties, $diff_provides_h, $keep);
 		}
 	    });
 	}
@@ -1038,7 +1038,7 @@ sub _handle_diff_provides {
 #- side-effects: $properties, $keep
 #-   + those of set_rejected_and_compute_diff_provides ($state->{rejected}, $diff_provides_h)
 sub _handle_conflict {
-    my ($urpm, $state, $pkg, $p, $property, $name, $properties, $diff_provides_h, $keep) = @_;
+    my ($urpm, $state, $pkg, $p, $property, $reason, $properties, $diff_provides_h, $keep) = @_;
     
     $urpm->{debug_URPM}("installed package " . $p->fullname . " is conflicting with " . $pkg->fullname . " (Conflicts: $property)") if $urpm->{debug_URPM};
 
@@ -1053,7 +1053,7 @@ sub _handle_conflict {
 
     if (length $best) {
 	$urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
-	unshift @$properties, { required => $best, promote_conflicts => $name };
+	unshift @$properties, { required => $best, promote_conflicts => $reason };
     } else {
 	if ($keep) {
 	    push @$keep, scalar $p->fullname;
@@ -1062,7 +1062,7 @@ sub _handle_conflict {
 	    set_rejected_and_compute_diff_provides($urpm, $state, $diff_provides_h, {
 		rejected_pkg => $p, removed => 1,
 		from => $pkg,
-		why => { conflicts => $property },
+		why => { conflicts => $reason },
 	    });
 	}
     }
