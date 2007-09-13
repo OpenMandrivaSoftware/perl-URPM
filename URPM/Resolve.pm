@@ -764,10 +764,9 @@ sub resolve_requested__no_suggests_ {
 
 	    #- check if the package is not already installed before trying to use it, compute
 	    #- obsoleted packages too. This is valable only for non source packages.
+	    my %diff_provides_h;
 	    if ($pkg->arch ne 'src' && !$pkg->flag_disable_obsolete) {
-
-		push @diff_provides, map { +{ name => $_, pkg => $pkg } } 
-		  _unselect_package_deprecated_by($urpm, $db, $state, $pkg);
+		_unselect_package_deprecated_by($urpm, $db, $state, \%diff_provides_h, $pkg);
 	    }
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
@@ -804,6 +803,8 @@ sub resolve_requested__no_suggests_ {
 	    if (@keep) {
 		backtrack_selected_psel_keep($urpm, $db, $state, $pkg, \@keep);
 	    }
+
+	    push @diff_provides, map { +{ name => $_, pkg => $pkg } } keys %diff_provides_h;
 	}
 	if (my $diff = shift @diff_provides) {
 	    _handle_diff_provides($urpm, $db, $state, \@properties, $diff->{name}, $diff->{pkg}, %options);
@@ -865,11 +866,9 @@ sub _handle_conflicts {
 #- side-effects:
 #-   + those of _unselect_package_deprecated_by_property (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
 sub _unselect_package_deprecated_by {
-    my ($urpm, $db, $state, $pkg) = @_;
+    my ($urpm, $db, $state, $diff_provides_h, $pkg) = @_;
 
-    my %diff_provides;
-
-    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, \%diff_provides, $pkg->name, '<', $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release);
+    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, $diff_provides_h, $pkg->name, '<', $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release);
 
     foreach ($pkg->obsoletes) {
 	my ($n, $o, $v) = property2name_op_version($_) or next;
@@ -877,10 +876,9 @@ sub _unselect_package_deprecated_by {
 	#- ignore if this package obsoletes itself
 	#- otherwise this can cause havoc if: to_install=v3, installed=v2, v3 obsoletes < v2
 	if ($n ne $pkg->name) {
-	    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, \%diff_provides, $n, $o, $v);
+	    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, $diff_provides_h, $n, $o, $v);
 	}
     }
-    keys %diff_provides;
 }
 
 #- side-effects: $state->{oldpackage}, $state->{unselected_uninstalled}
@@ -888,7 +886,7 @@ sub _unselect_package_deprecated_by {
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
 sub _unselect_package_deprecated_by_property {
-    my ($urpm, $db, $state, $pkg, $diff_provides, $n, $o, $v) = @_;
+    my ($urpm, $db, $state, $pkg, $diff_provides_h, $n, $o, $v) = @_;
 
     #- populate avoided entries according to what is selected.
     foreach my $p ($urpm->packages_providing($n)) {
@@ -950,28 +948,29 @@ sub _unselect_package_deprecated_by_property {
 	$obsoleted or ++$state->{oldpackage};
 
 	#- diff_provides on obsoleted provides are needed.
-	_compute_diff_provides_of_removed_pkg($urpm, $state, $diff_provides, $p);
+	_compute_diff_provides_of_removed_pkg($urpm, $state, $diff_provides_h, $p);
     });
 }
 
 #- side-effects: $diff_provides
 sub _compute_diff_provides_of_removed_pkg {
-    my ($urpm, $state, $diff_provides, $p) = @_;
+    my ($urpm, $state, $diff_provides_h, $p) = @_;
 
 	foreach ($p->provides) {
 	    #- check differential provides between obsoleted package and newer one.
 	    my ($pn, $ps) = property2name_range($_) or next;
 
-	    $diff_provides->{$pn} = undef;
+	    my $not_provided = 1;
 	    foreach (grep { exists $state->{selected}{$_} }
 		       keys %{$urpm->{provides}{$pn} || {}}) {
 		my $pp = $urpm->{depslist}[$_];
 		foreach ($pp->provides) {
 		    my ($ppn, $pps) = property2name_range($_) or next;
 		    $ppn eq $pn && $pps eq $ps
-		      and delete $diff_provides->{$pn};
+		      and $not_provided = 0;
 		}
 	    }
+	    $not_provided and $diff_provides_h->{$pn} = undef;
 	}
 }
 
