@@ -710,7 +710,7 @@ sub resolve_requested__no_suggests {
 #-
 #- side-effects: $state->{selected}, flag_required, flag_installed, flag_upgrade
 #-   + those of backtrack_selected     (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{backtrack})
-#-   + those of _compute_diff_provides (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
+#-   + those of _unselect_package_deprecated_by (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
 #-   + those of _handle_conflicts      ($state->{rejected})
 #-   + those of _handle_provides_overlap ($state->{rejected})
 #-   + those of backtrack_selected_psel_keep (flag_requested, $state->{whatrequires})
@@ -767,7 +767,7 @@ sub resolve_requested__no_suggests_ {
 	    if ($pkg->arch ne 'src' && !$pkg->flag_disable_obsolete) {
 
 		push @diff_provides, map { +{ name => $_, pkg => $pkg } } 
-		  _compute_diff_provides($urpm, $db, $state, $pkg);
+		  _unselect_package_deprecated_by($urpm, $db, $state, $pkg);
 	    }
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
@@ -863,13 +863,13 @@ sub _handle_conflicts {
 }
 
 #- side-effects:
-#-   + those of _compute_diff_provides (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
-sub _compute_diff_provides {
+#-   + those of _unselect_package_deprecated_by (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
+sub _unselect_package_deprecated_by {
     my ($urpm, $db, $state, $pkg) = @_;
 
     my %diff_provides;
 
-    _compute_diff_provides_one($urpm, $db, $state, $pkg, \%diff_provides, $pkg->name, '<', $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release);
+    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, \%diff_provides, $pkg->name, '<', $pkg->epoch . ":" . $pkg->version . "-" . $pkg->release);
 
     foreach ($pkg->obsoletes) {
 	my ($n, $o, $v) = property2name_op_version($_) or next;
@@ -877,7 +877,7 @@ sub _compute_diff_provides {
 	#- ignore if this package obsoletes itself
 	#- otherwise this can cause havoc if: to_install=v3, installed=v2, v3 obsoletes < v2
 	if ($n ne $pkg->name) {
-	    _compute_diff_provides_one($urpm, $db, $state, $pkg, \%diff_provides, $n, $o, $v);
+	    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, \%diff_provides, $n, $o, $v);
 	}
     }
     keys %diff_provides;
@@ -887,7 +887,7 @@ sub _compute_diff_provides {
 #-   + those of set_rejected ($state->{rejected})
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
-sub _compute_diff_provides_one {
+sub _unselect_package_deprecated_by_property {
     my ($urpm, $db, $state, $pkg, $diff_provides, $n, $o, $v) = @_;
 
     #- populate avoided entries according to what is selected.
