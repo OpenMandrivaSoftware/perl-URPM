@@ -950,6 +950,14 @@ sub _unselect_package_deprecated_by_property {
 	$obsoleted or ++$state->{oldpackage};
 
 	#- diff_provides on obsoleted provides are needed.
+	_compute_diff_provides_of_removed_pkg($urpm, $state, $diff_provides, $p);
+    });
+}
+
+#- side-effects: $diff_provides
+sub _compute_diff_provides_of_removed_pkg {
+    my ($urpm, $state, $diff_provides, $p) = @_;
+
 	foreach ($p->provides) {
 	    #- check differential provides between obsoleted package and newer one.
 	    my ($pn, $ps) = property2name_range($_) or next;
@@ -965,7 +973,6 @@ sub _unselect_package_deprecated_by_property {
 		}
 	    }
 	}
-    });
 }
 
 #- side-effects: $properties
