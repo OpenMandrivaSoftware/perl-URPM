@@ -738,7 +738,7 @@ sub resolve_requested__no_suggests_ {
     do {
 	while (my $dep = shift @properties) {
 	    #- we need to avoid selecting packages if the source has been disabled.
-	    if (exists $dep->{from}) {
+	    if (exists $dep->{from} && !$urpm->{keep_unrequested_dependencies}) {
 		exists $state->{selected}{$dep->{from}->id} or next;
 	    }
 
@@ -1155,6 +1155,7 @@ sub disable_selected {
 	}
 
 	#- the package being examined has to be unselected.
+	$urpm->{debug_URPM}("unselecting " . $pkg->fullname) if $urpm->{debug_URPM};
 	$pkg->set_flag_requested(0);
 	$pkg->set_flag_required(0);
 	delete $state->{selected}{$pkg->id};
@@ -1198,6 +1199,10 @@ sub disable_selected_and_unrequested_dependencies {
 
 	#- keep in the packages that had to be unselected.
 	@all_unselected or push @all_unselected, @unselected;
+
+	if ($urpm->{keep_unrequested_dependencies}) {
+	    last;
+	}
 
 	#- search for unrequested required packages.
 	foreach (@unselected) {

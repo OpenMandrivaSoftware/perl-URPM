@@ -1,4 +1,7 @@
 - fix bug occurring with --keep
+- fix regression in 2.00: keep_unrequested_dependencies is still used by
+  installer. restore it, but must now be set trough
+  $urpm->{keep_unrequested_dependencies}
 
 Version 2.00 - 13 September 2007, by Pascal "Pixel" Rigaux
 
