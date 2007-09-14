@@ -222,7 +222,7 @@ sub _score_for_locales {
     my @r = $pkg->requires_nosense;
 
     if (my ($specific_locales) = grep { /locales-(?!en)/ } @r) {
-	if ((grep { $urpm->{depslist}[$_]->flag_available } keys %{$urpm->{provides}{$specific_locales}}) > 0 ||
+	if ((grep { $_->flag_available } $urpm->packages_providing($specific_locales)) > 0 ||
 	      $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
 	      3; # good locale
 	  } else {
