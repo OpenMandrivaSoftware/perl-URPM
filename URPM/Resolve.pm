@@ -405,14 +405,11 @@ sub backtrack_selected {
 		    exists $state->{backtrack}{selected}{$_->id} and next;
 		    #- a package if found is problably rejected or there is a problem.
 		    if ($state->{rejected}{$_->fullname}) {
-			    #- keep in mind a backtrack has happening here...
-			    _add_rejected_backtrack($state, $_, { 
-				exists $dep->{promote} ? (promote => [ $dep->{promote} ]) : @{[]},
-				exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
-			      });
-			    #- backtrack callback should return a strictly positive value if the selection of the new
-			    #- package is prefered over the currently selected package.
-			    next;
+			#- keep in mind a backtrack has happening here...
+			exists $dep->{promote} and _add_rejected_backtrack($state, $_, { promote => [ $dep->{promote} ] });
+			#- backtrack callback should return a strictly positive value if the selection of the new
+			#- package is prefered over the currently selected package.
+			next;
 		    }
 		    $state->{backtrack}{selected}{$_->id} = undef;
 
