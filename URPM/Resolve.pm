@@ -82,6 +82,13 @@ sub strict_arch_check {
     1;
 }
 
+sub _is_selected_or_installed {
+    my ($urpm, $db, $name) = @_;
+
+    (grep { $_->flag_available } $urpm->packages_providing($name)) > 0 ||
+      $db->traverse_tag('name', [ $name ], undef) > 0;
+}
+
 # deprecated function name
 sub find_chosen_packages { &find_required_package }
 
@@ -222,8 +229,7 @@ sub _score_for_locales {
     my @r = $pkg->requires_nosense;
 
     if (my ($specific_locales) = grep { /locales-(?!en)/ } @r) {
-	if ((grep { $_->flag_available } $urpm->packages_providing($specific_locales)) > 0 ||
-	      $db->traverse_tag('name', [ $specific_locales ], undef) > 0) {
+	if (_is_selected_or_installed($urpm, $db, $specific_locales)) {
 	      3; # good locale
 	  } else {
 	      0; # bad locale
