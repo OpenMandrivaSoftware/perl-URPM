@@ -1,3 +1,6 @@
+- choose every kernel-<flavor>-devel-<version> packages when
+  kernel-<flavor>-<version> is selected
+
 Version 2.01 - 14 September 2007, by Pascal "Pixel" Rigaux
 
 - fix bug occurring with --keep

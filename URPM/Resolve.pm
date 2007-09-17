@@ -182,17 +182,30 @@ sub _find_required_package__sort {
 	}
 
 	#- prefer kernel-source-stripped over kernel-source
-	{
-	    my (@k_chosen, $stripped_kernel);
-	    foreach my $p (@chosen) {
-		if ($p->name =~ /^kernel-source-stripped/) { #- fast, but unportable
-		    unshift @k_chosen, $p;
-		    $stripped_kernel = 1;
+        if ($chosen[0]->name =~ /^kernel-(.*source-|.*-devel-)/) {
+
+	    my @l = grep {
+		if ($_->name =~ /^kernel-.*source-stripped-(.*)/) {
+		    my $version = quotemeta($1);
+		    find {
+			$_->name =~ /-$version$/ && ($_->flag_installed || $_->flag_selected);
+		    } $urpm->packages_providing('kernel');
+		} elsif ($_->name =~ /(kernel-.*)-devel-(.*)/) {
+		    my $kernel = "$1-$2";
+		    _is_selected_or_installed($urpm, $db, $kernel);
+		} elsif ($_->name =~ /^kernel-.*source-/) {
+		    #- hopefully we don't have a media with kernel-source but not kernel-source-stripped nor kernel-.*-devel
+		    0;
 		} else {
-		    push @k_chosen, $p;
+		    $urpm->{debug_URPM}("unknown kernel-source package " . $_->fullname) if $urpm->{debug_URPM};
+		    0;
 		}
+	    } @chosen;
+
+	    if (@l) {
+		$urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @l) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
+		return \@l, \@l;
 	    }
-	    return \@k_chosen if $stripped_kernel;
 	}
 
     if ($urpm->{media}) {
