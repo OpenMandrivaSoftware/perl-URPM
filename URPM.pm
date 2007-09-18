@@ -212,6 +212,15 @@ upgrade:	  ${\($pkg->flag_upgrade)}
 EODUMP
 }
 
+my %arch_cache;
+sub is_arch_compat {
+    my ($pkg) = @_;
+    my $arch = $pkg->arch;
+    exists $arch_cache{$arch} and return $arch_cache{$arch};
+
+    $arch_cache{$arch} = is_arch_compat__XS($pkg);
+}
+
 package URPM::Transaction;
 our @ISA = qw(); # help perl_checker
 
