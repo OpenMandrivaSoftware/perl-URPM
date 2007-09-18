@@ -1087,7 +1087,7 @@ sub _handle_conflict {
 #- side-effects: none
 sub _dep_to_name {
     my ($urpm, $dep) = @_;
-    _id_to_name($urpm, $dep->{required});
+    join('|', map { _id_to_name($urpm, $_) } split('\|', $dep->{required}));
 }
 #- side-effects: none
 sub _id_to_name {
