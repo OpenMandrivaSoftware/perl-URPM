@@ -1,6 +1,6 @@
 Version 2.02 - 18 September 2007, by Pascal "Pixel" Rigaux
 
-- choose every kernel-<flavor>-devel-<version> packages when
+- prefer every kernel-<flavor>-devel-<version> packages for which
   kernel-<flavor>-<version> is selected
 - fix regression in 2.00: we can't cache the platform, cache the result of
   is_arch_compat instead
