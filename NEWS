@@ -1,3 +1,5 @@
+- fix bug doing "urpmi kernel-source"
+
 Version 2.02 - 18 September 2007, by Pascal "Pixel" Rigaux
 
 - prefer every kernel-<flavor>-devel-<version> packages for which

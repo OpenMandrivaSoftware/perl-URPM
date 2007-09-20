@@ -9,6 +9,11 @@ use Config;
 
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
+sub find(&@) {
+    my $f = shift;
+    $f->($_) and return $_ foreach @_;
+    undef;
+}
 
 sub property2name {
     $_[0] =~ /^([^\s\[]*)/ && $1;
@@ -297,11 +302,6 @@ sub _choose_required {
     $pkg;
 }
 
-sub find(&@) {
-    my $f = shift;
-    $f->($_) and return $_ foreach @_;
-    undef;
-}
 sub pkg2media {
    my ($mediums, $p) = @_; 
    my $id = $p->id;
