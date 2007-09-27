@@ -1011,14 +1011,15 @@ sub _handle_diff_provides {
 	#- there is no need to avoid promoting epoch as the package examined is not
 	#- already installed.
 	my @packages = find_candidate_packages_($urpm, $p->name, $state->{rejected});
-	my $best = join '|', map { $_->id }
+	@packages = 
 	  grep { ($_->name eq $p->name ||
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
 		   && $_->fullname ne $p->fullname &&
 		     unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0 }
 	    @packages;
 
-	if (length $best) {
+	if (@packages) {
+	    my $best = join('|', map { $_->id } @packages);
 	    $urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
 	    push @$properties, { required => $best, promote => $n, psel => $pkg };
 	} else {
