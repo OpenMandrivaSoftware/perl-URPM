@@ -1028,10 +1028,9 @@ sub _handle_diff_provides {
 	    my @best;
 	    foreach (@l) {
 		my @packages = find_candidate_packages_($urpm, $_, $state->{rejected});
-		$best = join('|', map { $_->id }
-			          grep { $_->fullname ne $p->fullname }
-				  @packages);
-		$best and push @best, $best;
+		if (@packages = grep { $_->fullname ne $p->fullname } @packages) {
+		    push @best, join('|', map { $_->id } @packages);
+		}
 	    }
 
 	    if (@best == @l) {
