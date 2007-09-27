@@ -803,12 +803,11 @@ pack_header(URPM__Package pkg) {
   }
 }
 
-static void
-update_provide_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
+static SV** update_hash_entry(HV *hash, char *name, STRLEN len, int force) {
   SV** isv;
 
   if (!len) len = strlen(name);
-  if ((isv = hv_fetch(provides, name, len, force))) {
+  if ((isv = hv_fetch(hash, name, len, force))) {
     /* check if an entry has been found or created, it should so be updated */
     if (!SvROK(*isv) || SvTYPE(SvRV(*isv)) != SVt_PVHV) {
       SV* choice_set = (SV*)newHV();
@@ -820,13 +819,24 @@ update_provide_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Pack
 	}
       }
     }
+    return isv;
+  } else {
+    return NULL;
+  }
+}
+
+static void
+update_provide_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
+  SV** isv;
+
+  isv = update_hash_entry(provides, name, len, force);
+
     if (isv && *isv != &PL_sv_undef) {
       char id[8];
       STRLEN id_len = snprintf(id, sizeof(id), "%d", pkg->flag & FLAG_ID);
       SV **sense = hv_fetch((HV*)SvRV(*isv), id, id_len, 1);
       if (sense && use_sense) sv_setiv(*sense, use_sense);
     }
-  }
 }
 
 static void
