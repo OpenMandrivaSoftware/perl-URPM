@@ -803,7 +803,8 @@ pack_header(URPM__Package pkg) {
   }
 }
 
-static SV** update_hash_entry(HV *hash, char *name, STRLEN len, int force) {
+static void
+update_hash_entry(HV *hash, char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg) {
   SV** isv;
 
   if (!len) len = strlen(name);
@@ -819,24 +820,18 @@ static SV** update_hash_entry(HV *hash, char *name, STRLEN len, int force) {
 	}
       }
     }
-    return isv;
-  } else {
-    return NULL;
-  }
-}
-
-static void
-update_provide_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
-  SV** isv;
-
-  isv = update_hash_entry(provides, name, len, force);
-
     if (isv && *isv != &PL_sv_undef) {
       char id[8];
       STRLEN id_len = snprintf(id, sizeof(id), "%d", pkg->flag & FLAG_ID);
       SV **sense = hv_fetch((HV*)SvRV(*isv), id, id_len, 1);
       if (sense && use_sense) sv_setiv(*sense, use_sense);
     }
+  }
+}
+
+static void
+update_provides_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
+  update_hash_entry(provides, name, len, force, use_sense, pkg);
 }
 
 static void
