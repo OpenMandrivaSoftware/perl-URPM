@@ -830,7 +830,7 @@ update_hash_entry(HV *hash, char *name, STRLEN len, int force, IV use_sense, URP
 }
 
 static void
-update_provides_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
+update_provide_entry(char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
   update_hash_entry(provides, name, len, force, use_sense, pkg);
 }
 
