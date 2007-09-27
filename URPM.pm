@@ -19,6 +19,7 @@ sub new {
     my $self = bless {
 	depslist => [],
 	provides => {},
+	obsoletes => {},
     }, $class;
     $self->{nofatal} = 1 if $options{nofatal};
     $self;
@@ -29,6 +30,11 @@ sub set_nofatal { $_[0]{nofatal} = $_[1] }
 sub packages_providing {
     my ($urpm, $name) = @_;
     map { $urpm->{depslist}[$_] } keys %{$urpm->{provides}{$name} || {}};
+}
+
+sub packages_obsoleting {
+    my ($urpm, $name) = @_;
+    map { $urpm->{depslist}[$_] } keys %{$urpm->{obsoletes}{$name} || {}};
 }
 
 sub packages_by_name {

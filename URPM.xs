@@ -897,6 +897,36 @@ update_provides(URPM__Package pkg, HV *provides) {
 }
 
 static void
+update_obsoletes(URPM__Package pkg, HV *obsoletes) {
+  if (pkg->h) {
+    int_32 type, count;
+    char **list = NULL;
+    int i;
+
+    /* update all provides */
+    headerGetEntry(pkg->h, RPMTAG_OBSOLETENAME, &type, (void **) &list, &count);
+    if (list)
+      for (i = 0; i < count; ++i)
+	update_hash_entry(obsoletes, list[i], 0, 1, 0, pkg);
+  } else {
+    char *ps, *s;
+
+    if ((s = pkg->obsoletes) != NULL && *s != 0) {
+      char *es;
+
+      ps = strchr(s, '@');
+      while(ps != NULL) {
+	*ps = 0; es = strchr(s, '['); if (!es) es = strchr(s, ' '); *ps = '@';
+	update_hash_entry(obsoletes, s, es != NULL ? es-s : ps-s, 1, 0, pkg);
+	s = ps + 1; ps = strchr(s, '@');
+      }
+      es = strchr(s, '['); if (!es) es = strchr(s, ' ');
+      update_hash_entry(obsoletes, s, es != NULL ? es-s : 0, 1, 0, pkg);
+    }
+  }
+}
+
+static void
 update_provides_files(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     STRLEN len;
@@ -1047,7 +1077,7 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
 }
 
 static int
-parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, SV *callback) {
+parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *buff, SV *urpm, SV *callback) {
   SV *sv_pkg;
   URPM__Package _pkg;
   char *tag, *data;
@@ -1066,6 +1096,7 @@ parse_line(AV *depslist, HV *provides, URPM__Package pkg, char *buff, SV *urpm, 
 			    _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package)));
       if (call_package_callback(urpm, sv_pkg, callback)) {
 	if (provides) update_provides(_pkg, provides);
+	if (obsoletes) update_obsoletes(_pkg, obsoletes);
 	av_push(depslist, sv_pkg);
       }
       memset(pkg, 0, sizeof(struct s_Package));
@@ -3250,6 +3281,8 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
     AV *depslist = fdepslist && SvROK(*fdepslist) && SvTYPE(SvRV(*fdepslist)) == SVt_PVAV ? (AV*)SvRV(*fdepslist) : NULL;
     SV **fprovides = hv_fetch((HV*)SvRV(urpm), "provides", 8, 0);
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
+    SV **fobsoletes = hv_fetch((HV*)SvRV(urpm), "obsoletes", 9, 0);
+    HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
 
     if (depslist != NULL) {
       char buff[65536];
@@ -3285,7 +3318,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	  if ((eol = strchr(p, '\n')) != NULL) {
 	    do {
 	      *eol++ = 0;
-	      if (!parse_line(depslist, provides, &pkg, p, urpm, callback)) { ok = 0; break; }
+	      if (!parse_line(depslist, provides, obsoletes, &pkg, p, urpm, callback)) { ok = 0; break; }
 	      p = eol;
 	    } while ((eol = strchr(p, '\n')) != NULL);
 	  } else {
@@ -3295,7 +3328,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	    break;
 	  }
 	  if (gzeof(f)) {
-	    if (!parse_line(depslist, provides, &pkg, p, urpm, callback)) ok = 0;
+	    if (!parse_line(depslist, provides, obsoletes, &pkg, p, urpm, callback)) ok = 0;
 	    break;
 	  } else {
 	    /* move the remaining non-complete-line at beginning */
@@ -3331,6 +3364,8 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
     AV *depslist = fdepslist && SvROK(*fdepslist) && SvTYPE(SvRV(*fdepslist)) == SVt_PVAV ? (AV*)SvRV(*fdepslist) : NULL;
     SV **fprovides = hv_fetch((HV*)SvRV(urpm), "provides", 8, 0);
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
+    SV **fobsoletes = hv_fetch((HV*)SvRV(urpm), "obsoletes", 9, 0);
+    HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
 
     if (depslist != NULL) {
       pid_t pid = 0;
@@ -3385,6 +3420,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 		update_provides(_pkg, provides);
 		update_provides_files(_pkg, provides);
 	      }
+	      if (obsoletes) update_obsoletes(_pkg, obsoletes);
 	      if (packing) pack_header(_pkg);
 	      av_push(depslist, sv_pkg);
 	    }
@@ -3425,6 +3461,8 @@ Urpm_parse_rpm(urpm, filename, ...)
     AV *depslist = fdepslist && SvROK(*fdepslist) && SvTYPE(SvRV(*fdepslist)) == SVt_PVAV ? (AV*)SvRV(*fdepslist) : NULL;
     SV **fprovides = hv_fetch((HV*)SvRV(urpm), "provides", 8, 0);
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
+    SV **fobsoletes = hv_fetch((HV*)SvRV(urpm), "obsoletes", 8, 0);
+    HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
 
     if (depslist != NULL) {
       struct s_Package pkg, *_pkg;
@@ -3487,6 +3525,7 @@ Urpm_parse_rpm(urpm, filename, ...)
 	    update_provides(_pkg, provides);
 	    update_provides_files(_pkg, provides);
 	  }
+	  if (obsoletes) update_obsoletes(_pkg, obsoletes);
 	  if (packing) pack_header(_pkg);
 	  av_push(depslist, sv_pkg);
 	}

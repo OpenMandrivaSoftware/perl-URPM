@@ -1018,6 +1018,18 @@ sub _handle_diff_provides {
 		     unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0 }
 	    @packages;
 
+	if (!@packages) {
+	    @packages = packages_obsoleting($urpm, $p->name);
+	    @packages = grep {
+		!$_->flag_skip
+		  && $_->is_arch_compat
+		    && !exists $state->{rejected}->{$_->fullname}
+		      && $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release)
+			&& $_->fullname ne $p->fullname &&
+			  unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0;
+	    } @packages;
+	}
+
 	if (@packages) {
 	    my $best = join('|', map { $_->id } @packages);
 	    $urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};

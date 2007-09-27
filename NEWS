@@ -1,3 +1,5 @@
+- handle promotion via obsolete, not only provides
+
 Version 2.03 - 20 September 2007, by Pascal "Pixel" Rigaux
 
 - fix bug doing "urpmi kernel-source"
