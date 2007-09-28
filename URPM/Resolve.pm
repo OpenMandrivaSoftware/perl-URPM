@@ -1002,7 +1002,7 @@ sub _no_unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, $n) = @_;
 
     my @l = unsatisfied_requires($urpm, $db, $state, $pkg, name => $n);
-    @l and $urpm->{debug_URPM}("not promoting " . $pkg->fullname . " because of @l") if $urpm->{debug_URPM};
+    @l and $urpm->{debug_URPM}("  (not promoting " . $pkg->fullname . " because of @l)") if $urpm->{debug_URPM};
     @l == 0;
 }
 
