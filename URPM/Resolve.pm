@@ -73,9 +73,13 @@ sub get_installed_arch {
     $arch;
 }
 
+sub strict_arch {
+    my ($urpm) = @_;
+    defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /x86_64|sparc64|ppc64/;
+}
 my %installed_arch;
 #- side-effects: none (but uses a cache)
-sub strict_arch_check {
+sub strict_arch_check_installed {
     my ($db, $pkg) = @_;
     if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
 	my $n = $pkg->name;
@@ -97,11 +101,11 @@ sub _is_selected_or_installed {
 # deprecated function name
 sub find_chosen_packages { &find_required_package }
 
-#- side-effects: flag_install, flag_upgrade (and strict_arch_check cache)
+#- side-effects: flag_install, flag_upgrade (and strict_arch_check_installed cache)
 sub find_required_package {
     my ($urpm, $db, $state, $id_prop) = @_;
     my %packages;
-    my $strict_arch = defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /x86_64|sparc64|ppc64/;
+    my $strict_arch = strict_arch($urpm);
 
     my $may_add_to_packages = sub {
 	my ($pkg) = @_;
@@ -122,7 +126,7 @@ sub find_required_package {
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this package is better than a possibly previously chosen package.
 	    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return [$pkg];
-	    !$strict_arch || strict_arch_check($db, $pkg) or next;
+	    !$strict_arch || strict_arch_check_installed($db, $pkg) or next;
 	    $may_add_to_packages->($pkg);
 	} elsif (my $name = property2name($_)) {
 	    my $property = $_;
@@ -134,7 +138,7 @@ sub find_required_package {
 		if (!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)) {
 		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return [$pkg];
-		    !$strict_arch || strict_arch_check($db, $pkg) or next;
+		    !$strict_arch || strict_arch_check_installed($db, $pkg) or next;
 		    $may_add_to_packages->($pkg);		    
 		}
 	    }
