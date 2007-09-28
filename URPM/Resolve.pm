@@ -1641,9 +1641,17 @@ sub _sort_by_dependencies__add_obsolete_edges {
 
     my @obsoletes = grep { $_->{obsoleted} } values %{$state->{rejected}} or return;
     my @groups = grep { @$_ > 1 } map { [ keys %{$_->{closure}} ] } @obsoletes;
+    my %groups;
+    foreach my $group (@groups) {
+	_add_group(\%groups, $group);
+	foreach (@$group) {
+	    my $rej = $state->{rejected}{$_} or next;
+	    _add_group(\%groups, [ $_, keys %{$rej->{closure}} ]);
+	}
+    }
 
     my %fullnames = map { scalar($urpm->{depslist}[$_]->fullname) => $_ } @$l;
-    foreach my $group (@groups) {
+    foreach my $group (uniq(values %groups)) {
 	my @group = grep { defined $_ } map { $fullnames{$_} } @$group;
 	foreach (@group) {
 	    @{$requires->{$_}} = uniq(@{$requires->{$_}}, @group);
