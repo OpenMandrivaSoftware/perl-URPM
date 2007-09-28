@@ -55,6 +55,9 @@ sub find_candidate_packages_ {
     }
     @packages;
 }
+
+#- deprecated
+#-
 #- side-effects: none
 sub find_candidate_packages {
     my ($urpm, $id_prop, $o_rejected) = @_;
@@ -1097,13 +1100,12 @@ sub _handle_conflict {
     #- whether a newer version will be ok, else ask to remove the old.
     my $need_deps = $p->name . " > " . ($p->epoch ? $p->epoch . ":" : "") .
       $p->version . "-" . $p->release;
-    my $packages = find_candidate_packages($urpm, $need_deps, $state->{rejected});
-    my $best = join('|', map { $_->id }
-		      grep { ! $_->provides_overlap($property) }
-			@{$packages->{$p->name}});
+    my @packages = grep { $_->name eq $p->name } find_candidate_packages_($urpm, $need_deps, $state->{rejected});
+    @packages = grep { ! $_->provides_overlap($property) } @packages;
 
-    if (length $best) {
-	$urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
+    if (@packages) {
+	my $best = join('|', map { $_->id } @packages);
+	$urpm->{debug_URPM}("promoting " . join('|', map { scalar $_->fullname } @packages) . " because of conflict above") if $urpm->{debug_URPM};
 	unshift @$properties, { required => $best, promote_conflicts => $reason };
     } else {
 	if ($keep) {
