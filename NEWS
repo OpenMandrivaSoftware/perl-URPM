@@ -1,3 +1,5 @@
+Version 2.05 - 28 September 2007, by Pascal "Pixel" Rigaux
+
 - package promotion must respect strict_arch
 - enhance sorted graph by better taking into account conflicts from state->{rejected}
   (fixes "big transaction" in urpmi split-transactions--strict-require.t test)
