@@ -1012,10 +1012,9 @@ sub _handle_diff_provides {
 	#- already installed.
 	my @packages = find_candidate_packages_($urpm, $p->name, $state->{rejected});
 	@packages = 
-	  grep { ($_->name eq $p->name ||
+	  grep { ($_->name eq $p->name ? $_->fullname ne $p->fullname :
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
-		   && $_->fullname ne $p->fullname &&
-		     unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0 }
+		   && unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0 }
 	    @packages;
 
 	if (!@packages) {
