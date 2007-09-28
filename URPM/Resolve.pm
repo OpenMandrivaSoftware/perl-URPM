@@ -1023,6 +1023,20 @@ sub _no_unsatisfied_requires {
     @l == 0;
 }
 
+#- side-effects: none
+sub _find_packages_obsoleting {
+    my ($urpm, $state, $p) = @_;
+
+    grep {
+	!$_->flag_skip
+	  && $_->is_arch_compat
+	    && !exists $state->{rejected}->{$_->fullname}
+	      && $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release)
+		&& $_->fullname ne $p->fullname
+		  && (!strict_arch($urpm) || strict_arch_check($p, $_));
+    } packages_obsoleting($urpm, $p->name);
+}
+
 #- side-effects: $properties
 #-   + those of backtrack_selected_psel_keep ($state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 #-   + those of resolve_rejected_ ($state->{rejected}, $properties)
@@ -1044,15 +1058,9 @@ sub _handle_diff_provides {
 	     } @packages;
 
 	if (!@packages) {
-	    @packages = packages_obsoleting($urpm, $p->name);
+	    @packages = _find_packages_obsoleting($urpm, $state, $p);
 	    @packages = grep {
-		!$_->flag_skip
-		  && $_->is_arch_compat
-		    && !exists $state->{rejected}->{$_->fullname}
-		      && $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release)
-			&& $_->fullname ne $p->fullname
-			&& (!strict_arch($urpm) || strict_arch_check($p, $_))
-			&& _no_unsatisfied_requires($urpm, $db, $state, $_, $n);
+		_no_unsatisfied_requires($urpm, $db, $state, $_, $n);
 	    } @packages;
 	}
 
