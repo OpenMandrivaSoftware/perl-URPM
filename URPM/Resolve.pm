@@ -1525,6 +1525,29 @@ sub reverse_multi_hash {
     \%r;
 }
 
+sub _merge_2_groups {
+    my ($groups, $l1, $l2) = @_;
+    my $l = [ @$l1, @$l2 ];
+    $groups->{$_} = $l foreach @$l;
+    $l;
+}
+sub _add_group {
+    my ($groups, $group) = @_;
+
+    my ($main, @other) = uniq(grep { $_ } map { $groups->{$_} } @$group);
+    $main ||= [];
+    if (@other) {
+	$main = _merge_2_groups($groups, $main, $_) foreach @other;
+    }
+    foreach (grep { !$groups->{$_} } @$group) {
+	$groups->{$_} ||= $main;
+	push @$main, $_;
+	my @l_ = uniq(@$main);
+	@l_ == @$main or die '';
+    }
+    # warn "# groups: ", join(' ', map { join('+', @$_) } uniq(values %$groups)), "\n";
+}
+
 #- nb: this handles $nodes list not containing all $nodes that can be seen in $edges
 #-
 #- side-effects: none
@@ -1536,28 +1559,6 @@ sub sort_graph {
 
     my %nodes_h = map { $_ => 1 } @$nodes;
     my (%loops, %added, @sorted);
-
-    my $merge_loops = sub {
-	my ($l1, $l2) = @_;
-	my $l = [ @$l1, @$l2 ];
-	$loops{$_} = $l foreach @$l;
-	$l;
-    };
-    my $add_loop = sub {
-	my (@ids) = @_;
-	my ($main, @other) = uniq(grep { $_ } map { $loops{$_} } @ids);
-	$main ||= [];
-	if (@other) {
-	    $main = $merge_loops->($main, $_) foreach @other;
-	}
-	foreach (grep { !$loops{$_} } @ids) {
-	    $loops{$_} ||= $main;
-	    push @$main, $_;
-	    my @l_ = uniq(@$main);
-	    @l_ == @$main or die '';
-	}
-#	warn "# loops: ", join(' ', map { join('+', @$_) } uniq(values %loops)), "\n";
-    };
 
     my $recurse; $recurse = sub {
 	my ($id, @ids) = @_;
@@ -1573,13 +1574,13 @@ sub sort_graph {
 		my $begin = 1;
 		my @l = grep { $begin &&= $_ != $p_id } @ids;
 		$loop_ahead = 1;
-		$add_loop->($p_id, $id, @l);
+		_add_group(\%loops, [ $p_id, $id, @l ]);
 	    } elsif ($loops{$p_id}) {
 		my $take;
 		if (my @l = grep { $take ||= $loops{$_} && $loops{$_} == $loops{$p_id} } reverse @ids) {
 		    $loop_ahead = 1;
 #		    warn "# loop to existing one $p_id, $id, @l\n";
-		    $add_loop->($p_id, $id, @l);
+		    _add_group(\%loops, [ $p_id, $id, @l ]);
 		}
 	    } else {
 		$recurse->($p_id, $id, @ids);
@@ -1643,7 +1644,7 @@ sub _sort_by_dependencies__add_obsolete_edges {
 
     my %fullnames = map { scalar($urpm->{depslist}[$_]->fullname) => $_ } @$l;
     foreach my $group (@groups) {
-	my @group = map { $fullnames{$_} } @$group;
+	my @group = grep { defined $_ } map { $fullnames{$_} } @$group;
 	foreach (@group) {
 	    @{$requires->{$_}} = uniq(@{$requires->{$_}}, @group);
 	}
