@@ -998,6 +998,14 @@ sub _compute_diff_provides_of_removed_pkg {
 	}
 }
 
+sub _no_unsatisfied_requires {
+    my ($urpm, $db, $state, $pkg, $n) = @_;
+
+    my @l = unsatisfied_requires($urpm, $db, $state, $pkg, name => $n);
+    @l and $urpm->{debug_URPM}("not promoting " . $pkg->fullname . " because of @l") if $urpm->{debug_URPM};
+    @l == 0;
+}
+
 #- side-effects: $properties
 #-   + those of backtrack_selected_psel_keep ($state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 #-   + those of resolve_rejected_ ($state->{rejected}, $properties)
@@ -1014,8 +1022,8 @@ sub _handle_diff_provides {
 	@packages = 
 	  grep { ($_->name eq $p->name ? $_->fullname ne $p->fullname :
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
-		   && unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0 }
-	    @packages;
+		   && _no_unsatisfied_requires($urpm, $db, $state, $_, $n) 
+	     } @packages;
 
 	if (!@packages) {
 	    @packages = packages_obsoleting($urpm, $p->name);
@@ -1025,7 +1033,7 @@ sub _handle_diff_provides {
 		    && !exists $state->{rejected}->{$_->fullname}
 		      && $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release)
 			&& $_->fullname ne $p->fullname &&
-			  unsatisfied_requires($urpm, $db, $state, $_, name => $n) == 0;
+			  _no_unsatisfied_requires($urpm, $db, $state, $_, $n);
 	    } @packages;
 	}
 
