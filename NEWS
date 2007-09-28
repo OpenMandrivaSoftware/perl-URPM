@@ -1,3 +1,5 @@
+- also handle promotion via obsolete for conflicts
+
 Version 2.05 - 28 September 2007, by Pascal "Pixel" Rigaux
 
 - package promotion must respect strict_arch

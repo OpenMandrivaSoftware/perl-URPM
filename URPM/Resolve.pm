@@ -1111,6 +1111,11 @@ sub _handle_conflict {
     my @packages = grep { $_->name eq $p->name } find_candidate_packages_($urpm, $need_deps, $state->{rejected});
     @packages = grep { ! $_->provides_overlap($property) } @packages;
 
+    if (!@packages) {
+	@packages = _find_packages_obsoleting($urpm, $state, $p);
+	@packages = grep { ! $_->provides_overlap($property) } @packages;
+    }
+
     if (@packages) {
 	my $best = join('|', map { $_->id } @packages);
 	$urpm->{debug_URPM}("promoting " . join('|', map { scalar $_->fullname } @packages) . " because of conflict above") if $urpm->{debug_URPM};
