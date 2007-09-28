@@ -90,6 +90,16 @@ sub strict_arch_check_installed {
     }
     1;
 }
+sub strict_arch_check {
+    my ($installed_pkg, $pkg) = @_;
+    if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
+	my $n = $pkg->name;
+	if ($installed_pkg->arch ne 'noarch') {
+	    $pkg->arch eq $installed_pkg->arch or return;
+	}
+    }
+    1;
+}
 
 sub _is_selected_or_installed {
     my ($urpm, $db, $name) = @_;
@@ -1026,6 +1036,7 @@ sub _handle_diff_provides {
 	@packages = 
 	  grep { ($_->name eq $p->name ? $_->fullname ne $p->fullname :
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
+		   && (!strict_arch($urpm) || strict_arch_check($p, $_))
 		   && _no_unsatisfied_requires($urpm, $db, $state, $_, $n) 
 	     } @packages;
 
@@ -1036,8 +1047,9 @@ sub _handle_diff_provides {
 		  && $_->is_arch_compat
 		    && !exists $state->{rejected}->{$_->fullname}
 		      && $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release)
-			&& $_->fullname ne $p->fullname &&
-			  _no_unsatisfied_requires($urpm, $db, $state, $_, $n);
+			&& $_->fullname ne $p->fullname
+			&& (!strict_arch($urpm) || strict_arch_check($p, $_))
+			&& _no_unsatisfied_requires($urpm, $db, $state, $_, $n);
 	    } @packages;
 	}
 
