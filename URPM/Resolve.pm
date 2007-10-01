@@ -171,6 +171,11 @@ sub find_required_package {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 	}
 
+	if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@chosen)) {
+	    $urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
+	    return \@kernel_source, \@kernel_source;
+	}
+
 	_find_required_package__sort($urpm, $db, \@packages);
     } else {
 	\@packages;
@@ -202,11 +207,6 @@ sub _find_required_package__sort {
 	if (!$urpm->{options}{morechoices} && $chosen_with_score[0][2] == 3) {
 	    return [ $chosen[0] ];
 	}
-
-    if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@chosen)) {
-	$urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
-	return \@kernel_source, \@kernel_source;
-    }
 
     if ($urpm->{media}) {
 	@chosen_with_score = sort {
