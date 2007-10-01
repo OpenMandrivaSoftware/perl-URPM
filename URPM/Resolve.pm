@@ -171,9 +171,13 @@ sub find_required_package {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 	}
 
-	if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@chosen)) {
-	    $urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
+	if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@packages)) {
+	    $urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @packages)) if $urpm->{debug_URPM};
 	    return \@kernel_source, \@kernel_source;
+	}
+	if (my @kmod = _find_required_package__kmod($urpm, $db, \@packages)) {
+	    $urpm->{debug_URPM}("packageCallbackChoices: kmod packages " . join(",", map { $_->name } @kmod) . " in " . join(",", map { $_->name } @packages)) if $urpm->{debug_URPM};
+	    return \@kmod, \@kmod;
 	}
 
 	_find_required_package__sort($urpm, $db, \@packages);
@@ -233,10 +237,10 @@ sub _find_required_package__sort {
     [ map { $_->[0] } @chosen_with_score ], [ map { $_->[0] } @prefered ];
 }
 
+#- prefer the pkgs corresponding to installed/selected kernels
 sub _find_required_package__kernel_source {
     my ($urpm, $db, $choices) = @_;
 
-    #- prefer kernel-source-stripped over kernel-source
     $choices->[0]->name =~ /^kernel-(.*source-|.*-devel-)/ or return;
 
     my @l = grep {
@@ -253,6 +257,23 @@ sub _find_required_package__kernel_source {
 	    0;
 	} else {
 	    $urpm->{debug_URPM}("unknown kernel-source package " . $_->fullname) if $urpm->{debug_URPM};
+	    0;
+	}
+    } @$choices;
+}
+
+#- prefer the pkgs corresponding to installed/selected kernels
+sub _find_required_package__kmod {
+    my ($urpm, $db, $choices) = @_;
+
+    $choices->[0]->name =~ /-kernel-2\./ or return;
+
+    my @l = grep {
+	if (my ($name, $version, $flavor, $release) = $_->name =~ /(.*)-kernel-(2\..*)-(.*)-(.*)/) {
+	    my $kernel = "kernel-$flavor-$version-$release";
+	    _is_selected_or_installed($urpm, $db, $kernel);
+	} else {
+	    $urpm->{debug_URPM}("unknown kmod package " . $_->fullname) if $urpm->{debug_URPM};
 	    0;
 	}
     } @$choices;
