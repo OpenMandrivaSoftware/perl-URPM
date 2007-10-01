@@ -203,10 +203,10 @@ sub _find_required_package__sort {
 	    return [ $chosen[0] ];
 	}
 
-        if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@chosen)) {
-	    $urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
-	    return \@kernel_source, \@kernel_source;
-	}
+    if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@chosen)) {
+	$urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
+	return \@kernel_source, \@kernel_source;
+    }
 
     if ($urpm->{media}) {
 	@chosen_with_score = sort {
