@@ -203,31 +203,9 @@ sub _find_required_package__sort {
 	    return [ $chosen[0] ];
 	}
 
-	#- prefer kernel-source-stripped over kernel-source
-        if ($chosen[0]->name =~ /^kernel-(.*source-|.*-devel-)/) {
-
-	    my @l = grep {
-		if ($_->name =~ /^kernel-.*source-stripped-(.*)/) {
-		    my $version = quotemeta($1);
-		    find {
-			$_->name =~ /-$version$/ && ($_->flag_installed || $_->flag_selected);
-		    } $urpm->packages_providing('kernel');
-		} elsif ($_->name =~ /(kernel-.*)-devel-(.*)/) {
-		    my $kernel = "$1-$2";
-		    _is_selected_or_installed($urpm, $db, $kernel);
-		} elsif ($_->name =~ /^kernel-.*source-/) {
-		    #- hopefully we don't have a media with kernel-source but not kernel-source-stripped nor kernel-.*-devel
-		    0;
-		} else {
-		    $urpm->{debug_URPM}("unknown kernel-source package " . $_->fullname) if $urpm->{debug_URPM};
-		    0;
-		}
-	    } @chosen;
-
-	    if (@l) {
-		$urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @l) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
-		return \@l, \@l;
-	    }
+        if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@chosen)) {
+	    $urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @chosen)) if $urpm->{debug_URPM};
+	    return \@kernel_source, \@kernel_source;
 	}
 
     if ($urpm->{media}) {
@@ -253,6 +231,31 @@ sub _find_required_package__sort {
     my @prefered = grep { $_->[1] == 3 } @chosen_with_score;
 
     [ map { $_->[0] } @chosen_with_score ], [ map { $_->[0] } @prefered ];
+}
+
+sub _find_required_package__kernel_source {
+    my ($urpm, $db, $choices) = @_;
+
+    #- prefer kernel-source-stripped over kernel-source
+    $choices->[0]->name =~ /^kernel-(.*source-|.*-devel-)/ or return;
+
+    my @l = grep {
+	if ($_->name =~ /^kernel-.*source-stripped-(.*)/) {
+	    my $version = quotemeta($1);
+	    find {
+		$_->name =~ /-$version$/ && ($_->flag_installed || $_->flag_selected);
+	    } $urpm->packages_providing('kernel');
+	} elsif ($_->name =~ /(kernel-.*)-devel-(.*)/) {
+	    my $kernel = "$1-$2";
+	    _is_selected_or_installed($urpm, $db, $kernel);
+	} elsif ($_->name =~ /^kernel-.*source-/) {
+	    #- hopefully we don't have a media with kernel-source but not kernel-source-stripped nor kernel-.*-devel
+	    0;
+	} else {
+	    $urpm->{debug_URPM}("unknown kernel-source package " . $_->fullname) if $urpm->{debug_URPM};
+	    0;
+	}
+    } @$choices;
 }
 
 #- Packages that require locales-xxx when the corresponding locales are
