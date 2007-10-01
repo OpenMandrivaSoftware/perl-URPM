@@ -1,3 +1,5 @@
+Version 2.07 - 1 October 2007, by Pascal "Pixel" Rigaux
+
 - prefer precompiled kmod packages corresponding to installed kernels
 - don't resolve suggested virtual packages if already installed (#34376)
 
