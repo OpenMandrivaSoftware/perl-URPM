@@ -1,3 +1,5 @@
+- don't resolve suggested virtual packages if already installed (#34376)
+
 Version 2.06 - 28 September 2007, by Pascal "Pixel" Rigaux
 
 - also handle promotion via obsolete for conflicts
