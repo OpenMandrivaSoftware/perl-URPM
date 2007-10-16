@@ -1149,8 +1149,10 @@ static void drop_tags(Header *h) {
   headerRemoveEntry(*h, RPMTAG_FILESIZES); /* ? */
   headerRemoveEntry(*h, RPMTAG_FILERDEVS); /* it seems unused. always empty */
   headerRemoveEntry(*h, RPMTAG_FILEVERIFYFLAGS); /* only used for -V */
+#ifdef RPM_446
   headerRemoveEntry(*h, RPMTAG_FILEDIGESTALGOS); /* only used for -V */
   headerRemoveEntry(*h, RPMTAG_FILEDIGESTS); /* only used for -V */ /* alias: RPMTAG_FILEMD5S */ 
+#endif
   /* keep RPMTAG_FILEFLAGS for %config (rpmnew) to work */
   /* keep RPMTAG_FILELANGS for %lang (_install_langs) to work */
   /* keep RPMTAG_FILELINKTOS for checking conflicts between symlinks */
