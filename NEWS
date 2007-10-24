@@ -1,3 +1,5 @@
+- fix build on rpm 4.4.2.2
+
 Version 2.07 - 1 October 2007, by Pascal "Pixel" Rigaux
 
 - prefer precompiled kmod packages corresponding to installed kernels
