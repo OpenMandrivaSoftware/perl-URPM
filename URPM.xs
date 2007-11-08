@@ -434,6 +434,25 @@ return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_3
   return count;
 }
 
+static int
+xpush_simple_list_str(Header header, int_32 tag_name) {
+  dSP;
+  {
+    int_32 type, c;
+    char **list = NULL;
+    int i;
+
+    headerGetEntry(header, tag_name, &type, (void **) &list, &c);
+    if (!list) return 0;
+
+    for(i = 0; i < c; i++) 
+      XPUSHs(sv_2mortal(newSVpv(list[i], 0)));
+    free(list);
+    PUTBACK;
+    return c;
+  }
+}
+
 void
 return_list_int_32(Header header, int_32 tag_name) {
   dSP;
@@ -2165,7 +2184,7 @@ Pkg_buildarchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_BUILDARCHS, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_BUILDARCHS);
   SPAGAIN;
   
 void
@@ -2173,7 +2192,7 @@ Pkg_excludearchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_EXCLUDEARCH, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_EXCLUDEARCH);
   SPAGAIN;
   
 void
@@ -2181,7 +2200,7 @@ Pkg_exclusivearchs(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_EXCLUSIVEARCH, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_EXCLUSIVEARCH);
   SPAGAIN;
   
 void
@@ -2197,7 +2216,7 @@ Pkg_files_md5sum(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEMD5S, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_FILEMD5S);
   SPAGAIN;
 
 void
@@ -2205,7 +2224,7 @@ Pkg_files_owner(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEUSERNAME, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_FILEUSERNAME);
   SPAGAIN;
 
 void
@@ -2213,7 +2232,7 @@ Pkg_files_group(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_FILEGROUPNAME, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_FILEGROUPNAME);
   SPAGAIN;
 
 void
@@ -2293,7 +2312,7 @@ Pkg_changelog_name(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGNAME, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGNAME);
   SPAGAIN;
 
 void
@@ -2301,7 +2320,7 @@ Pkg_changelog_text(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(NULL, pkg->h, RPMTAG_CHANGELOGTEXT, 0, 0, callback_list_str_xpush, NULL);
+  xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGTEXT);
   SPAGAIN;
 
 void
