@@ -101,8 +101,8 @@ sub traverse {
     my ($urpm, $callback) = @_;
 
     if ($callback) {
-	foreach (@{$urpm->{depslist} || []}) {
-	    $callback->($_);
+	foreach my $p (@{$urpm->{depslist} || []}) {
+	    $callback->($p);
 	}
     }
 
