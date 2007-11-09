@@ -30,6 +30,10 @@
 #ifdef RPM_446
 #   define _RPMPS_INTERNAL
 #endif
+#ifdef RPM_450
+#   define _RPMEVR_INTERNAL
+#include <rpm/rpmevr.h>
+#endif
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
 #include <rpm/rpmio.h>
@@ -3945,7 +3949,11 @@ Urpm_spec2srcheader(specfile)
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
     if (! spec->sourceHeader)
-      initSourceHeader(spec);
+      initSourceHeader(spec
+#ifdef RPM_450
+      , NULL
+#endif
+	);
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
     headerAddEntry(spec->sourceHeader, RPMTAG_SOURCERPM, RPM_INT32_TYPE, &zero, 1);

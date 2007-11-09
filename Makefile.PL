@@ -53,6 +53,9 @@ if ($version =~ /^4\.4/ && (split(/\./, $version))[2] >= 6) {
 if ($version =~ /^4\.4/ && (split(/\./, $version))[2] >= 8) {
     $ccflags .= ' -DRPM_448';
 }
+if ($version =~ /^4\.5/ && (split(/\./, $version))[2] >= 0) {
+   $ccflags .= ' -DRPM_CALLBACK_LONGLONG -DRPM_446 -DRPM_448 -DRPM_450';
+}
 
 WriteMakefile(
     NAME	=> 'URPM',
