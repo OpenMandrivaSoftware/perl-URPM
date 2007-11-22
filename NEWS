@@ -1,3 +1,6 @@
+- much simpler --auto-select algorithm 
+  (fixes #35718, ie auto-selecting with strict-arch)
+  (!! DANGEROUS CHANGE !!)
 - rpm 4.5 support (thanks to peroyvind) (#35323)
 
 Version 2.09 - 8 November 2007, by Pascal "Pixel" Rigaux

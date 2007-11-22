@@ -1430,133 +1430,93 @@ sub compute_flags {
     }
 }
 
+#- side-effects: none
+sub _choose_best_pkg {
+    my ($urpm, $pkg_installed, @pkgs) = @_;
+
+    _choose_best_pkg_($urpm, $pkg_installed, grep {
+	$_->compare_pkg($pkg_installed) > 0;
+    } @pkgs);
+}
+
+#- side-effects: none
+sub _choose_best_pkg_ {
+    my ($urpm, $pkg_installed, @pkgs) = @_;
+
+    my $best;
+    foreach my $pkg (grep {
+	!strict_arch($urpm) || strict_arch_check($pkg_installed, $_);
+    } @pkgs) {
+	if (!$best || ($pkg->compare_pkg($best) || $pkg->id < $best->id) > 0) {
+	    $best = $pkg;
+	}
+    }
+    $best;
+}
+
+#- side-effects: none
+sub _choose_bests_obsolete {
+    my ($urpm, $db, $pkg_installed, @pkgs) = @_;
+
+    _set_flag_installed_and_upgrade_if_no_newer($db, $_) foreach @pkgs;
+
+    my %by_name;
+    push @{$by_name{$_->name}}, $_ foreach grep { $_->flag_upgrade } @pkgs;
+
+    map { _choose_best_pkg_($urpm, $pkg_installed, @$_) } values %by_name;
+}
+
 #- select packages to upgrade, according to package already registered.
 #- by default, only takes best package and its obsoleted and compute
 #- all installed or upgrade flag.
 #- (used for --auto-select)
 #-
-#- side-effects: 
-#-   + those of _request_packages_to_upgrade_2 (flag_install, flag_upgrade)
+#- side-effects: $requisted, flag_installed, flag_upgrade
 sub request_packages_to_upgrade {
-    my ($urpm, $db, $_state, $requested, %options) = @_;
+    my ($urpm, $db, $state, $requested, %options) = @_;
 
-    my ($names, $obsoletes) = _request_packages_to_upgrade_1($urpm, %options) or return;
-    _request_packages_to_upgrade_2($urpm, $db, $requested, $names, $obsoletes, %options);
-}
-
-#- side-effects: none
-sub _request_packages_to_upgrade_1 {
-    my ($urpm, %options) = @_;
-    my (%names, %skip);
-
-    my @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist}) or return;
-    
-    #- build direct access to best package per name.
-    foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
-
-	if ($pkg->is_arch_compat) {
-	    my $p = $names{$pkg->name};
-	    !$p || $pkg->compare_pkg($p) > 0 and $names{$pkg->name} = $pkg;
-	}
-    }
-
-    #- cleans up direct access, a package in %names should have
-    #- checked consistency with obsoletes of eligible packages.
-    #- It is important to avoid selecting a package that obsoletes
-    #- an old one.
-    my %obsoletes;
-    foreach my $pkg (values %names) {
-	foreach ($pkg->obsoletes) {
-	    if (my ($n, $o, $v) = property2name_op_version($_)) {
-		if ($n ne $pkg->name && $names{$n} && (!$o || eval($names{$n}->compare($v) . $o . 0))) {
-		    #- an existing best package is obsoleted by another one.
-		    $skip{$n} = undef;
-		}
-		push @{$obsoletes{$n}}, $pkg;
-	    }
-	}
-    }
-
-    #- ignore skipped packages.
-    delete @names{keys %skip};
-
-    \%names, \%obsoletes;
-}
-
-#- side-effects: flag_installed, flag_upgrade
-sub _request_packages_to_upgrade_2 {
-    my ($_urpm, $db, $requested, $names, $obsoletes, %options) = @_;
-    my %names = %$names;
-    my (%requested, @obsoleters);
+    my %by_name;
 
     #- now we can examine all existing packages to find packages to upgrade.
     $db->traverse(sub {
-	my ($p) = @_;
-	my $pn = $p->name;
-	#- first try with package using the same name.
-	#- this will avoid selecting all packages obsoleting an old one.
-	if (my $pkg = $names{$pn}) {
-	    my $may_upgrade = $pkg->flag_upgrade || #- it is has already been flagged upgradable
-	         !$pkg->flag_installed && do {
-		     $pkg->set_flag_installed; #- there is at least one package installed (whatever its version).
-		     1;
-		 };
-	    if ($may_upgrade && $pkg->compare_pkg($p) > 0) {
-		#- keep in mind the package is requested.
-		$pkg->set_flag_upgrade;
-		$requested{$pn} = undef;
-	    } else {
-		delete $names{$pn};
-	    }
-	}
+	my ($pkg_installed) = @_;
+	my $name = $pkg_installed->name;
 
-	#- check provides of existing package to see if an obsolete
-	#- may allow selecting it.
-	foreach my $property ($p->provides) {
-	    #- only real provides should be taken into account, this means internal obsoletes
-	    #- should be avoided.
-	    unless ($p->obsoletes_overlap($property)) {
-		if (my $n = property2name($property)) {
-		    foreach my $pkg (@{$obsoletes->{$n} || []}) {
-			next if $pkg->name eq $pn || $pn ne $n || !$names{$pkg->name};
-			if ($pkg->obsoletes_overlap($property)) {
-			    #- the package being examined can be obsoleted.
-			    #- do not set installed and provides flags.
-			    push @obsoleters, $pkg;
-			    return;
-			}
-		    }
+	my $pkg;
+	if (exists $by_name{$name}) {
+	    if (my $p = $by_name{$name}) {
+		#- here a pkg with the same name is installed twice
+		if ($p->compare_pkg($pkg_installed) > 0) {
+		    #- we selected $p, and it is still a valid choice
+		    $pkg = $p;
+		} else {
+		    #- $p is no good since $pkg_installed is higher version,
 		}
 	    }
+	} elsif ($pkg = _choose_best_pkg($urpm, $pkg_installed, $urpm->packages_by_name($name))) {
+	    #- first try with package using the same name.
+	    $pkg->set_flag_installed;
+	    $pkg->set_flag_upgrade;
 	}
+	if (my @pkgs = _choose_bests_obsolete($urpm, $db, $pkg_installed, _find_packages_obsoleting($urpm, $state, $pkg_installed))) {
+	    if (@pkgs == 1) {
+		$pkg and $urpm->{debug_URPM}("auto-select: prefering " . $pkgs[0]->fullname . " obsoleting " .  $pkg_installed->fullname . " over " . $pkg->fullname) if $urpm->{debug_URPM};
+		$pkg = $pkgs[0];
+	    } elsif (@pkgs > 1) {
+		$urpm->{debug_URPM}("auto-select: multiple packages (" . join(' ', map { scalar $_->fullname } @pkgs) . ") obsoleting " . $pkg_installed->fullname) if $urpm->{debug_URPM};
+		$pkg = undef;
+	    }
+	}
+
+	$pkg and $urpm->{debug_URPM}("auto-select: adding " . $pkg->fullname . " replacing " .  $pkg_installed->fullname) if $urpm->{debug_URPM};
+	    
+	$by_name{$name} = $pkg;		    
     });
 
-    #- examine all obsoleter packages, compute installer and upgrade flag if needed.
-    foreach my $pkg (@obsoleters) {
-	next if !$names{$pkg->name};
-
-	_set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
-
-	if ($pkg->flag_installed && !$pkg->flag_upgrade) {
-	    delete $names{$pkg->name};
-	} else {
-	    $requested{$pkg->name} = undef;
-	}
-    }
-
-    #- examine all packages which may be conflicting. If a package conflicts, it should not be requested.
-    my @names = map { $_->name . " == " . $_->epoch . ":" . $_->version . "-" . $_->release } values %names;
-    my @pkgs = values %names;
-    foreach my $pkg (@pkgs) {
-	exists $requested{$pkg->name} or next;
-	foreach my $conflict ($pkg->conflicts) {
-	    delete @names{map { /(\S*)/ && $1 } grep { ranges_overlap($conflict, $_) } @names};
-	}
-    }
-
-    #- examine all packages potentially selectable.
-    foreach my $pkg (values %names) {
-	exists $requested{$pkg->name} and $requested->{$pkg->id} = $options{requested};
+    foreach my $pkg (values %by_name) {
+	$pkg or next;
+	$pkg->set_flag_upgrade;
+	$requested->{$pkg->id} = $options{requested};
     }
 
     $requested;
