@@ -1,3 +1,5 @@
+Version 2.10 - 22 November 2007, by Pascal "Pixel" Rigaux
+
 - much simpler --auto-select algorithm 
   (fixes #35718, ie auto-selecting with strict-arch)
   (!! DANGEROUS CHANGE !!)
