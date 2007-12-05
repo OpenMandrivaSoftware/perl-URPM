@@ -1,3 +1,5 @@
+- drop $package->upgrade_files() (unused for a long time afaik)
+
 Version 2.10 - 22 November 2007, by Pascal "Pixel" Rigaux
 
 - much simpler --auto-select algorithm 

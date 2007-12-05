@@ -655,8 +655,6 @@ The rpm's bare name.
 
 =item $package->update_header($filename, ...)
 
-=item $package->upgrade_files()
-
 =item $package->url()
 
 =item $package->vendor()

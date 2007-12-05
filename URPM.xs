@@ -100,7 +100,6 @@ typedef struct s_Package* URPM__Package;
 #define FILESIZE_TAG 1000001
 
 #define FILTER_MODE_ALL_FILES     0
-#define FILTER_MODE_UPGRADE_FILES 1
 #define FILTER_MODE_CONF_FILES    2
 
 /* promote epoch sense should be :
@@ -665,10 +664,6 @@ return_files(Header header, int filter_mode) {
 
       if (filter_mode) {
 	if ((filter_mode & FILTER_MODE_CONF_FILES) && flags && (flags[i] & RPMFILE_CONFIG) == 0) continue;
-	if ((filter_mode & FILTER_MODE_UPGRADE_FILES) && fmodes &&
-	    (S_ISDIR(fmodes[i]) || S_ISLNK(fmodes[i]) ||
-	     !strncmp(s, "/dev", 4) || !strncmp(s, "/etc/rc.d", 9) ||
-	     (len >= 3 && !strncmp(s+len-3, ".la", 3)))) continue;
       }
 
       XPUSHs(sv_2mortal(newSVpv(s, len)));
@@ -2293,14 +2288,6 @@ Pkg_conf_files(pkg)
   PPCODE:
   PUTBACK;
   return_files(pkg->h, FILTER_MODE_CONF_FILES);
-  SPAGAIN;
-
-void
-Pkg_upgrade_files(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_files(pkg->h, FILTER_MODE_UPGRADE_FILES);
   SPAGAIN;
 
 void
