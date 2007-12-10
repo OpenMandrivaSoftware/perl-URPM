@@ -717,7 +717,7 @@ return_problems(rpmps ps, int translate_message) {
 
       if (translate_message) {
 	/* translate error using rpm localization */
-	const char *buf = rpmProblemString(ps->probs + i);
+	const char *buf = rpmProblemString(p);
 	SV *sv = newSVpv(buf, 0);
 	if (rpm_codeset_is_utf8) SvUTF8_on(sv);
 	XPUSHs(sv_2mortal(sv));
