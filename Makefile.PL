@@ -19,9 +19,8 @@ defined $rpm_path or die "Can't find rpm on this system\n";
 my $version = `LC_ALL=C $rpm_path --version`;
 chomp $version;
 $version =~ s/RPM version //;
-$version =~ /^(?:4\.[2-9]|[5-9]|\d{2})/ 
-    or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
-print "Found RPM version $version\n";
+my $pversion = eval "v$version";
+$pversion ge v4.2 or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 
 # to generate the ChangeLog depending on the checkout layout
 my $commonusername = "../common/";
@@ -43,19 +42,24 @@ ChangeLog:
 **MM**
 }
 
-my $ccflags = '-Wall -fno-strict-aliasing';
-if ($version =~ /^4\.(4\.[5-9]$|4\.\d\d|[5-9]\.|\d\d)/) {
-    $ccflags .= ' -DRPM_CALLBACK_LONGLONG';
+my @rpmflags;
+{
+    if ($pversion ge v4.5) {
+	push @rpmflags, '-DRPM_CALLBACK_LONGLONG';
+    } 
+    if ($pversion ge v4.4.6) {
+	push @rpmflags, '-DRPM_446';
+    }
+    if ($pversion ge v4.4.8) {
+	push @rpmflags, '-DRPM_448';
+    }
+    if ($pversion ge v4.5) {
+       	push @rpmflags, '-DRPM_450';
+    }
 }
-if ($version =~ /^4\.4/ && (split(/\./, $version))[2] >= 6) {
-    $ccflags .= ' -DRPM_446';
-}
-if ($version =~ /^4\.4/ && (split(/\./, $version))[2] >= 8) {
-    $ccflags .= ' -DRPM_448';
-}
-if ($version =~ /^4\.5/ && (split(/\./, $version))[2] >= 0) {
-   $ccflags .= ' -DRPM_CALLBACK_LONGLONG -DRPM_446 -DRPM_448 -DRPM_450';
-}
+my $ccflags = join(' ', '-Wall -fno-strict-aliasing', @rpmflags);
+
+print "Found RPM version $version (compiling with flags: $ccflags)\n";
 
 WriteMakefile(
     NAME	=> 'URPM',
