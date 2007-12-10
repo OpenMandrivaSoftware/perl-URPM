@@ -1225,14 +1225,11 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	ts = rpmtsCreate();
 	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES | vsflags);
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0 && header) {
-	  struct stat sb;
 	  char *basename;
 	  int_32 size;
 
 	  basename = strrchr(filename, '/');
-	  fstat(fdFileno(fd), &sb);
-	  fdClose(fd);
-	  size = sb.st_size;
+	  size = fdSize(fd);
 	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
 	  headerAddEntry(header, FILESIZE_TAG, RPM_INT32_TYPE, &size, 1);
 
