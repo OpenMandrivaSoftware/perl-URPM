@@ -34,6 +34,7 @@
 #   define _RPMEVR_INTERNAL
 #include <rpm/rpmevr.h>
 #endif
+
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
 #include <rpm/rpmio.h>
@@ -44,6 +45,7 @@
 #include <rpm/rpmpgp.h>
 #include <rpm/rpmcli.h>
 #include <rpm/rpmbuild.h>
+#include <rpm/rpmlog.h>
 
 struct s_Package {
   char *info;
