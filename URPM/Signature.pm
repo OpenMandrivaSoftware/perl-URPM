@@ -5,12 +5,12 @@ use strict;
 #- compare keys to avoid glitches introduced during the importation where
 #- some characters may be modified on the fly by rpm --import...
 sub compare_pubkeys {
-    my ($a, $b, %options) = @_;
+    my ($a, $b) = @_;
     my $diff = 0;
     my @a = unpack "C*", $a->{content};
     my @b = unpack "C*", $b->{content};
 
-    #- default options to use.
+    my %options;
     $options{start} ||= 0;
     $options{end} ||= @a < @b ? scalar(@b) : scalar(@a);
     $options{diff} ||= 1;
@@ -105,33 +105,36 @@ sub parse_pubkeys_ {
     values %keys;
 }
 
-#- import pubkeys only if it is needed.
+#- obsoleted
 sub import_needed_pubkeys {
-    my ($urpm, $l, %options) = @_;
+    warn "import_needed_pubkeys prototype has changed, please give a file directly\n";
+    return;
+}
 
-    #- use the same database handle to avoid re-opening multiple times the database.
-    my $db = $options{db};
-    $db ||= URPM::DB::open($options{root}, 1)
-	or die "Can't open RPM DB, aborting\n";
+#- import pubkeys only if it is needed.
+sub import_needed_pubkeys_from_file {
+    my ($db, $pubkey_file, $o_callback) = @_;
 
-    #- assume $l is a reference to an array containing all the keys to import
-    #- if needed.
-    foreach my $k (@{$l || []}) {
-	my ($id, $imported);
-	foreach my $kv (values %{$urpm->{keys} || {}}) {
-	    compare_pubkeys($k, $kv, %options) == 0 and $id = $kv->{id}, last;
-	}
-	unless ($id) {
+    my @keys = parse_pubkeys_($db);
+
+    my $find_key = sub {
+	my ($k) = @_;
+	my ($kv) = grep { compare_pubkeys($k, $_) == 0 } @keys;
+	$kv && $kv->{id};
+    };
+
+    foreach my $k (parse_armored_file(undef, $pubkey_file)) {
+	my $imported;
+	my $id = $find_key->($k);
+	if (!$id) {
 	    $imported = 1;
-	    import_pubkey(block => $k->{block}, db => $db);
-	    $urpm->parse_pubkeys(db => $db);
-	    foreach my $kv (values %{$urpm->{keys} || {}}) {
-		compare_pubkeys($k, $kv, %options) == 0 and $id = $kv->{id}, last;
-	    }
+	    import_pubkey_file($db, $pubkey_file);
+	    @keys = parse_pubkeys_($db);
+	    $id = $find_key->($k);
 	}
 	#- let the caller know about what has been found.
 	#- this is an error if the key is not found.
-	$options{callback} and $options{callback}->($urpm, $db, $k, $id, $imported, %options);
+	$o_callback and $o_callback->($id, $imported);
     }
 }
 
