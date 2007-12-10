@@ -1267,7 +1267,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
 	  pkg->h = headerRead(fd, HEADER_MAGIC_YES);
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
-	  fdClose(fd);
+	  Fclose(fd);
 	  return 1;
 	}
       }
@@ -1406,7 +1406,7 @@ static void *rpmRunTransactions_callback(const void *h,
       } else if (callback == td->callback_close) {
 	fd = fdFree(fd, "persist perl-URPM");
 	if (fd) {
-	  fdClose(fd);
+	  Fclose(fd);
 	  fd = NULL;
 	}
       }
@@ -2470,7 +2470,7 @@ Pkg_build_header(pkg, fileno)
 
     if ((fd = fdDup(fileno)) != NULL) {
       headerWrite(fd, pkg->h, HEADER_MAGIC_YES);
-      fdClose(fd);
+      Fclose(fd);
     } else croak("unable to get rpmio handle on fileno %d", fileno);
   } else croak("no header available for package");
 
@@ -3464,7 +3464,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	  }
 	} while (header != NULL);
 
-	int ok = fdClose(fd) == 0;
+	int ok = Fclose(fd) == 0;
 
 	if (pid) {
 	  kill(pid, SIGTERM);
@@ -3597,8 +3597,8 @@ Urpm_verify_rpm(filename, ...)
       if (SvIV(ST(i+1))) qva.qva_flags &= ~VERIFY_SIGNATURE;
     }
   }
-  fd = fdOpen(filename, O_RDONLY, 0);
-  if (fdFileno(fd) < 0) {
+  fd = Fopen(filename, "r");
+  if (fd == NULL) {
     RETVAL = 0;
   } else {
     read_config_files(0);
@@ -3610,7 +3610,7 @@ Urpm_verify_rpm(filename, ...)
     } else {
       RETVAL = 1;
     }
-    fdClose(fd);
+    Fclose(fd);
     rpmtsFree(ts);
   }
   rpmlogSetMask(oldlogmask);
@@ -3628,8 +3628,8 @@ Urpm_verify_signature(filename)
   FD_t fd;
   Header h;
   CODE:
-  fd = fdOpen(filename, O_RDONLY, 0);
-  if (fdFileno(fd) < 0) {
+  fd = Fopen(filename, "r");
+  if (fd == NULL) {
     RETVAL = "NOT OK (could not read file)";
   } else {
     read_config_files(0);
@@ -3638,7 +3638,7 @@ Urpm_verify_signature(filename)
     rpmtsOpenDB(ts, O_RDONLY);
     rpmtsSetVSFlags(ts, RPMVSF_DEFAULT);
     rc = rpmReadPackageFile(ts, fd, filename, &h);
-    fdClose(fd);
+    Fclose(fd);
     *result = '\0';
     switch(rc) {
       case RPMRC_OK:
