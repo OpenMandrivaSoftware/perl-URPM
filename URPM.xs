@@ -701,14 +701,11 @@ return_files(Header header, int filter_mode) {
 void
 return_problems(rpmps ps, int translate_message) {
   dSP;
-  if (ps && ps->probs && ps->numProblems > 0) {
+  if (ps && rpmpsNumProblems(ps) > 0) {
     int i;
 
-    for (i = 0; i < ps->numProblems; i++) {
+    for (i = 0; i < rpmpsNumProblems(ps); i++) {
       rpmProblem p = ps->probs + i;
-
-      if (p->ignoreProblem)
-	continue;
 
       if (translate_message) {
 	/* translate error using rpm localization */
