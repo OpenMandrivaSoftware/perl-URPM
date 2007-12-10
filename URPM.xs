@@ -136,9 +136,8 @@ static const void* unused_variable(const void *p) {
 
 static int rpmError_callback_data;
 void rpmError_callback() {
-  if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR) {
+  if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR)
     write_nocheck(rpmError_callback_data, rpmlogMessage(), strlen(rpmlogMessage()));
-  }
 }
 
 /* needed for importing keys (from rpmio) */
