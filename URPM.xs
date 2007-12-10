@@ -1287,8 +1287,8 @@ static void *rpmRunTransactions_callback(const void *h,
 					 const rpmCallbackType what,
 					 const RPM_CALLBACK_AMOUNT_TYPE amount,
 					 const RPM_CALLBACK_AMOUNT_TYPE total,
-					 const void * pkgKey,
-					 void * data) {
+					 fnpyKey pkgKey,
+					 rpmCallbackData data) {
   static struct timeval tprev;
   static struct timeval tcurr;
   static FD_t fd = NULL;
