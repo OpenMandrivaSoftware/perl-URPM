@@ -58,14 +58,25 @@ sub parse_armored_file {
     @l;
 }
 
-#- pare from rpmlib db.
+#- parse from rpmlib db.
+#-
+#- side-effects: $urpm
 sub parse_pubkeys {
     my ($urpm, %options) = @_;
-    my ($block, $content);
 
     my $db = $options{db};
-    $db ||= URPM::DB::open($options{root})
-	or die "Can't open RPM DB, aborting\n";
+    $db ||= URPM::DB::open($options{root}) or die "Can't open RPM DB, aborting\n";
+    my @keys = parse_pubkeys_($db);
+
+    $urpm->{keys}{$_->id} = $_ foreach @keys;
+}
+    
+#- side-effects: none
+sub parse_pubkeys_ {
+    my ($db) = @_;
+    
+    my ($block, $content);
+    my %keys;
 
     $db->traverse_tag('name', [ 'gpg-pubkey' ], sub {
 	    my ($p) = @_;
@@ -75,7 +86,7 @@ sub parse_pubkeys {
 		    my $inside_block = /^$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
 		    if ($inside_block > 1) {
 			if ($inside_block =~ /E/) {
-			    $urpm->{keys}{$p->version} = {
+			    $keys{$p->version} = {
 				$p->summary =~ /^gpg\((.*)\)$/ ? (name => $1) : @{[]},
 				id => $p->version,
 				content => $content,
@@ -90,6 +101,8 @@ sub parse_pubkeys {
 		}
 	    }
 	});
+
+    values %keys;
 }
 
 #- import pubkeys only if it is needed.
