@@ -43,7 +43,11 @@ ChangeLog:
 }
 
 my @rpmflags;
-{
+if ($pversion ge v4.4.90 && $pversion lt v4.5) {
+    # rpm.org version
+    push @rpmflags, '-DRPM_ORG';
+} else {
+    # rpm5.org version
     if ($pversion ge v4.4.5) {
 	push @rpmflags, '-DRPM_CALLBACK_LONGLONG';
     } 

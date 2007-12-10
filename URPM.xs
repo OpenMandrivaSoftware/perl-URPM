@@ -27,6 +27,22 @@
 #undef Fflush
 #undef Mkdir
 #undef Stat
+
+#ifdef RPM_ORG
+#define byte uint8_t
+static inline void *_free(const void * p) { 
+  if (p != NULL) free((void *)p); 
+  return NULL;
+}
+typedef struct rpmSpec_s * Spec;
+#else
+#define rpmtsImportPubkey rpmcliImportPubkey
+#define rpmProblemGetType(p)    p->type
+#define rpmProblemGetPkgNEVR(p) p->pkgNEVR
+#define rpmProblemGetAltNEVR(p) p->altNEVR
+#define rpmProblemGetStr(p)     p->str1
+#define rpmProblemGetLong(p)    p->ulong1
+#endif
 #ifdef RPM_446
 #   define _RPMPS_INTERNAL
 #endif
@@ -112,6 +128,11 @@ typedef struct s_Package* URPM__Package;
 static ssize_t write_nocheck(int fd, const void *buf, size_t count) {
   return write(fd, buf, count);
 }
+#ifdef RPM_ORG
+static const void* unused_variable(const void *p) {
+  return p;
+}
+#endif
 
 static int rpmError_callback_data;
 void rpmError_callback() {
@@ -702,12 +723,12 @@ return_problems(rpmps ps, int translate_message) {
 	XPUSHs(sv_2mortal(sv));
 	_free(buf);
       } else {
-	const char *pkgNEVR = p->pkgNEVR ? p->pkgNEVR : "";
-	const char *altNEVR = p->altNEVR ? p->altNEVR : "";
-	const char *s = p->str1 ? p->str1 : "";
+	const char *pkgNEVR = rpmProblemGetPkgNEVR(p) ? rpmProblemGetPkgNEVR(p) : "";
+	const char *altNEVR = rpmProblemGetAltNEVR(p) ? rpmProblemGetAltNEVR(p) : "";
+	const char *s = rpmProblemGetStr(p) ? rpmProblemGetStr(p) : "";
 	SV *sv;
 
-	switch (p->type) {
+	switch (rpmProblemGetType(p)) {
 	case RPMPROB_BADARCH:
 	  sv = newSVpvf("badarch@%s", pkgNEVR); break;
 
@@ -728,13 +749,10 @@ return_problems(rpmps ps, int translate_message) {
 	  sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
 
 	case RPMPROB_DISKSPACE:
-	  sv = newSVpvf("diskspace@%s@%s@%ld", pkgNEVR, s, p->ulong1); break;
+	  sv = newSVpvf("diskspace@%s@%s@%ld", pkgNEVR, s, rpmProblemGetLong(p)); break;
 
 	case RPMPROB_DISKNODES:
-	  sv = newSVpvf("disknodes@%s@%s@%ld", pkgNEVR, s, p->ulong1); break;
-
-	case RPMPROB_BADPRETRANS:
-	  sv = newSVpvf("badpretrans@%s@%s@%s", pkgNEVR, s, strerror(p->ulong1)); break;
+	  sv = newSVpvf("disknodes@%s@%s@%ld", pkgNEVR, s, rpmProblemGetLong(p)); break;
 
 	case RPMPROB_REQUIRES:
 	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
@@ -3891,7 +3909,8 @@ Urpm_platformscore(platform)
 #ifdef RPM_448
   RETVAL=rpmPlatformScore(platform, NULL, 0);
 #else
-  croak("platformscore() is availlable only since rpm 4.4.8");
+  unused_variable(platform);
+  croak("platformscore() is available only since rpm 4.4.8");
   RETVAL=0;
 #endif
   OUTPUT:
