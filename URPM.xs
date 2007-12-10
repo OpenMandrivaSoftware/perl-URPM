@@ -136,7 +136,9 @@ static const void* unused_variable(const void *p) {
 
 static int rpmError_callback_data;
 void rpmError_callback() {
+#ifndef RPM_ORG
   if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR)
+#endif
     write_nocheck(rpmError_callback_data, rpmlogMessage(), strlen(rpmlogMessage()));
 }
 
