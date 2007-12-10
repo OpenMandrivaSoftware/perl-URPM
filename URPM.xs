@@ -3417,7 +3417,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
       if (empty_archive) {
 	  XPUSHs(sv_2mortal(newSViv(1 + av_len(depslist))));
 	  XPUSHs(sv_2mortal(newSViv(av_len(depslist))));
-      } else if (fdFileno(fd) >= 0) {
+      } else if (d >= 0 && fd) {
 	Header header;
 	int start_id = 1 + av_len(depslist);
 	int packing = 0;
