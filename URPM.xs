@@ -109,10 +109,14 @@ typedef struct s_Package* URPM__Package;
      1 for rpm 4.2 and better new approach. */
 #define PROMOTE_EPOCH_SENSE       1
 
+static ssize_t write_nocheck(int fd, const void *buf, size_t count) {
+  return write(fd, buf, count);
+}
+
 static int rpmError_callback_data;
 void rpmError_callback() {
   if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR) {
-    (void) write(rpmError_callback_data, rpmErrorString(), strlen(rpmErrorString()));
+    write_nocheck(rpmError_callback_data, rpmErrorString(), strlen(rpmErrorString()));
   }
 }
 
@@ -1479,7 +1483,9 @@ int
 Pkg_is_arch_compat__XS(pkg)
   URPM::Package pkg
   INIT:
+#ifdef RPM_448
   char * platform;
+#endif
   CODE:
   read_config_files(0);
   if (pkg->info) {
@@ -1515,7 +1521,9 @@ int
 Pkg_is_platform_compat(pkg)
   URPM::Package pkg
   INIT:
+#ifdef RPM_448
   char * platform = NULL;
+#endif
   CODE:
 #ifdef RPM_448
   read_config_files(0);
@@ -2409,31 +2417,31 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
 	  --size;
 	  size += snprintf(buff+size, sizeof(buff)-size, "@%s\n", provides_files);
 	}
-	write(fileno, buff, size);
+	write_nocheck(fileno, buff, size);
       }
     }
     if (pkg->conflicts && *pkg->conflicts) {
       size = snprintf(buff, sizeof(buff), "@conflicts@%s\n", pkg->conflicts);
-      if (size < sizeof(buff)) write(fileno, buff, size);
+      if (size < sizeof(buff)) write_nocheck(fileno, buff, size);
     }
     if (pkg->obsoletes && *pkg->obsoletes) {
       size = snprintf(buff, sizeof(buff), "@obsoletes@%s\n", pkg->obsoletes);
-      if (size < sizeof(buff)) write(fileno, buff, size);
+      if (size < sizeof(buff)) write_nocheck(fileno, buff, size);
     }
     if (pkg->requires && *pkg->requires) {
       size = snprintf(buff, sizeof(buff), "@requires@%s\n", pkg->requires);
-      if (size < sizeof(buff)) write(fileno, buff, size);
+      if (size < sizeof(buff)) write_nocheck(fileno, buff, size);
     }
     if (pkg->suggests && *pkg->suggests) {
       size = snprintf(buff, sizeof(buff), "@suggests@%s\n", pkg->suggests);
-      if (size < sizeof(buff)) write(fileno, buff, size);
+      if (size < sizeof(buff)) write_nocheck(fileno, buff, size);
     }
     if (pkg->summary && *pkg->summary) {
       size = snprintf(buff, sizeof(buff), "@summary@%s\n", pkg->summary);
-      if (size < sizeof(buff)) write(fileno, buff, size);
+      if (size < sizeof(buff)) write_nocheck(fileno, buff, size);
     }
     size = snprintf(buff, sizeof(buff), "@info@%s\n", pkg->info);
-    write(fileno, buff, size);
+    write_nocheck(fileno, buff, size);
   } else croak("no info available for package %s",
 	  pkg->h ? get_name(pkg->h, RPMTAG_NAME) : "-");
 
@@ -3844,7 +3852,9 @@ int
 Urpm_archscore(arch)
   const char * arch
   PREINIT:
+#ifdef RPM_448
   char * platform = NULL;
+#endif
   CODE:
   read_config_files(0);
 #ifdef RPM_448
@@ -3861,7 +3871,9 @@ int
 Urpm_osscore(os)
   const char * os
   PREINIT:
+#ifdef RPM_448
   char * platform = NULL;
+#endif
   CODE:
   read_config_files(0);
 #ifdef RPM_448
