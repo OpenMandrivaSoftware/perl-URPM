@@ -116,7 +116,7 @@ static ssize_t write_nocheck(int fd, const void *buf, size_t count) {
 static int rpmError_callback_data;
 void rpmError_callback() {
   if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR) {
-    write_nocheck(rpmError_callback_data, rpmErrorString(), strlen(rpmErrorString()));
+    write_nocheck(rpmError_callback_data, rpmlogMessage(), strlen(rpmlogMessage()));
   }
 }
 
@@ -3635,19 +3635,19 @@ Urpm_verify_signature(filename)
 	      rpmTagTable, rpmHeaderFormats, NULL);
 	  snprintf(result, sizeof(result), "OK (%s)", fmtsig);
 	  free(fmtsig);
-	} else snprintf(result, sizeof(result), "NOT OK (bad rpm): %s", rpmErrorString());
+	} else snprintf(result, sizeof(result), "NOT OK (bad rpm): %s", rpmlogMessage());
 	break;
       case RPMRC_NOTFOUND:
-	snprintf(result, sizeof(result), "NOT OK (signature not found): %s", rpmErrorString());
+	snprintf(result, sizeof(result), "NOT OK (signature not found): %s", rpmlogMessage());
 	break;
       case RPMRC_FAIL:
-	snprintf(result, sizeof(result), "NOT OK (fail): %s", rpmErrorString());
+	snprintf(result, sizeof(result), "NOT OK (fail): %s", rpmlogMessage());
 	break;
       case RPMRC_NOTTRUSTED:
-	snprintf(result, sizeof(result), "NOT OK (key not trusted): %s", rpmErrorString());
+	snprintf(result, sizeof(result), "NOT OK (key not trusted): %s", rpmlogMessage());
 	break;
       case RPMRC_NOKEY:
-	snprintf(result, sizeof(result), "NOT OK (no key): %s", rpmErrorString());
+	snprintf(result, sizeof(result), "NOT OK (no key): %s", rpmlogMessage());
 	break;
     }
     RETVAL = result;
@@ -4013,6 +4013,10 @@ setVerbosity(level)
 
 const char *
 rpmErrorString()
+  CODE:
+  RETVAL = rpmlogMessage();
+  OUTPUT:
+  RETVAL 
 
 void
 rpmErrorWriteTo(fd)
