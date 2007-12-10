@@ -4023,6 +4023,6 @@ rpmErrorWriteTo(fd)
   int fd
   CODE:
   rpmError_callback_data = fd;
-  rpmErrorSetCallback(rpmError_callback);
+  rpmlogSetCallback(rpmError_callback);
 
   /* vim:set ts=8 sts=2 sw=2: */
