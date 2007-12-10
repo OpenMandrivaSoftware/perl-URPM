@@ -44,7 +44,7 @@ ChangeLog:
 
 my @rpmflags;
 {
-    if ($pversion ge v4.5) {
+    if ($pversion ge v4.4.5) {
 	push @rpmflags, '-DRPM_CALLBACK_LONGLONG';
     } 
     if ($pversion ge v4.4.6) {
