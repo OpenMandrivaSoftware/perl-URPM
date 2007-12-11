@@ -37,9 +37,11 @@ static inline void *_free(const void * p) {
 typedef struct rpmSpec_s * Spec;
 #else
 #define rpmtsImportPubkey rpmcliImportPubkey
+#ifndef RPM_450
 #define rpmProblemGetType(p)    p->type
 #define rpmProblemGetPkgNEVR(p) p->pkgNEVR
 #define rpmProblemGetAltNEVR(p) p->altNEVR
+#endif
 #define rpmProblemGetStr(p)     p->str1
 #define rpmProblemGetLong(p)    p->ulong1
 #endif
