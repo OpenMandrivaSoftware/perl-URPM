@@ -702,10 +702,17 @@ void
 return_problems(rpmps ps, int translate_message) {
   dSP;
   if (ps && rpmpsNumProblems(ps) > 0) {
+#ifdef RPM_ORG
+    rpmpsi iterator = rpmpsInitIterator(ps);
+    rpmpsFreeIterator(iterator);
+    while (rpmpsNextIterator(iterator)) {
+      rpmProblem p = rpmpsGetProblem(iterator);
+#else
     int i;
 
     for (i = 0; i < rpmpsNumProblems(ps); i++) {
       rpmProblem p = ps->probs + i;
+#endif
 
       if (translate_message) {
 	/* translate error using rpm localization */
@@ -3683,7 +3690,7 @@ Urpm_import_pubkey_file(db, filename)
         RETVAL = 0;
     } else if (rc != PGPARMOR_PUBKEY) {
         RETVAL = 0;
-    } else if (rpmcliImportPubkey(ts, pkt, pktlen) != RPMRC_OK) {
+    } else if (rpmtsImportPubkey(ts, pkt, pktlen) != RPMRC_OK) {
         RETVAL = 0;
     } else {
         RETVAL = 1;
