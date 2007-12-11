@@ -133,12 +133,17 @@ static const void* unused_variable(const void *p) {
 }
 
 static int rpmError_callback_data;
+#ifdef RPM_ORG
+int rpmError_callback() {
+  write_nocheck(rpmError_callback_data, rpmlogMessage(), strlen(rpmlogMessage()));
+  return RPMLOG_DEFAULT;
+}
+#else
 void rpmError_callback() {
-#ifndef RPM_ORG
   if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR)
-#endif
     write_nocheck(rpmError_callback_data, rpmlogMessage(), strlen(rpmlogMessage()));
 }
+#endif
 
 static int rpm_codeset_is_utf8 = 0;
 
@@ -3885,6 +3890,10 @@ rpmErrorWriteTo(fd)
   int fd
   CODE:
   rpmError_callback_data = fd;
-  rpmlogSetCallback(rpmError_callback);
+  rpmlogSetCallback(rpmError_callback,
+#ifdef RPM_ORG
+		    NULL
+#endif
+		    );
 
   /* vim:set ts=8 sts=2 sw=2: */
