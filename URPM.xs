@@ -3890,9 +3890,9 @@ rpmErrorWriteTo(fd)
   int fd
   CODE:
   rpmError_callback_data = fd;
-  rpmlogSetCallback(rpmError_callback,
+  rpmlogSetCallback(rpmError_callback
 #ifdef RPM_ORG
-		    NULL
+		    , NULL
 #endif
 		    );
 
