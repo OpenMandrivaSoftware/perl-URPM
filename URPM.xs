@@ -2780,6 +2780,19 @@ Db_rebuild(prefix="")
   OUTPUT:
   RETVAL
 
+int
+Db_verify(prefix="")
+  char *prefix
+  PREINIT:
+  rpmts ts;
+  CODE:
+  ts = rpmtsCreate();
+  rpmtsSetRootDir(ts, prefix);
+  RETVAL = rpmtsVerifyDB(ts) == 0;
+  ts = rpmtsFree(ts);
+  OUTPUT:
+  RETVAL
+
 void
 Db_DESTROY(db)
   URPM::DB db

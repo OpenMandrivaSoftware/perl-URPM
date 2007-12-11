@@ -1,3 +1,5 @@
+- add URPM::DB::verify()
+
 Version 3.00 - 11 December 2007, by Pascal "Pixel" Rigaux
 
 - replace ->import_needed_pubkeys and ->import_pubkey in favor of
