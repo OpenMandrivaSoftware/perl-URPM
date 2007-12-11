@@ -2,6 +2,7 @@
   import_needed_pubkeys_from_file() and ->import_pubkey_file
   (! this breaks API !)
 - drop $package->upgrade_files() (unused for a long time afaik)
+- rpm.org HEAD support
 
 Version 2.10 - 22 November 2007, by Pascal "Pixel" Rigaux
 
