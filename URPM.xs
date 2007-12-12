@@ -1391,7 +1391,7 @@ static void *rpmRunTransactions_callback(const void *h,
       PUSHMARK(SP);
       XPUSHs(td->data);
       XPUSHs(sv_2mortal(newSVpv(callback_type, 0)));
-      XPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((int)pkgKey - 1)) : &PL_sv_undef);
+      XPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((long)pkgKey - 1)) : &PL_sv_undef);
       if (callback_subtype != NULL) {
 	XPUSHs(sv_2mortal(newSVpv(callback_subtype, 0)));
 	XPUSHs(sv_2mortal(newSViv(amount)));
@@ -2975,7 +2975,7 @@ Trans_add(trans, pkg, ...)
 	}
       }
     }
-    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(pkg->flag & FLAG_ID)), update, relocations) == 0;
+    RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(long)(pkg->flag & FLAG_ID)), update, relocations) == 0;
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
     free(relocations);
   } else RETVAL = 0;
