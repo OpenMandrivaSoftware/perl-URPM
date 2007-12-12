@@ -43,7 +43,7 @@ typedef struct rpmSpec_s * Spec;
 #define rpmProblemGetAltNEVR(p) p->altNEVR
 #define rpmProblemGetStr(p)     p->str1
 #define rpmProblemGetLong(p)    p->ulong1
-#endi
+#endif
 #endif
 #ifdef RPM_446
 #   define _RPMPS_INTERNAL
