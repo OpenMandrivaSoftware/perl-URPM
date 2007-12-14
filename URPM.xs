@@ -469,7 +469,7 @@ return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_3
 static int
 xpush_simple_list_str(Header header, int_32 tag_name) {
   dSP;
-  {
+  if (header) {
     int_32 type, c;
     char **list = NULL;
     int i;
