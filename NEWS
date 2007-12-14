@@ -1,3 +1,7 @@
+- suggests: 
+  handle both RPMTAG_SUGGESTSNAME (as done in SuSE and in Mandriva > 2008.0)
+  and RPMTAG_REQUIRENAME + RPMSENSE_MISSINGOK (as done in Mandriva 2008.0)
+
 Version 3.02 - 14 December 2007, by Pascal "Pixel" Rigaux
 
 - fix "make test" on rpm 4.4.2.2

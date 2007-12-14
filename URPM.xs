@@ -297,14 +297,14 @@ ranges_overlap(int_32 aflags, char *sa, int_32 bflags, char *sb, int b_nopromote
   }
 }
 
-static int has_suggests;
-int is_suggests(int_32 flags) { 
+static int has_old_suggests;
+int is_old_suggests(int_32 flags) { 
   int is = flags & RPMSENSE_MISSINGOK;
-  if (is) has_suggests = is;
+  if (is) has_old_suggests = is;
   return is;
 }
-int is_not_suggests(int_32 flags) {
-  return !is_suggests(flags);
+int is_not_old_suggests(int_32 flags) {
+  return !is_old_suggests(flags);
 }
 
 typedef int (*callback_list_str)(char *s, int slen, char *name, int_32 flags, char *evr, void *param);
@@ -329,7 +329,7 @@ callback_list_str_xpush_requires(char *s, int slen, char *name, int_32 flags, ch
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
-  } else if (is_not_suggests(flags)) {
+  } else if (is_not_old_suggests(flags)) {
     char buff[4096];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
@@ -340,11 +340,11 @@ callback_list_str_xpush_requires(char *s, int slen, char *name, int_32 flags, ch
   return 0;
 }
 static int
-callback_list_str_xpush_suggests(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+callback_list_str_xpush_old_suggests(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
-  } else if (is_suggests(flags)) {
+  } else if (is_old_suggests(flags)) {
     char buff[4096];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
@@ -482,7 +482,7 @@ xpush_simple_list_str(Header header, int_32 tag_name) {
     free(list);
     PUTBACK;
     return c;
-  }
+  } else return 0;
 }
 
 void
@@ -829,10 +829,12 @@ pack_header(URPM__Package pkg) {
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
     }
     if (pkg->requires == NULL && pkg->suggests == NULL)
-      has_suggests = 0;
-      pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_suggests);
-      if (has_suggests)
-      pkg->suggests = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_suggests);
+      has_old_suggests = 0;
+      pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_old_suggests);
+      if (has_old_suggests)
+      pkg->suggests = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_old_suggests);
+      else
+        pkg->suggests = pack_list(pkg->h, RPMTAG_SUGGESTSNAME, 0, 0, NULL);
     if (pkg->obsoletes == NULL)
       pkg->obsoletes = pack_list(pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION, NULL);
     if (pkg->conflicts == NULL)
@@ -2076,8 +2078,10 @@ Pkg_suggests(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->suggests, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, 0,
-		  callback_list_str_xpush_suggests, NULL);
+  int count = return_list_str(pkg->suggests, pkg->h, RPMTAG_SUGGESTSNAME, 0, 0, callback_list_str_xpush, NULL);
+  if (count == 0)
+    return_list_str(pkg->suggests, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, 0,
+		    callback_list_str_xpush_old_suggests, NULL);
   SPAGAIN;
 
 void
