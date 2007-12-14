@@ -72,7 +72,9 @@ is($pkg->get_tag(1001), '1.0', 'version');
 is($pkg->get_tag(1002), '1mdk', 'release');
 is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
     q/get headers from hdlist/);
-ok($pkg->is_platform_compat() > 0, "can evaluate platform score");
+rpm_is_jbj_version() ?
+  ok($pkg->is_platform_compat() > 0, "can evaluate platform score") :
+  pass('no platform compat');
 
 my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
 						    dir => 'headers') ] };
@@ -116,4 +118,9 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
     $pkg = URPM::spec2srcheader("bad.spec");
     ok(!defined $pkg, "bad spec");
     END { unlink "bad.spec" }
+}
+
+sub rpm_is_jbj_version {
+    # checking for --yaml support
+    `rpm --help` =~ /yaml/;
 }
