@@ -1,3 +1,8 @@
+Version 3.02 - 14 December 2007, by Pascal "Pixel" Rigaux
+
+- fix "make test" on rpm 4.4.2.2
+- fix rpm 4.5 support
+
 Version 3.01 - 11 December 2007, by Pascal "Pixel" Rigaux
 
 - add URPM::DB::verify()
