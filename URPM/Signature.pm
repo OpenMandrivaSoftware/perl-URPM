@@ -68,7 +68,7 @@ sub parse_pubkeys {
     $db ||= URPM::DB::open($options{root}) or die "Can't open RPM DB, aborting\n";
     my @keys = parse_pubkeys_($db);
 
-    $urpm->{keys}{$_->id} = $_ foreach @keys;
+    $urpm->{keys}{$_->{id}} = $_ foreach @keys;
 }
     
 #- side-effects: none
