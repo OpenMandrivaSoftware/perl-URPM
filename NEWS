@@ -1,3 +1,5 @@
+Version 3.05 - 8 January 2008, by Pascal "Pixel" Rigaux
+
 - fix regression in ->parse_rpm (introduced in 3.00) 
   (was breaking genhdlist2 and mkcd)
 
