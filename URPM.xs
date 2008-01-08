@@ -1256,6 +1256,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 
 	  basename = strrchr(filename, '/');
 	  size = fdSize(fd);
+	  Fclose(fd);
 	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
 	  headerAddEntry(header, FILESIZE_TAG, RPM_INT32_TYPE, &size, 1);
 
