@@ -272,7 +272,7 @@ sub _find_required_package__kmod {
 	if (my ($name, $version, $flavor, $release) = $_->name =~ /(.*)-kernel-(2\..*)-(.*)-(.*)/) {
 	    my $kernel = "kernel-$flavor-$version-$release";
 	    _is_selected_or_installed($urpm, $db, $kernel);
-	} elsif ($_->{name} =~ /^dkms-/) {
+	} elsif ($_->name =~ /^dkms-/) {
 	    0; # we prefer precompiled dkms
 	} else {
 	    $urpm->{debug_URPM}("unknown kmod package " . $_->fullname) if $urpm->{debug_URPM};
