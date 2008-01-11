@@ -227,6 +227,17 @@ sub is_arch_compat {
     $arch_cache{$arch} = is_arch_compat__XS($pkg);
 }
 
+sub changelogs {
+    my ($pkg) = @_;
+
+    my @ti = $pkg->changelog_time or return;
+    my @na = $pkg->changelog_name or return;
+    my @tx = $pkg->changelog_text or return;
+    map {
+	{ time => $ti[$_], name => $na[$_], text => $tx[$_] };
+    } 0 .. $#ti;
+}
+
 package URPM::Transaction;
 our @ISA = qw(); # help perl_checker
 

@@ -1,3 +1,4 @@
+- add URPM::Package->changelogs, a wrapper around ->changelog_time, ->changelog_name, ->changelog_text
 - resolve kmod requires even if first choice is a source dkms
 
 Version 3.05 - 8 January 2008, by Pascal "Pixel" Rigaux
