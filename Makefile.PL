@@ -18,7 +18,7 @@ defined $rpm_path or die "Can't find rpm on this system\n";
 
 my $version = `LC_ALL=C $rpm_path --version`;
 chomp $version;
-$version =~ s/RPM version //;
+$version =~ s/(RPM version )|(rpm \(RPM\) )//;
 my $pversion = eval "v$version";
 $pversion ge v4.2 or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 
@@ -58,7 +58,10 @@ if ($pversion ge v4.4.90 && $pversion lt v4.5) {
 	push @rpmflags, '-DRPM_448';
     }
     if ($pversion ge v4.5) {
-       	push @rpmflags, '-DRPM_450';
+	push @rpmflags, '-DRPM_450';
+    }
+    if ($pversion ge v5.0.0) {
+	push @rpmflags, '-DRPM_500 -DWITH_DB';
     }
 }
 my $ccflags = join(' ', '-Wall -fno-strict-aliasing', @rpmflags);

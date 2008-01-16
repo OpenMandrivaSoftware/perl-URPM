@@ -54,7 +54,11 @@ typedef struct rpmSpec_s * Spec;
 #endif
 
 #include <rpm/rpmlib.h>
+#ifdef RPM_500
+#include <rpm/rpmtag.h>
+#else
 #include <rpm/header.h>
+#endif
 #include <rpm/rpmio.h>
 #include <rpm/rpmdb.h>
 #include <rpm/rpmts.h>
