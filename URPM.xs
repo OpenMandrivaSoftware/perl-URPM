@@ -60,7 +60,7 @@ typedef struct rpmSpec_s * Spec;
 #   define _RPMTAG_INTERNAL 
 #include <rpm/rpmtag.h>
 /* (peroyvind): A bit ugly, work in progress.. */
-#define	int_32	evrFlags
+#define	int_32	uint32_t
 #define	uint_16	uint16_t
 #define	RPM_NULL_TYPE	0
 #define	RPM_CHAR_TYPE	RPM_UINT8_TYPE
