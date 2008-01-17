@@ -586,7 +586,9 @@ return_list_tag(URPM__Package pkg, int_32 tag_name) {
 	switch (type) {
 	  case RPM_NULL_TYPE:
 	    break;
+#ifndef RPM_500
 	  case RPM_CHAR_TYPE:
+#endif
 	  case RPM_INT8_TYPE:
 	  case RPM_INT16_TYPE:
 	  case RPM_INT32_TYPE:
