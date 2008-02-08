@@ -17,6 +17,8 @@ unless (defined $rpm_path) {
 defined $rpm_path or die "Can't find rpm on this system\n";
 
 my $version = `LC_ALL=C $rpm_path --version`;
+# fix compiling with RCs:
+$version =~ s/-.*//;
 chomp $version;
 $version =~ s/(RPM version )|(rpm \(RPM\) )//;
 my $pversion = eval "v$version";
