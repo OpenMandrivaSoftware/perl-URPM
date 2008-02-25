@@ -1738,6 +1738,7 @@ sub sorted_rpms_to_string {
 }
 
 #- build transaction set for given selection
+#- options: start, end, idlist, split_length, keep
 #-
 #- side-effects: $state->{transaction}, $state->{transaction_state}
 sub build_transaction_set {
@@ -1775,6 +1776,7 @@ sub build_transaction_set {
 		    \%requested,
 		    defined $options{start} ? (start => $options{start}) : @{[]},
 		    defined $options{end}   ? (end   => $options{end}) : @{[]},
+		    keep => $options{keep},
 		);
 
 		my @upgrade = grep { ! exists $examined{$_} } keys %{$state->{transaction_state}{selected}};

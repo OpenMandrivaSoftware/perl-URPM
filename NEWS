@@ -2,6 +2,8 @@
   installed (#29838)
 - handle new package providing xxx which conflicts with an installed package (#17106)
 - fix sort choices changed in perl-URPM 3.08
+- allow fixing "using one big transaction" that occurs when using --keep 
+  (#30198)
 
 Version 3.08 - 25 February 2008, by Pascal "Pixel" Rigaux
 
