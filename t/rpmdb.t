@@ -5,7 +5,7 @@ use warnings ;
 use Test::More tests => 7;
 use URPM;
 
-my ($count, @all_pkgs_extern, %all_pkgs, @all_pkgs);
+my ($count, @all_pkgs_extern, @all_pkgs);
 my ($pkg_perl, $count_perl, $pkg_perl_extern);
 {
     my $db;
@@ -19,10 +19,9 @@ my ($pkg_perl, $count_perl, $pkg_perl_extern);
 	    my ($name, $version, $release, $arch) = $pkg->fullname;
 	    #- arch is void for -pubkey- package.
 	    my $fullname = "$name-$version-$release";
-	    $all_pkgs{$fullname}++;
+	    push @all_pkgs, $fullname;
 	    if ($name eq 'perl') { $pkg_perl_extern = $fullname }
 	});
-    @all_pkgs = keys %all_pkgs;
 
     $count_perl = $db->traverse_tag('name', ['perl'], sub {
 	    my ($pkg) = @_;
