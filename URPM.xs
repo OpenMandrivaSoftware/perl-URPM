@@ -131,9 +131,6 @@ typedef struct s_Package* URPM__Package;
 #define FLAG_RATE_INVALID     0
 
 
-#define FILENAME_TAG 1000000
-#define FILESIZE_TAG 1000001
-
 #define FILTER_MODE_ALL_FILES     0
 #define FILTER_MODE_CONF_FILES    2
 
@@ -833,16 +830,10 @@ pack_header(URPM__Package pkg) {
       char *version = get_name(pkg->h, RPMTAG_VERSION);
       char *release = get_name(pkg->h, RPMTAG_RELEASE);
       char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
-      char *filename = get_name(pkg->h, FILENAME_TAG);
 
       p += snprintf(buff, sizeof(buff), "%s-%s-%s.%s@%d@%d@%s@", name, version, release, arch,
 		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), get_name(pkg->h, RPMTAG_GROUP));
-      if (filename) snprintf(p, sizeof(buff) - (p-buff), "%s-%s-%s.%s.rpm", name, version, release, arch);
-      if (!filename || !strcmp(p, filename)) {
-	p[-1] = 0;
-      } else {
-	p = p + 1 + snprintf(p, sizeof(buff) - (p-buff), "%s", filename);
-      }
+      p[-1] = 0;
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
     }
     if (pkg->requires == NULL && pkg->suggests == NULL)
@@ -1274,8 +1265,6 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	  basename = strrchr(filename, '/');
 	  size = fdSize(fd);
 	  Fclose(fd);
-	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
-	  headerAddEntry(header, FILESIZE_TAG, RPM_INT32_TYPE, &size, 1);
 
 	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
 	  pkg->h = header;
@@ -1989,50 +1978,34 @@ Pkg_group(pkg)
     XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_GROUP), 0)));
   }
 
+/* deprecated */
 void
 Pkg_filename(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->info) {
-    char *s, *eon, *eos;
+    char *eon;
 
     if ((eon = strchr(pkg->info, '@')) != NULL) {
-      if ((s = strchr(eon+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
-	eos = strchr(s+1, '@');
-	XPUSHs(sv_2mortal(newSVpv(s+1, eos != NULL ? eos-s-1 : 0)));
-      } else {
 	char savbuf[4];
 	memcpy(savbuf, eon, 4); /* there should be at least epoch and size described so (@0@0 minimum) */
 	memcpy(eon, ".rpm", 4);
 	XPUSHs(sv_2mortal(newSVpv(pkg->info, eon-pkg->info+4)));
 	memcpy(eon, savbuf, 4);
-      }
     }
   } else if (pkg->h) {
-    char *filename = get_name(pkg->h, FILENAME_TAG);
-
-    if (filename != NULL)
-      XPUSHs(sv_2mortal(newSVpv(filename, 0)));
   }
 
+/* deprecated */
 void
 Pkg_header_filename(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->info) {
-    char *s, *eon, *eos;
+    char *eon;
 
     if ((eon = strchr(pkg->info, '@')) != NULL) {
-      if ((s = strchr(eon+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
-	eos = strstr(s+1, ".rpm");
-	if (eos != NULL) *eos = 0;
-	if (eon != NULL) *eon = 0;
-	XPUSHs(sv_2mortal(newSVpvf("%s:%s", pkg->info, s+1)));
-	if (eon != NULL) *eon = '@';
-	if (eos != NULL) *eos = '.';
-      } else {
-	XPUSHs(sv_2mortal(newSVpv(pkg->info, eon-pkg->info)));
-      }
+      XPUSHs(sv_2mortal(newSVpv(pkg->info, eon-pkg->info)));
     }
   } else if (pkg->h) {
     char buff[1024];
@@ -2041,16 +2014,8 @@ Pkg_header_filename(pkg)
     char *version = get_name(pkg->h, RPMTAG_VERSION);
     char *release = get_name(pkg->h, RPMTAG_RELEASE);
     char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
-    char *filename = get_name(pkg->h, FILENAME_TAG);
 
-    p += snprintf(buff, sizeof(buff), "%s-%s-%s.%s:", name, version, release, arch);
-    if (filename) snprintf(p, sizeof(buff) - (p-buff), "%s-%s-%s.%s.rpm", name, version, release, arch);
-    if (!filename || !strcmp(p, filename)) {
-      *--p = 0;
-    } else {
-      p += snprintf(p, sizeof(buff) - (p-buff), "%s", filename);
-      *(p -= 4) = 0; /* avoid .rpm */
-    }
+    p += snprintf(buff, sizeof(buff), "%s-%s-%s.%s", name, version, release, arch);
     XPUSHs(sv_2mortal(newSVpv(buff, p-buff)));
   }
 

@@ -18,6 +18,8 @@ sub _get_tmp_dir () {
 #-   callback : perl code to be called for each package read (defaults pack_header)
 #-   clean    : bool to clean cache before (default no).
 #-   packing  : bool to create info (default is weird)
+#
+# deprecated
 sub parse_rpms_build_headers {
     my ($urpm, %options) = @_;
     my ($dir, %cache, @headers);
@@ -402,6 +404,8 @@ sub compute_deps {
 #-   idlist   : id list of rpm to compute (defaults is start .. end)
 #-   ratio    : compression ratio (default 4).
 #-   split    : split ratio (default 400kb, see MDV::Packdrakeng).
+#
+# deprecated
 sub build_hdlist {
     my ($urpm, %options) = @_;
     my ($dir, $ratio, @idlist);

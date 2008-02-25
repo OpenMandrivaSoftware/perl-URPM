@@ -4,6 +4,9 @@
 - fix sort choices changed in perl-URPM 3.08
 - allow fixing "using one big transaction" that occurs when using --keep 
   (#30198)
+- do not add FILENAME_TAG and FILESIZE_TAG to hdlist anymore,
+  deprecate ->filename and ->header_filename,
+  deprecate URPM::Build build_hdlist and parse_rpms_build_headers
 
 Version 3.08 - 25 February 2008, by Pascal "Pixel" Rigaux
 

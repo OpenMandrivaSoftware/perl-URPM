@@ -511,10 +511,6 @@ Writes a line of information in a synthesis file.
 
 =item $package->exclusivearchs()
 
-=item $package->filename()
-
-The rpm's file name.
-
 =item $package->files()
 
 List of files in this rpm.
@@ -581,8 +577,6 @@ silently failed if you use synthesis instead of hdlist/rpm/header files or rpmdb
 Return an array of human readable view of tag values. $tagid is the numerical value of rpm tags.
 
 =item $package->group()
-
-=item $package->header_filename()
 
 =item $package->id()
 
