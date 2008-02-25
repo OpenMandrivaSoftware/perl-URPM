@@ -111,13 +111,30 @@ sub _is_selected_or_installed {
       $db->traverse_tag('name', [ $name ], undef) > 0;
 }
 
+sub provided_version_that_overlaps {
+    my ($pkg, $provide_name) = @_;
+
+    my $version;
+    foreach my $property ($pkg->provides) {
+	my ($n, undef, $v) = property2name_op_version($property) or next;
+	$n eq $provide_name or next;
+
+	if ($version) {
+	    $version = $v if URPM::rpmvercmp($v, $version) > 0;
+	} else {
+	    $version = $v;
+	}
+    }
+    $version;
+}
+
 # deprecated function name
 sub find_chosen_packages { &find_required_package }
 
 #- side-effects: flag_install, flag_upgrade (and strict_arch_check_installed cache)
 sub find_required_package {
     my ($urpm, $db, $state, $id_prop) = @_;
-    my %packages;
+    my (%packages, %provided_version);
     my $strict_arch = strict_arch($urpm);
 
     my $may_add_to_packages = sub {
@@ -152,6 +169,7 @@ sub find_required_package {
 		    #- determine if this package is better than a possibly previously chosen package.
 		    $pkg->flag_selected || exists $state->{selected}{$pkg->id} and return [$pkg];
 		    !$strict_arch || strict_arch_check_installed($db, $pkg) or next;
+		    $provided_version{$pkg} = provided_version_that_overlaps($pkg, $name);
 		    $may_add_to_packages->($pkg);		    
 		}
 	    }
@@ -180,7 +198,7 @@ sub find_required_package {
 	    return \@kmod, \@kmod;
 	}
 
-	_find_required_package__sort($urpm, $db, \@packages);
+	_find_required_package__sort($urpm, $db, \@packages, \%provided_version);
     } else {
 	\@packages;
     }
@@ -188,16 +206,17 @@ sub find_required_package {
 
 # nb: _set_flag_installed_and_upgrade_if_no_newer must be done on $packages
 sub _find_required_package__sort {
-    my ($urpm, $db, $packages) = @_;
+    my ($urpm, $db, $packages, $provided_version) = @_;
 
-	my ($best, @other) = sort { 
-	    $a->[1] <=> $b->[1] #- we want the lowest (ie preferred arch)
+	my ($best, @other) = sort {
+	    URPM::rpmvercmp($b->[3], $a->[3]) #- highest provided version
+	      || $a->[1] <=> $b->[1] #- we want the lowest (ie preferred arch)
 	      || $b->[2] <=> $a->[2]; #- and the higher
 	} map {
 	    my $score = 0;
 	    $score += 2 if $_->flag_requested;
 	    $score += $_->flag_upgrade ? 1 : -1 if $_->flag_installed;
-	    [ $_, $_->is_arch_compat, $score ];
+	    [ $_, $_->is_arch_compat, $score, $provided_version->{$_} || 0 ];
 	} @$packages;
 
 	my @chosen_with_score = ($best, grep { $_->[1] == $best->[1] && $_->[2] == $best->[2] } @other);
