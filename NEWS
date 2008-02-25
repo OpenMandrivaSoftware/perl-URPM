@@ -1,4 +1,5 @@
 - handle new package providing xxx which conflicts with an installed package (#17106)
+- fix sort choices changed in perl-URPM 3.08
 
 Version 3.08 - 25 February 2008, by Pascal "Pixel" Rigaux
 

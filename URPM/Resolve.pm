@@ -209,9 +209,9 @@ sub _find_required_package__sort {
     my ($urpm, $db, $packages, $provided_version) = @_;
 
 	my ($best, @other) = sort {
-	    URPM::rpmvercmp($b->[3], $a->[3]) #- highest provided version
-	      || $a->[1] <=> $b->[1] #- we want the lowest (ie preferred arch)
-	      || $b->[2] <=> $a->[2]; #- and the higher
+	      $a->[1] <=> $b->[1] #- we want the lowest (ie preferred arch)
+	      || $b->[2] <=> $a->[2] #- and the higher score
+	      || URPM::rpmvercmp($b->[3], $a->[3]); #- and the highest provided version
 	} map {
 	    my $score = 0;
 	    $score += 2 if $_->flag_requested;
