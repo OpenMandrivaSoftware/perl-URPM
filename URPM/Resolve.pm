@@ -1373,11 +1373,30 @@ sub disable_selected_and_unrequested_dependencies {
 #- side-effects: none
 sub selected_size {
     my ($urpm, $state) = @_;
-    my $size;
+    my ($size) = _selected_size_filesize($urpm, $state, 0);
+    $size;
+}
+#- side-effects: none
+sub selected_size_filesize {
+    my ($urpm, $state) = @_;
+    _selected_size_filesize($urpm, $state, 1);
+}
+#- side-effects: none
+sub _selected_size_filesize {
+    my ($urpm, $state, $compute_filesize) = @_;
+    my ($size, $filesize, $bad_filesize);
 
     foreach (keys %{$state->{selected} || {}}) {
 	my $pkg = $urpm->{depslist}[$_];
 	$size += $pkg->size;
+	$compute_filesize or next;
+
+	if (my $n = $pkg->filesize) {
+	    $filesize += $n;
+	} elsif (!$bad_filesize) {
+	    $urpm->{debug} and $urpm->{debug}("no filesize for package " . $pkg->fullname);
+	    $bad_filesize = 1;
+	}
     }
 
     foreach (values %{$state->{rejected} || {}}) {
@@ -1385,7 +1404,7 @@ sub selected_size {
 	$size -= $_->{size};
     }
 
-    $size;
+    $size, $bad_filesize ? 0 : $filesize;
 }
 
 #- compute installed flags for all packages in depslist.

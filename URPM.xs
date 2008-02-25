@@ -213,6 +213,11 @@ get_int(Header header, int_32 tag) {
 }
 
 static int
+sigsize_to_filesize(int sigsize) {
+  return sigsize + 440; /* 440 is the rpm header size (?) empirical, but works */
+}
+
+static int
 print_list_entry(char *buff, int sz, char *name, int_32 flags, char *evr) {
   int len = strlen(name);
   char *p = buff;
@@ -831,9 +836,9 @@ pack_header(URPM__Package pkg) {
       char *release = get_name(pkg->h, RPMTAG_RELEASE);
       char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
 
-      p += snprintf(buff, sizeof(buff), "%s-%s-%s.%s@%d@%d@%s@", name, version, release, arch,
-		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), get_name(pkg->h, RPMTAG_GROUP));
-      p[-1] = 0;
+      p += 1 + snprintf(buff, sizeof(buff), "%s-%s-%s.%s@%d@%d@%s@%d", name, version, release, arch,
+		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
+		    get_name(pkg->h, RPMTAG_GROUP), sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE)));
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
     }
     if (pkg->requires == NULL && pkg->suggests == NULL)
@@ -1959,6 +1964,22 @@ Pkg_size(pkg)
     }
   } else if (pkg->h) {
     RETVAL = get_int(pkg->h, RPMTAG_SIZE);
+  } else RETVAL = 0;
+  OUTPUT:
+  RETVAL
+
+int
+Pkg_filesize(pkg)
+  URPM::Package pkg
+  CODE:
+  if (pkg->info) {
+    char *s;
+
+    if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
+      RETVAL = atoi(s+1);
+    } else RETVAL = 0;
+  } else if (pkg->h) {
+    RETVAL = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
   } else RETVAL = 0;
   OUTPUT:
   RETVAL

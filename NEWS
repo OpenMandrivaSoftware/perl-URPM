@@ -1,3 +1,5 @@
+- add filesize to synthesis, add ->filesize to get it, and add
+  selected_size_filesize() to compute the sum
 - allow urpmi to know a package was not selected because a newer version is
   installed (#29838)
 - handle new package providing xxx which conflicts with an installed package (#17106)

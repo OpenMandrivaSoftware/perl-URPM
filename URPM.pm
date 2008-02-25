@@ -630,6 +630,10 @@ The rpm's bare name.
 
 =item $package->rflags()
 
+=item $package->filesize()
+
+Size of the rpm file (ie the rpm header + cpio body)
+
 =item $package->set_flag($name, $value)
 
 =item $package->set_flag_base($value)
