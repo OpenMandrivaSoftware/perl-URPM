@@ -2015,6 +2015,12 @@ Pkg_filename(pkg)
 	memcpy(eon, savbuf, 4);
     }
   } else if (pkg->h) {
+    char *name = get_name(pkg->h, RPMTAG_NAME);
+    char *version = get_name(pkg->h, RPMTAG_VERSION);
+    char *release = get_name(pkg->h, RPMTAG_RELEASE);
+    char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
+
+    XPUSHs(sv_2mortal(newSVpvf("%s-%s-%s.%s.rpm", name, version, release, arch)));
   }
 
 # deprecated
