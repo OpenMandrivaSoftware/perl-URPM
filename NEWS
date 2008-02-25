@@ -1,3 +1,5 @@
+- allow urpmi to know a package was not selected because a newer version is
+  installed (#29838)
 - handle new package providing xxx which conflicts with an installed package (#17106)
 - fix sort choices changed in perl-URPM 3.08
 

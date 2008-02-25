@@ -630,6 +630,15 @@ sub _set_rejected_from {
 }
 
 #- side-effects: $state->{rejected}
+sub _set_rejected_old_package {
+    my ($state, $pkg, $new_pkg) = @_;
+
+    $pkg->fullname ne $new_pkg->fullname or return;
+
+    push @{$state->{rejected}{$pkg->fullname}{backtrack}{keep}}, scalar $new_pkg->fullname;
+}
+
+#- side-effects: $state->{rejected}
 sub set_rejected {
     my ($urpm, $state, $rdep) = @_;
 
@@ -811,6 +820,7 @@ sub resolve_requested__no_suggests {
 #-   + those of _handle_conflict ($state->{rejected})
 #-   + those of backtrack_selected_psel_keep (flag_requested, $state->{whatrequires})
 #-   + those of _handle_diff_provides  (flag_requested, $state->{rejected}, $state->{whatrequires})
+#-   + those of _no_more_recent_installed_and_providing ($state->{rejected})
 sub resolve_requested__no_suggests_ {
     my ($urpm, $db, $state, $requested, %options) = @_;
 
@@ -841,7 +851,7 @@ sub resolve_requested__no_suggests_ {
 		_set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 
 		if ($pkg->flag_installed && !$pkg->flag_upgrade) {
-		    _no_more_recent_installed_and_providing($urpm, $db, $pkg, $dep->{required}) or next;
+		    _no_more_recent_installed_and_providing($urpm, $db, $state, $pkg, $dep->{required}) or next;
 		}
 	    }
 	    $urpm->{debug_URPM}("selecting " . $pkg->fullname) if $urpm->{debug_URPM};
@@ -1230,9 +1240,10 @@ sub _set_flag_installed_and_upgrade_if_no_newer {
     $pkg->set_flag_upgrade($upgrade);
 }
 
-#- side-effects: none
+#- side-effects:
+#-   + those of _set_rejected_old_package ($state->{rejected})
 sub _no_more_recent_installed_and_providing {
-    my ($urpm, $db, $pkg, $required) = @_;
+    my ($urpm, $db, $state, $pkg, $required) = @_;
 
     my $allow = 1;
     $db->traverse_tag('name', [ $pkg->name ], sub {
@@ -1241,6 +1252,7 @@ sub _no_more_recent_installed_and_providing {
 	if ($allow && $pkg->compare_pkg($p) <= 0) {
 	    if ($required =~ /^\d+/ || $p->provides_overlap($required)) {
 		$urpm->{debug_URPM}("not selecting " . $pkg->fullname . " since the more recent " . $p->fullname . " is installed") if $urpm->{debug_URPM};
+		_set_rejected_old_package($state, $pkg, $p);
 		$allow = 0;
 	    } else {
 		$urpm->{debug_URPM}("the more recent " . $p->fullname . 
