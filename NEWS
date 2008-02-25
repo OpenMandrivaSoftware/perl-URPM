@@ -1,3 +1,5 @@
+Version 3.09 - 25 February 2008, by Pascal "Pixel" Rigaux
+
 - add filesize to synthesis, add ->filesize to get it, and add
   selected_size_filesize() to compute the sum
 - allow urpmi to know a package was not selected because a newer version is
