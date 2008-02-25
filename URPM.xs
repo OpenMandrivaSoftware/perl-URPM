@@ -1999,7 +1999,6 @@ Pkg_group(pkg)
     XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_GROUP), 0)));
   }
 
-# deprecated
 void
 Pkg_filename(pkg)
   URPM::Package pkg

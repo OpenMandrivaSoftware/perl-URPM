@@ -403,8 +403,6 @@ sub compute_deps {
 #-   idlist   : id list of rpm to compute (defaults is start .. end)
 #-   ratio    : compression ratio (default 4).
 #-   split    : split ratio (default 400kb, see MDV::Packdrakeng).
-#
-# deprecated
 sub build_hdlist {
     my ($urpm, %options) = @_;
     my ($dir, $ratio, @idlist);
