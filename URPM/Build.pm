@@ -80,7 +80,6 @@ sub parse_rpms_build_headers {
 		my $pkg = $urpm->{depslist}[$id];
 
 		$filename = $pkg->fullname;
-		"$filename.rpm" eq $pkg->filename or $filename .= ":$key";
 
 		unless (-s "$dir/$filename") {
 		    open my $fh, ">$dir/$filename" or die "unable to open $dir/$filename for writing\n";
@@ -435,8 +434,6 @@ sub build_hdlist {
     ) or die "Can't create archive";
     foreach my $pkg (@{$urpm->{depslist}}[@idlist]) {
 	my $filename = $pkg->fullname;
-	"$filename.rpm" ne $pkg->filename && $pkg->filename =~ m!([^/]*)\.rpm$!
-	    and $filename .= ":$1";
 	-s "$dir/$filename" or die "bad header $dir/$filename\n";
 	$pack->add($dir, $filename);
     }
