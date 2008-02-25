@@ -1978,7 +1978,7 @@ Pkg_group(pkg)
     XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_GROUP), 0)));
   }
 
-/* deprecated */
+# deprecated
 void
 Pkg_filename(pkg)
   URPM::Package pkg
@@ -1996,7 +1996,7 @@ Pkg_filename(pkg)
   } else if (pkg->h) {
   }
 
-/* deprecated */
+# deprecated
 void
 Pkg_header_filename(pkg)
   URPM::Package pkg
