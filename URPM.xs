@@ -82,6 +82,7 @@ typedef struct rpmSpec_s * Spec;
 
 struct s_Package {
   char *info;
+  int  filesize;
   char *requires;
   char *suggests;
   char *obsoletes;
@@ -836,11 +837,12 @@ pack_header(URPM__Package pkg) {
       char *release = get_name(pkg->h, RPMTAG_RELEASE);
       char *arch = headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? get_name(pkg->h, RPMTAG_ARCH) : "src";
 
-      p += 1 + snprintf(buff, sizeof(buff), "%s-%s-%s.%s@%d@%d@%s@%d", name, version, release, arch,
+      p += 1 + snprintf(buff, sizeof(buff), "%s-%s-%s.%s@%d@%d@%s", name, version, release, arch,
 		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
-		    get_name(pkg->h, RPMTAG_GROUP), sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE)));
+		    get_name(pkg->h, RPMTAG_GROUP));
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
     }
+    if (pkg->filesize == 0) pkg->filesize = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
     if (pkg->requires == NULL && pkg->suggests == NULL)
       has_old_suggests = 0;
       pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_old_suggests);
@@ -1163,6 +1165,8 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
 	av_push(depslist, sv_pkg);
       }
       memset(pkg, 0, sizeof(struct s_Package));
+    } else if (!strcmp(tag, "filesize")) {
+      pkg->filesize = atoi(data);
     } else if (!strcmp(tag, "requires")) {
       free(pkg->requires); pkg->requires = memcpy(malloc(data_len), data, data_len);
     } else if (!strcmp(tag, "suggests")) {
@@ -1972,12 +1976,8 @@ int
 Pkg_filesize(pkg)
   URPM::Package pkg
   CODE:
-  if (pkg->info) {
-    char *s;
-
-    if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
-      RETVAL = atoi(s+1);
-    } else RETVAL = 0;
+  if (pkg->filesize) {
+    RETVAL = pkg->filesize;
   } else if (pkg->h) {
     RETVAL = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
   } else RETVAL = 0;
@@ -2473,6 +2473,10 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
     }
     if (pkg->summary && *pkg->summary) {
       size = snprintf(buff, sizeof(buff), "@summary@%s\n", pkg->summary);
+      if (size < sizeof(buff)) write_nocheck(fileno, buff, size);
+    }
+    if (pkg->filesize) {
+      size = snprintf(buff, sizeof(buff), "@filesize@%d\n", pkg->filesize);
       if (size < sizeof(buff)) write_nocheck(fileno, buff, size);
     }
     size = snprintf(buff, sizeof(buff), "@info@%s\n", pkg->info);
