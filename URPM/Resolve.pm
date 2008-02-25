@@ -886,7 +886,7 @@ sub resolve_requested__no_suggests_ {
 	    _handle_conflicts($urpm, $db, $state, $pkg, \@properties, \%diff_provides_h, $options{keep} && \@keep);
 
 	    #- examine if an existing package does not conflict with this one.
-	    $db->traverse_tag('whatconflicts', [ $pkg->name ], sub {
+	    $db->traverse_tag('whatconflicts', [ $pkg->provides_nosense ], sub {
 		@keep and return;
 		my ($p) = @_;
 		foreach my $property ($p->conflicts) {
