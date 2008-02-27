@@ -18,7 +18,7 @@ defined $rpm_path or die "Can't find rpm on this system\n";
 
 my $version = `LC_ALL=C $rpm_path --version`;
 # fix compiling with RCs:
-$version =~ s/-.*//;
+$version =~ s/(-.*)|(\.DEVEL)//;
 chomp $version;
 $version =~ s/(RPM version )|(rpm \(RPM\) )//;
 my $pversion = eval "v$version";
@@ -62,7 +62,7 @@ if ($pversion ge v4.4.90 && $pversion lt v4.5) {
     if ($pversion ge v4.5) {
 	push @rpmflags, '-DRPM_450';
     }
-    if ($pversion ge v5.0.0) {
+    if ($pversion ge v5.0) {
 	push @rpmflags, '-DRPM_500 -DWITH_DB';
     }
 }
