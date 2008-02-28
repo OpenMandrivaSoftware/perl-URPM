@@ -8,7 +8,6 @@
  * $Id$
  * 
  */
-
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -51,6 +50,9 @@ typedef struct rpmSpec_s * Spec;
 #ifdef RPM_450
 #   define _RPMEVR_INTERNAL
 #include <rpm/rpmevr.h>
+#endif
+#ifdef RPM_500
+#   define _RPMTAG_INTERNAL
 #endif
 
 #include <rpm/rpmlib.h>

@@ -7,8 +7,6 @@
 #include <rpm/rpmio.h>
 #include <rpm/pkgio.h>
 #include <rpm/rpmcb.h>
-#   define _RPMTAG_INTERNAL
-#include <rpm/rpmtag.h>
 #include <rpm/rpmts.h>
 
 
