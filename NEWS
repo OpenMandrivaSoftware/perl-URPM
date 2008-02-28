@@ -1,3 +1,6 @@
+- restore FILENAME_TAG in generated hdlist (to be compatible with older
+  distros where ->filename can rely on it) (thanks to Nanar)
+
 Version 3.10 - 26 February 2008, by Pascal "Pixel" Rigaux
 
 - add filesize to synthesis, add ->filesize to get it, and add

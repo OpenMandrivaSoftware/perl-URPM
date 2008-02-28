@@ -123,6 +123,9 @@ typedef struct s_Package* URPM__Package;
 #define FLAG_RATE_INVALID     0
 
 
+#define FILENAME_TAG 1000000
+#define FILESIZE_TAG 1000001
+
 #define FILTER_MODE_ALL_FILES     0
 #define FILTER_MODE_CONF_FILES    2
 
@@ -1265,6 +1268,10 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	  basename = strrchr(filename, '/');
 	  size = fdSize(fd);
 	  Fclose(fd);
+
+	  /* this is only kept for compatibility with older distros
+	     (where ->filename on "unpacked" URPM::Package rely on FILENAME_TAG) */
+	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
 
 	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
 	  pkg->h = header;
