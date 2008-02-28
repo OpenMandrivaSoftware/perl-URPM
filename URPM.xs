@@ -36,10 +36,8 @@ static inline void *_free(const void * p) {
 }
 typedef struct rpmSpec_s * Spec;
 #else
-#ifndef RPM_450
-#define rpmtsImportPubkey	rpmcliImportPubkey
-#endif
 #if !defined(RPM_450) || !defined(RPM_500)
+#define	rpmtsImportPubkey	rpmcliImportPubkey
 #define rpmProblemGetType(p)    p->type
 #define rpmProblemGetPkgNEVR(p) p->pkgNEVR
 #define rpmProblemGetAltNEVR(p) p->altNEVR
@@ -57,16 +55,7 @@ typedef struct rpmSpec_s * Spec;
 
 #include <rpm/rpmlib.h>
 #ifdef RPM_500
-#   define _RPMTAG_INTERNAL 
-#include <rpm/rpmtag.h>
-/* (peroyvind): A bit ugly, work in progress.. */
-#define	int_32	uint32_t
-#define	uint_16	uint16_t
-#define	RPM_NULL_TYPE	0
-#define	RPM_CHAR_TYPE	RPM_UINT8_TYPE
-#define	RPM_INT8_TYPE	RPM_UINT8_TYPE
-#define	RPM_INT16_TYPE	RPM_UINT16_TYPE
-#define	RPM_INT32_TYPE	RPM_UINT32_TYPE
+#include "rpm5compat.h"
 #else
 #include <rpm/header.h>
 #endif
@@ -3923,7 +3912,7 @@ rpmErrorWriteTo(fd)
   CODE:
   rpmError_callback_data = fd;
   rpmlogSetCallback(rpmError_callback
-#ifdef RPM_ORG
+#if defined(RPM_ORG) || defined(RPM_500)
 		    , NULL
 #endif
 		    );
