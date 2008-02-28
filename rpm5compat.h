@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2008 Per Øyvind Karlsen <peroyvind@mandriva.org>
+ *
+ * $Id: rpm5compat.h 237744 2008-02-28 17:15:00Z peroyvind $
+ *
+ */
 #define RPM_NULL_TYPE   0
 #define RPM_CHAR_TYPE   RPM_UINT8_TYPE
 #define RPM_INT8_TYPE   RPM_UINT8_TYPE
