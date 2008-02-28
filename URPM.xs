@@ -1184,7 +1184,7 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
 static void pack_rpm_header(Header *h) {
   Header packed = headerNew();
   HeaderIterator hi;
-  int type, c, tag;
+  int_32 type, c, tag;
   void *p;
 
   for (hi = headerInitIterator(*h);
