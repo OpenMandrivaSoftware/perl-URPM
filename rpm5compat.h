@@ -95,9 +95,8 @@ static HeaderIterator headerInitIterator(Header h){
 
 static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
 	const char item[] = "Header";
-	Header nh = NULL;
 	const char * msg = NULL;
-	rpmRC rc = rpmpkgWrite(item, _fd, nh, &msg);
+	rpmRC rc = rpmpkgWrite(item, _fd, h, &msg);
 	if (rc != RPMRC_OK) {
 /*		rpmlog(RPMLOG_ERR, "%s: %s: %s\n", sigtarget, item,
 				(msg && *msg ? msg : "write failed\n"));*/
@@ -109,3 +108,15 @@ static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
 	return rc;
 }
 
+static int headerRead(void * _fd, enum hMagic magicp) {
+	        const char item[] = "Header";
+		Header nh = NULL;
+		const char * msg = NULL;
+		rpmRC rc = rpmpkgRead(item, _fd, nh, &msg);
+		if (rc != RPMRC_OK) {
+			msg = _free(msg);
+			rc = RPMRC_FAIL;
+		}
+		msg = _free(msg);
+		return rc;
+}
