@@ -81,7 +81,6 @@ static int headerNextIterator(HeaderIterator hi, hTAG_t tag, hTYP_t type, hPTR_t
 	
 	he->tag = (rpmTag)tag;
 	he->p.str = (char*)p;
-	he->c = (char*)c;
 	return headerNext(hi, he, 0);
 }
 
