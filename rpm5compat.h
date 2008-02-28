@@ -8,7 +8,7 @@
 #include <rpm/pkgio.h>
 #include <rpm/rpmcb.h>
 #include <rpm/rpmts.h>
-
+#include <rpm/rpmmacro.h>
 
 enum hMagic {
 	HEADER_MAGIC_NO             = 0,
@@ -81,8 +81,12 @@ int headerModifyEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 
 }
 
 static int headerNextIterator(HeaderIterator hi, hTAG_t tag, hTYP_t type, hPTR_t * p, hCNT_t c) {
-	  HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
-	  headerNext(hi, he, 0);
+	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
+	
+	he->tag = (rpmTag)tag;
+	he->p.str = p;
+	he->c = c;
+	return headerNext(hi, he, 0);
 }
 
 static HeaderIterator headerFreeIterator(HeaderIterator hi) {
@@ -91,6 +95,17 @@ static HeaderIterator headerFreeIterator(HeaderIterator hi) {
 
 static HeaderIterator headerInitIterator(Header h){
 	return headerInit(h);
+}
+
+void * headerFreeData(const void * data, rpmTagType type) {
+	if (data) {
+		if (type == -1 ||
+				type == RPM_STRING_ARRAY_TYPE ||
+				type == RPM_I18NSTRING_TYPE ||
+				type == RPM_BIN_TYPE)
+			free((void *)data);
+	}
+	return NULL;
 }
 
 static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
@@ -109,14 +124,22 @@ static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
 }
 
 static int headerRead(void * _fd, enum hMagic magicp) {
-	        const char item[] = "Header";
-		Header nh = NULL;
-		const char * msg = NULL;
-		rpmRC rc = rpmpkgRead(item, _fd, nh, &msg);
-		if (rc != RPMRC_OK) {
-			msg = _free(msg);
-			rc = RPMRC_FAIL;
-		}
+	const char item[] = "Header";
+	Header nh = NULL;
+	const char * msg = NULL;
+	rpmRC rc = rpmpkgRead(item, _fd, &nh, &msg);
+	if (rc != RPMRC_OK) {
 		msg = _free(msg);
-		return rc;
+		rc = RPMRC_FAIL;
+	}
+	msg = _free(msg);
+	return rc;
+}
+
+int rpmMachineScore(int type, const char * name) {
+	char * platform = rpmExpand(name, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+	int score = rpmPlatformScore(platform, NULL, 0);
+
+	_free(platform);
+	return score;
 }
