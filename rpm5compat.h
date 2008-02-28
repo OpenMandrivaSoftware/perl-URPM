@@ -48,10 +48,6 @@ static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, h
 	return rc;
 }
 
-/*static Header headerRead(FD_t fd, enum hMagic magicp){
-
-}*/
-
 static int headerAddEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 c) {
 	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
@@ -84,8 +80,8 @@ static int headerNextIterator(HeaderIterator hi, hTAG_t tag, hTYP_t type, hPTR_t
 	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 	
 	he->tag = (rpmTag)tag;
-	he->p.str = p;
-	he->c = c;
+	he->p.str = (char*)p;
+	he->c = (char*)c;
 	return headerNext(hi, he, 0);
 }
 
