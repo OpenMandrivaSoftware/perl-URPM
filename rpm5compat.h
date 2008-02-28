@@ -115,7 +115,7 @@ static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
 	return rc;
 }
 
-static int headerRead(void * _fd, enum hMagic magicp) {
+static inline Header headerRead(void * _fd, enum hMagic magicp) {
 	const char item[] = "Header";
 	Header h = NULL;
 	const char * fn = NULL;
@@ -126,7 +126,7 @@ static int headerRead(void * _fd, enum hMagic magicp) {
 		rc = RPMRC_FAIL;
 	}
 	msg = _free(msg);
-	return rc;
+	return h;
 }
 
 int rpmMachineScore(int type, const char * name) {
