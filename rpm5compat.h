@@ -54,6 +54,7 @@ static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, h
 
 static int headerAddEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 c) {
 	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
+
 	he->tag = tag;
 	he->t = type;
 	he->p.str = p;
@@ -64,8 +65,19 @@ static int headerAddEntry(Header h, int_32 tag, int_32 type, const void * p, int
 static int headerRemoveEntry(Header h, int_32 tag) {
 	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
-	he->tag = (rpmTag)tag;
+	he->tag = tag;
 	return headerDel(h, he, 0);
+}
+
+int headerModifyEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 c) {
+	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
+
+	he->tag = tag;
+	he->t = type;
+	he->p.str = p;
+	he->c = c;
+	return headerMod(h, he, 0);
+
 }
 
 static int headerNextIterator(HeaderIterator hi, hTAG_t tag, hTYP_t type, hPTR_t * p, hCNT_t c) {
