@@ -1,3 +1,5 @@
+Version 3.11 - 26 February 2008, by Pascal "Pixel" Rigaux
+
 - restore FILENAME_TAG in generated hdlist (to be compatible with older
   distros where ->filename can rely on it) (thanks to Nanar)
 
