@@ -3284,7 +3284,11 @@ Urpm_list_rpm_tag(urpm=Nullsv)
 
        while (ext->name != NULL) {
           if (ext->type == HEADER_EXT_MORE) {
+#ifdef RPM_500
+		  ext = *ext->u.more;
+#else
 		  ext = ext->u.more;
+#endif
 		  continue;
 	  }
 	  for (i = 0; i < rpmTagTableSize; i++) {
