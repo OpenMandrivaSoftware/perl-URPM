@@ -1,3 +1,9 @@
+/*
+ * $Copyright$
+ *
+ * $Id$
+ */
+
 #define RPM_NULL_TYPE   0
 #define RPM_CHAR_TYPE   RPM_UINT8_TYPE
 #define RPM_INT8_TYPE   RPM_UINT8_TYPE
