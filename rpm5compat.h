@@ -142,9 +142,13 @@ static inline Header headerRead(void * _fd, enum hMagic magicp) {
 	Header h = NULL;
 	const char * msg = NULL;
 	rpmRC rc = rpmpkgRead(item, _fd, &h, &msg);
-	if (rc != RPMRC_OK) {
-		rpmlog(RPMLOG_ERR, "%s: %s: %s\n", "headerRead", item, msg);
-		rc = RPMRC_FAIL;
+	switch (rc) {
+		default:
+			rpmlog(RPMLOG_ERR, "%s: %s: %s\n", "headerRead", item, msg);
+		case RPMRC_NOTFOUND:
+			h = NULL;
+		case RPMRC_OK:
+			break;
 	}
 	msg = _free(msg);
 	return h;
