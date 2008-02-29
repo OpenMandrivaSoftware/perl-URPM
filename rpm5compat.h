@@ -1,5 +1,5 @@
 /*
- * $Copyright$
+ * Copyright © 2008 Per Øyvind Karlsen <peroyvind@mandriva.org>
  *
  * $Id$
  */
