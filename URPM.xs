@@ -310,12 +310,12 @@ ranges_overlap(int_32 aflags, char *sa, int_32 bflags, char *sb, int b_nopromote
 }
 
 static int has_old_suggests;
-int is_old_suggests(int_32 flags) { 
+int_32 is_old_suggests(int_32 flags) { 
   int is = flags & RPMSENSE_MISSINGOK;
   if (is) has_old_suggests = is;
   return is;
 }
-int is_not_old_suggests(int_32 flags) {
+int_32 is_not_old_suggests(int_32 flags) {
   return !is_old_suggests(flags);
 }
 
@@ -791,7 +791,7 @@ return_problems(rpmps ps, int translate_message) {
 }
 
 static char *
-pack_list(Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, int (*check_flag)(int)) {
+pack_list(Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, int_32 (*check_flag)(int_32)) {
   char buff[65536];
   int_32 type, count;
   char **list = NULL;
