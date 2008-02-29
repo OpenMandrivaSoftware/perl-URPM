@@ -115,13 +115,8 @@ static HeaderIterator headerInitIterator(Header h){
 }
 
 void * headerFreeData(const void * data, rpmTagType type) {
-	if (data) {
-		if (type == -1 ||
-				type == RPM_STRING_ARRAY_TYPE ||
-				type == RPM_I18NSTRING_TYPE ||
-				type == RPM_BIN_TYPE)
-			free((void *)data);
-	}
+	if (data)
+		free((void *)data);
 	return NULL;
 }
 
