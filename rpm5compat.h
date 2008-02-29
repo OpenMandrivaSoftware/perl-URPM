@@ -22,14 +22,15 @@ enum hMagic {
 };
 
 
-typedef uint32_t *        hTAG_t;
-typedef uint32_t *        hTYP_t;
-typedef const void *    hPTR_t;
-typedef uint32_t *        hCNT_t;
-typedef	uint32_t int_32;
-typedef	uint16_t uint_16;
-typedef	uint8_t byte;
-typedef union hRET_s {
+typedef	uint32_t *	hTAG_t;
+typedef	uint32_t *	hTYP_t;
+typedef	const void *	hPTR_t;
+typedef	uint32_t *	hCNT_t;
+typedef	uint32_t	int_32;
+typedef	uint16_t	uint_16;
+typedef	uint8_t		byte;
+
+typedef	union hRET_s {
 	const void * ptr;
 	const char ** argv;
 	const char * str;
@@ -44,6 +45,7 @@ static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, h
 	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 	int rc;
 	
+	if (tag == RPMTAG_EPOCH) *(void **)p = NULL;
 	he->tag = tag;
 	rc = headerGet(h, he, tag);
 	if (rc) {
