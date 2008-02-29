@@ -58,7 +58,8 @@ static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, h
 	HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 	int rc;
 	
-	if (tag == RPMTAG_EPOCH) *(void **)p = NULL;
+	/* Always ensure to initialize */
+	*(void **)p = NULL;
 	he->tag = tag;
 	rc = headerGet(h, he, tag);
 	if (rc) {
@@ -66,6 +67,7 @@ static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, h
 		if (p) *(void **) p = he->p.ptr;
 		if (c) *c = he->c;
 	}
+
 	return rc;
 }
 
