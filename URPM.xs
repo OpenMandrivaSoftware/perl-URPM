@@ -769,10 +769,17 @@ return_problems(rpmps ps, int translate_message) {
 	  sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
 
 	case RPMPROB_DISKSPACE:
+#ifdef RPM_450
+	  sv = newSVpvf("diskspace@%s@%s@%lld", pkgNEVR, s, rpmProblemGetLong(p)); break;
+#else
 	  sv = newSVpvf("diskspace@%s@%s@%ld", pkgNEVR, s, rpmProblemGetLong(p)); break;
-
+#endif
 	case RPMPROB_DISKNODES:
+#ifdef RPM_450
+	  sv = newSVpvf("disknodes@%s@%s@%lld", pkgNEVR, s, rpmProblemGetLong(p)); break;
+#else
 	  sv = newSVpvf("disknodes@%s@%s@%ld", pkgNEVR, s, rpmProblemGetLong(p)); break;
+#endif
 
 	case RPMPROB_REQUIRES:
 	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
