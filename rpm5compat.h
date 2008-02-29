@@ -127,11 +127,10 @@ void * headerFreeData(const void * data, rpmTagType type) {
 
 static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
 	const char item[] = "Header";
-	const char * fn = NULL;
 	const char * msg = NULL;
 	rpmRC rc = rpmpkgWrite(item, _fd, h, &msg);
 	if (rc != RPMRC_OK) {
-		rpmlog(RPMLOG_ERR, "%s: %s: %s\n", fn, item, msg);
+		rpmlog(RPMLOG_ERR, "%s: %s: %s\n", "headerWrite", item, msg);
 		rc = RPMRC_FAIL;
 	}
 	msg = _free(msg);
@@ -141,11 +140,10 @@ static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
 static inline Header headerRead(void * _fd, enum hMagic magicp) {
 	const char item[] = "Header";
 	Header h = NULL;
-	const char * fn = NULL;
 	const char * msg = NULL;
 	rpmRC rc = rpmpkgRead(item, _fd, &h, &msg);
 	if (rc != RPMRC_OK) {
-		rpmlog(RPMLOG_ERR, "%s: %s: %s\n", fn, item, msg);
+		rpmlog(RPMLOG_ERR, "%s: %s: %s\n", "headerRead", item, msg);
 		rc = RPMRC_FAIL;
 	}
 	msg = _free(msg);
