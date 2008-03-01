@@ -10,24 +10,13 @@
 #define RPM_INT16_TYPE  RPM_UINT16_TYPE
 #define RPM_INT32_TYPE  RPM_UINT32_TYPE
 
-#ifndef H_RPMEVR
+#define	WITH_DB
 #include <rpm/rpmevr.h>
-#endif
-#ifndef H_RPMIO
 #include <rpm/rpmio.h>
-#endif
-#ifndef _H_PKGIO
 #include <rpm/pkgio.h>
-#endif
-#ifndef H_RPMCB
 #include <rpm/rpmcb.h>
-#endif
-#ifndef H_RPMTS
 #include <rpm/rpmts.h>
-#endif
-#ifndef _H_MACRO_
 #include <rpm/rpmmacro.h>
-#endif
 
 enum hMagic {
 	HEADER_MAGIC_NO             = 0,

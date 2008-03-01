@@ -60,7 +60,7 @@ if ($pversion ge v4.4.90 && $pversion lt v4.5) {
 	push @rpmflags, '-DRPM_450';
     }
     if ($pversion ge v5.0) {
-	push @rpmflags, '-DRPM_500 -DWITH_DB';
+	push @rpmflags, '-DRPM_500';
     }
 }
 my $ccflags = join(' ', '-Wall -fno-strict-aliasing', @rpmflags);
