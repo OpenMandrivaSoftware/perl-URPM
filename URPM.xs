@@ -1322,18 +1322,16 @@ ts_nosignature(rpmts ts) {
   rpmtsSetVSFlags(ts, _RPMVSF_NODIGESTS | _RPMVSF_NOSIGNATURES);
 }
 
-
-#ifdef RPM_CALLBACK_LONGLONG
-/* That's for rpm >= 4.4.5 */
-# define RPM_CALLBACK_AMOUNT_TYPE unsigned long long
+#if HAVE_RPM_RPMCB_H
+typedef unsigned long long rpmCallbackSize_t;
 #else
-# define RPM_CALLBACK_AMOUNT_TYPE unsigned long
+typedef unsigned long rpmCallbackSize_t;
 #endif
 
 static void *rpmRunTransactions_callback(const void *h,
 					 const rpmCallbackType what,
-					 const RPM_CALLBACK_AMOUNT_TYPE amount,
-					 const RPM_CALLBACK_AMOUNT_TYPE total,
+					 const rpmCallbackSize_t amount,
+					 const rpmCallbackSize_t total,
 					 fnpyKey pkgKey,
 					 rpmCallbackData data) {
   static struct timeval tprev;
