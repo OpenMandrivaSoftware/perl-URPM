@@ -12,6 +12,7 @@
 #define RPM_INT8_TYPE   RPM_UINT8_TYPE
 #define RPM_INT16_TYPE  RPM_UINT16_TYPE
 #define RPM_INT32_TYPE  RPM_UINT32_TYPE
+#define	RPMTRANS_FLAG_NOMD5	RPMTRANS_FLAG_NOFDIGESTS
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -161,5 +162,24 @@ int rpmMachineScore(int type, const char * name) {
 	_free(platform);
 	return score;
 }
+
+#ifdef __cplusplus
+inline rpmds rpmdsSingle(rpmTag tagN, const char * N, const char * EVR, int_32 Flags){
+	return rpmdsSingle(tagN, N, EVR, (evrFlags)Flags);
+}
+
+typedef void * (*rpmCallbackFunction_old)
+		(const void * h,
+		 const rpmCallbackType what,
+		 const unsigned long long amount,
+		 const unsigned long long total,
+		 fnpyKey key,
+		 rpmCallbackData data);
+
+inline int rpmtsSetNotifyCallback(rpmts ts, rpmCallbackFunction_old notify, rpmCallbackData notifyData){
+	return rpmtsSetNotifyCallback(ts, (rpmCallbackFunction)notify, notifyData);
+}
+#endif
+
 #endif /* rpm4compat.h */
 
