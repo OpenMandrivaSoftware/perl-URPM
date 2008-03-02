@@ -77,7 +77,7 @@ static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, h
 	return rc;
 }
 
-static int headerAddEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 c) {
+static inline int headerAddEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 c) {
 	HE_t he = (HE_s*)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
 	he->tag = (rpmTag)tag;
@@ -87,14 +87,14 @@ static int headerAddEntry(Header h, int_32 tag, int_32 type, const void * p, int
 	return headerPut(h, he, 0);
 }
 
-static int headerRemoveEntry(Header h, int_32 tag) {
+static inline int headerRemoveEntry(Header h, int_32 tag) {
 	HE_t he = (HE_s*)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
 	he->tag = (rpmTag)tag;
 	return headerDel(h, he, 0);
 }
 
-int headerModifyEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 c) {
+inline int headerModifyEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 c) {
 	HE_t he = (HE_s*)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
 	he->tag = (rpmTag)tag;
@@ -105,28 +105,28 @@ int headerModifyEntry(Header h, int_32 tag, int_32 type, const void * p, int_32 
 
 }
 
-static int headerNextIterator(HeaderIterator hi, hTAG_t tag, hTYP_t type, hPTR_t * p, hCNT_t c) {
+static inline int headerNextIterator(HeaderIterator hi, hTAG_t tag, hTYP_t type, hPTR_t * p, hCNT_t c) {
 	HE_t he = (HE_s*)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 	
 	he->tag = *(rpmTag*)tag;
 	return headerNext(hi, he, 0);
 }
 
-static HeaderIterator headerFreeIterator(HeaderIterator hi) {
+static inline HeaderIterator headerFreeIterator(HeaderIterator hi) {
 	return headerFini(hi);
 }
 
-static HeaderIterator headerInitIterator(Header h){
+static inline HeaderIterator headerInitIterator(Header h){
 	return headerInit(h);
 }
 
-void * headerFreeData(const void * data, rpmTagType type) {
+inline void * headerFreeData(const void * data, rpmTagType type) {
 	if (data)
 		free((void *)data);
 	return NULL;
 }
 
-static int headerWrite(void * _fd, Header h, enum hMagic magicp) {
+static inline int headerWrite(void * _fd, Header h, enum hMagic magicp) {
 	const char item[] = "Header";
 	const char * msg = NULL;
 	rpmRC rc = rpmpkgWrite(item, (FD_t)_fd, h, &msg);
@@ -155,7 +155,7 @@ static inline Header headerRead(void * _fd, enum hMagic magicp) {
 	return h;
 }
 
-int rpmMachineScore(int type, const char * name) {
+inline int rpmMachineScore(int type, const char * name) {
 	char * platform = rpmExpand(name, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
 	int score = rpmPlatformScore(platform, NULL, 0);
 
