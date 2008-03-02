@@ -60,20 +60,45 @@ typedef	union hRET_s {
 
 typedef enum pgpVSFlags_e rpmVSFlags_e;
 
-static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, hCNT_t c){
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static inline int headerGetEntry(Header h, int_32 tag, hTYP_t type, void ** p, hCNT_t c) {
 	HE_t he = (HE_s*)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 	int rc;
 	
 	/* Always ensure to initialize */
 	*(void **)p = NULL;
 	he->tag = (rpmTag)tag;
-	rc = headerGet(h, he, tag);
+	rc = headerGet(h, he, 0);
 	if (rc) {
 		if (type) *type = he->t;
 		if (p) *(void **) p = he->p.ptr;
 		if (c) *c = he->c;
 	}
 
+	return rc;
+}
+
+
+inline int headerGetRawEntry(Header h, int_32 tag, hTYP_t type, void * p, hCNT_t c) {
+	HE_t he = (HE_s*)memset(alloca(sizeof(*he)), 0, sizeof(*he));
+	int rc;
+
+	he->tag = (rpmTag)tag;
+	he->t = *(rpmTagType*)type;
+	he->p.str = (const char*)p;
+	he->c = *(rpmTagCount*)c;
+
+	rc = headerGet(h, he, tag);
+
+	if (rc) {
+		if (type) *type = he->t;
+		if (p) *(void **) p = he->p.ptr;
+		if (c) *c = he->c;
+	}
+	
 	return rc;
 }
 
@@ -164,6 +189,8 @@ inline int rpmMachineScore(int type, const char * name) {
 }
 
 #ifdef __cplusplus
+}
+
 inline rpmds rpmdsSingle(rpmTag tagN, const char * N, const char * EVR, int_32 Flags){
 	return rpmdsSingle(tagN, N, EVR, (evrFlags)Flags);
 }
