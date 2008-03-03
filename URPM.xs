@@ -52,13 +52,12 @@ typedef struct rpmSpec_s * Spec;
 #include <rpm/rpmevr.h>
 #endif
 #ifdef RPM_500
-#   define _RPMTAG_INTERNAL
+#include <rpm/rpm4compat.h>
 #endif
 
+
 #include <rpm/rpmlib.h>
-#ifdef RPM_500
-#include "rpm5compat.h"
-#else
+#ifndef RPM_500
 #include <rpm/header.h>
 #endif
 #include <rpm/rpmio.h>
