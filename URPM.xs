@@ -766,18 +766,8 @@ return_problems(rpmps ps, int translate_message) {
 	  sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
 
 	case RPMPROB_DISKSPACE:
-#ifdef RPM_450
-	  sv = newSVpvf("diskspace@%s@%s@%lld", pkgNEVR, s, rpmProblemGetLong(p)); break;
-#else
-	  sv = newSVpvf("diskspace@%s@%s@%ld", pkgNEVR, s, rpmProblemGetLong(p)); break;
-#endif
-	case RPMPROB_DISKNODES:
-#ifdef RPM_450
-	  sv = newSVpvf("disknodes@%s@%s@%lld", pkgNEVR, s, rpmProblemGetLong(p)); break;
-#else
-	  sv = newSVpvf("disknodes@%s@%s@%ld", pkgNEVR, s, rpmProblemGetLong(p)); break;
-#endif
-
+	  sv = newSVpvf("diskspace@%s@%s@%lld", pkgNEVR, s, (uint64_t)rpmProblemGetLong(p)); break;
+	  sv = newSVpvf("disknodes@%s@%s@%lld", pkgNEVR, s, (uint64_t)rpmProblemGetLong(p)); break;
 	case RPMPROB_REQUIRES:
 	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
 
@@ -1320,7 +1310,7 @@ ts_nosignature(rpmts ts) {
 }
 
 #if HAVE_RPM_RPMCB_H
-typedef unsigned long long rpmCallbackSize_t;
+typedef uint64_t rpmCallbackSize_t;
 #else
 typedef unsigned long rpmCallbackSize_t;
 #endif
