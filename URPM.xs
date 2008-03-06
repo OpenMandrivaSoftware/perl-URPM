@@ -767,6 +767,7 @@ return_problems(rpmps ps, int translate_message) {
 
 	case RPMPROB_DISKSPACE:
 	  sv = newSVpvf("diskspace@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetLong(p)); break;
+	case RPMPROB_DISKNODES:
 	  sv = newSVpvf("disknodes@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetLong(p)); break;
 	case RPMPROB_REQUIRES:
 	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
