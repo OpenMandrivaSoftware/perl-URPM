@@ -1,4 +1,9 @@
+- do allow to promoting a pkg even if it has unsatisfied require (since the
+  code will then fix the unsatisfied require). fixes "big transaction" 
+  (cf urpmi split-transactions--strict-require.t test_efgh())
+
 Version 3.12 -
+
 - rpm5.org port done (by Per Øyvind Karlsen)
 
 Version 3.11 - 26 February 2008, by Pascal "Pixel" Rigaux

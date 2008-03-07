@@ -1078,14 +1078,6 @@ sub _compute_diff_provides_of_removed_pkg {
 	}
 }
 
-sub _no_unsatisfied_requires {
-    my ($urpm, $db, $state, $pkg, $n) = @_;
-
-    my @l = unsatisfied_requires($urpm, $db, $state, $pkg, name => $n);
-    @l and $urpm->{debug_URPM}("  (not promoting " . $pkg->fullname . " because of @l)") if $urpm->{debug_URPM};
-    @l == 0;
-}
-
 #- side-effects: none
 sub _find_packages_obsoleting {
     my ($urpm, $state, $p) = @_;
@@ -1117,14 +1109,10 @@ sub _handle_diff_provides {
 	  grep { ($_->name eq $p->name ? $_->fullname ne $p->fullname :
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
 		   && (!strict_arch($urpm) || strict_arch_check($p, $_))
-		   && _no_unsatisfied_requires($urpm, $db, $state, $_, $n) 
 	     } @packages;
 
 	if (!@packages) {
 	    @packages = _find_packages_obsoleting($urpm, $state, $p);
-	    @packages = grep {
-		_no_unsatisfied_requires($urpm, $db, $state, $_, $n);
-	    } @packages;
 	}
 
 	if (@packages) {
