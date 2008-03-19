@@ -27,7 +27,7 @@ $version =~ s/(-.*)|(\.DEVEL)//;
 chomp $version;
 $version =~ s/(RPM version )|(rpm \(RPM\) )//;
 my $hversion = hexversion($version);
-$hversion ge hexversion(4.2) or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
+$hversion ge hexversion("4.2") or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 
 # to generate the ChangeLog depending on the checkout layout
 my $commonusername = "../common/";
@@ -50,8 +50,7 @@ ChangeLog:
 }
 
 my @rpmflags;
-#print $hversion;
-if ($hversion ge hexversion(4.4.90) && $hversion lt hexversion(4.5)) {
+if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("4.5")) {
     # rpm.org version
     push @rpmflags, "-DRPM_ORG";
 } else {
