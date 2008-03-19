@@ -1577,7 +1577,7 @@ Pkg_is_platform_compat(pkg)
     _free(platform);
   } else { 
 #else
-    croak("is_platform_compat() is availlable only since rpm 4.4.8");
+    croak("is_platform_compat() is available only since rpm 4.4.8");
     { /* to match last } and avoid another #ifdef for it */
 #endif
     RETVAL = 0;
