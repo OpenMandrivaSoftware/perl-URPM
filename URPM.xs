@@ -1528,7 +1528,7 @@ Pkg_is_arch_compat__XS(pkg)
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     *eos = 0;
 #if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
-    platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+    platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(platform);
 #else
@@ -1538,7 +1538,7 @@ Pkg_is_arch_compat__XS(pkg)
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     char *arch = get_name(pkg->h, RPMTAG_ARCH);
 #if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
-    platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+    platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(platform);
 #else
@@ -1571,7 +1571,7 @@ Pkg_is_platform_compat(pkg)
 
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     *eos = 0;
-    platform = rpmExpand(arch, "-%{_real_vendor}-", eos, "%{?_gnu}", NULL);
+    platform = rpmExpand(arch, "-%{_target_vendor}-", eos, "%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     *eos = '@';
     _free(platform);
@@ -3754,7 +3754,7 @@ Urpm_archscore(arch)
   CODE:
   read_config_files(0);
 #if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
-  platform = rpmExpand(arch, "-%{_real_vendor}-%{_target_os}%{?_gnu}", NULL);
+  platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
   RETVAL=rpmPlatformScore(platform, NULL, 0);
   _free(platform);
 #else
@@ -3773,7 +3773,7 @@ Urpm_osscore(os)
   CODE:
   read_config_files(0);
 #if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
-  platform = rpmExpand("%{_real_arch}-%{_real_vendor}-", os, "%{?_gnu}", NULL);
+  platform = rpmExpand("%{_target_cpu}-%{_target_vendor}-", os, "%{?_gnu}", NULL);
   RETVAL=rpmPlatformScore(platform, NULL, 0);
   _free(platform);
 #else
