@@ -16,13 +16,18 @@ unless (defined $rpm_path) {
 
 defined $rpm_path or die "Can't find rpm on this system\n";
 
+sub hexversion {
+	my ($major, $minor, $micro) = (@_[0] =~ /(\d+)\.(\d+)\.?(\d+)?/);
+	return int($major<<16) + int($minor<<8) + int($micro<<0)
+}
+
 my $version = `LC_ALL=C $rpm_path --version`;
 # fix compiling with RCs:
 $version =~ s/(-.*)|(\.DEVEL)//;
 chomp $version;
 $version =~ s/(RPM version )|(rpm \(RPM\) )//;
-my $pversion = eval "v$version";
-$pversion ge v4.2 or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
+my $hversion = hexversion($version);
+$hversion ge hexversion(4.2) or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 
 # to generate the ChangeLog depending on the checkout layout
 my $commonusername = "../common/";
@@ -45,23 +50,13 @@ ChangeLog:
 }
 
 my @rpmflags;
-if ($pversion ge v4.4.90 && $pversion lt v4.5) {
+#print $hversion;
+if ($hversion ge hexversion(4.4.90) && $hversion lt hexversion(4.5)) {
     # rpm.org version
-    push @rpmflags, '-DRPM_ORG';
+    push @rpmflags, "-DRPM_ORG";
 } else {
     # rpm5.org version
-    if ($pversion ge v4.4.6) {
-	push @rpmflags, '-DRPM_446';
-    }
-    if ($pversion ge v4.4.8) {
-	push @rpmflags, '-DRPM_448';
-    }
-    if ($pversion ge v4.5) {
-	push @rpmflags, '-DRPM_450';
-    }
-    if ($pversion ge v5.0) {
-	push @rpmflags, '-DRPM_500';
-    }
+	push @rpmflags, "-DRPM_VERSION_CODE=$hversion";
 }
 my $ccflags = join(' ', '-Wall -fno-strict-aliasing', @rpmflags);
 
