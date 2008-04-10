@@ -850,11 +850,9 @@ B<transaction_state>: $state object
 
 Copyright 2002, 2003, 2004, 2005 MandrakeSoft SA
 
-Copyright 2005, 2006 Mandriva SA
+Copyright 2005, 2006, 2007, 2008 Mandriva SA
 
-Original author: FranE<ccedil>ois Pons.
-Current maintainer: Rafael Garcia-Suarez
-<rgarciasuarez@mandriva.com>
+FranE<ccedil>ois Pons (original author), Rafael Garcia-Suarez, Pixel <pixel@mandriva.com> (current maintainer)
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
