@@ -454,7 +454,7 @@ sub with_db_unsatisfied_requires {
     $db->traverse_tag('whatrequires', [ $name ], sub {
 	my ($p) = @_;
 	if (my @l = unsatisfied_requires($urpm, $db, $state, $p, name => $name)) {
-	    $urpm->{debug_URPM}($p->fullname . " is conflicting because of unsatisfied @l") if $urpm->{debug_URPM};
+	    $urpm->{debug_URPM}("installed " . $p->fullname . " is conflicting because of unsatisfied @l") if $urpm->{debug_URPM};
 	    $do->($p, @l);
 	}
     });
