@@ -1,3 +1,5 @@
+- do not ignore dropped provide from updated package (mdvbz#40842)
+
 Version 3.12 - 7 March 2008, by Pascal "Pixel" Rigaux
 
 - do allow to promoting a pkg even if it has unsatisfied require (since the

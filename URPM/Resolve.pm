@@ -460,6 +460,27 @@ sub with_db_unsatisfied_requires {
     });
 }
 
+#- side-effects: only those done by $do
+sub with_state_unsatisfied_requires {
+    my ($urpm, $db, $state, $name, $do) = @_;
+
+    foreach (whatrequires_id($state, $name)) {
+	$state->{selected}{$_} or next;
+	my $p = $urpm->{depslist}[$_];
+	if (my @l = unsatisfied_requires($urpm, $db, $state, $p, name => $name)) {
+	    $urpm->{debug_URPM}("selected " . $p->fullname . " is conflicting because of unsatisfied @l") if $urpm->{debug_URPM};
+	    $do->($p, @l);
+        }
+    }
+}
+
+sub with_any_unsatisfied_requires {
+    my ($urpm, $db, $state, $name, $do) = @_;
+    with_db_unsatisfied_requires($urpm, $db, $state, $name, $do);
+    with_state_unsatisfied_requires($urpm, $db, $state, $name, $do);
+}
+
+
 # used when a require is not available
 #
 #- side-effects: $state->{backtrack}, $state->{selected}
@@ -1098,7 +1119,7 @@ sub _find_packages_obsoleting {
 sub _handle_diff_provides {
     my ($urpm, $db, $state, $properties, $n, $pkg, %options) = @_;
 
-    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
+    with_any_unsatisfied_requires($urpm, $db, $state, $n, sub {
 	my ($p, @l) = @_;
 
 	#- try if upgrading the package will be satisfying all the requires...
