@@ -1,3 +1,5 @@
+Version 3.13 - 20 May 2008, by Pascal "Pixel" Rigaux
+
 - do not ignore dropped provide from updated package (mdvbz#40842)
 
 Version 3.12 - 7 March 2008, by Pascal "Pixel" Rigaux
