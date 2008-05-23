@@ -104,6 +104,18 @@ sub strict_arch_check {
     1;
 }
 
+#- side-effects: none
+sub is_package_installed {
+    my ($db, $pkg) = @_;
+
+    my $found;
+    $db->traverse_tag('name', [ $pkg->name ], sub {
+	my ($p) = @_;
+	$found ||= $p->fullname eq $pkg->fullname;
+    });
+    $found;
+}
+
 sub _is_selected_or_installed {
     my ($urpm, $db, $name) = @_;
 
