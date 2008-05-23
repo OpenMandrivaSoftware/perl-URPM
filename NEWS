@@ -1,3 +1,5 @@
+Version 3.14 - 23 May 2008, by Pascal "Pixel" Rigaux
+
 - add is_package_installed() in URPM/Resolve.pm
   (to be used in urpmi 5.20)
 
