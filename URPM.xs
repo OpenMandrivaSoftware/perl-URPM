@@ -1917,8 +1917,9 @@ Pkg_compare(pkg, evr)
       compare = _epoch - (*epoch ? atoi(epoch) : 0);
       version[-1] = ':'; /* restore in memory modification */
     } else {
-      /* there is no epoch defined, so no check on epoch and assume equality */
+      /* there is no epoch defined, so assume epoch = 0 */
       version = evr;
+      compare = _epoch;
     }
     if (!compare) {
       if (!pkg->info)
