@@ -1,3 +1,5 @@
+Version 3.15 - 23 June 2008, by Pascal "Pixel" Rigaux
+
 - fix urpmi wrongly considering epochless conflicts to match any epoch in a
   case when urpmi should upgrade a conflicting package to an actually
   non-conflicting version (cf epochless-conflict-with-promotion urpmi test)
