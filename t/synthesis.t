@@ -2,7 +2,7 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 88;
+use Test::More tests => 94;
 use URPM;
 
 chdir 't' if -d 't';
@@ -98,20 +98,26 @@ my @files = $pkg->files;
 ok(@files == 0);
 
 ok($pkg->compare("6:2.2.4-25mdk") == 0);
-ok($pkg->compare("2.2.4-25mdk") == 0);
-ok($pkg->compare("2.2.4") == 0);
+ok($pkg->compare("2.2.4-25mdk") > 0);
+ok($pkg->compare("6:2.2.4") == 0);
 ok($pkg->compare("2.2.3") > 0);
 ok($pkg->compare("2.2") > 0);
 ok($pkg->compare("2") > 0);
-ok($pkg->compare("2.2.4.0") < 0);
-ok($pkg->compare("2.2.5") < 0);
+ok($pkg->compare("2.2.4.0") > 0);
+ok($pkg->compare("2.2.5") > 0);
 ok($pkg->compare("2.1.7") > 0);
-ok($pkg->compare("2.3.1") < 0);
-ok($pkg->compare("2.2.31") < 0);
+ok($pkg->compare("2.3.1") > 0);
+ok($pkg->compare("2.2.31") > 0);
 ok($pkg->compare("2.2.4-25") > 0);
-ok($pkg->compare("2.2.4-25.1mdk") < 0);
+ok($pkg->compare("2.2.4-25.1mdk") > 0);
 ok($pkg->compare("2.2.4-24mdk") > 0);
-ok($pkg->compare("2.2.4-26mdk") < 0);
+ok($pkg->compare("2.2.4-26mdk") > 0);
+ok($pkg->compare("6:2.2.4-25.1mdk") < 0);
+ok($pkg->compare("6:2.2.4.0") < 0);
+ok($pkg->compare("6:2.2.5") < 0);
+ok($pkg->compare("6:2.2.31") < 0);
+ok($pkg->compare("6:2.3.1") < 0);
+ok($pkg->compare("6:2.2.4-24mdk") > 0);
 ok($pkg->compare("6:2.2.4-26mdk") < 0);
 ok($pkg->compare("7:2.2.4-26mdk") < 0);
 ok($pkg->compare("7:2.2.4-24mdk") < 0);
