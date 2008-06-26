@@ -1,3 +1,6 @@
+- when not selecting a package because already installed,
+  but it in $state->{rejected} with flags {installed}
+
 Version 3.15 - 23 June 2008, by Pascal "Pixel" Rigaux
 
 - fix urpmi wrongly considering epochless conflicts to match any epoch in a

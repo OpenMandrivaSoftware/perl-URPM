@@ -666,9 +666,11 @@ sub _set_rejected_from {
 sub _set_rejected_old_package {
     my ($state, $pkg, $new_pkg) = @_;
 
-    $pkg->fullname ne $new_pkg->fullname or return;
-
-    push @{$state->{rejected}{$pkg->fullname}{backtrack}{keep}}, scalar $new_pkg->fullname;
+    if ($pkg->fullname eq $new_pkg->fullname) {
+	$state->{rejected}{$pkg->fullname}{installed} = 1;
+    } else {
+	push @{$state->{rejected}{$pkg->fullname}{backtrack}{keep}}, scalar $new_pkg->fullname;
+    }
 }
 
 #- side-effects: $state->{rejected}
