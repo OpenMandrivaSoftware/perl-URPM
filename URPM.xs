@@ -1437,6 +1437,24 @@ static void *rpmRunTransactions_callback(const void *h,
   return callback == td->callback_open ? fd : NULL;
 }
 
+int rpmtag_from_string(char *tag)
+{
+    if (!strcmp(tag, "name"))
+      return RPMTAG_NAME;
+    else if (!strcmp(tag, "whatprovides"))
+      return RPMTAG_PROVIDENAME;
+    else if (!strcmp(tag, "whatrequires"))
+      return RPMTAG_REQUIRENAME;
+    else if (!strcmp(tag, "whatconflicts"))
+      return RPMTAG_CONFLICTNAME;
+    else if (!strcmp(tag, "group"))
+      return RPMTAG_GROUP;
+    else if (!strcmp(tag, "triggeredby"))
+      return RPMTAG_TRIGGERNAME;
+    else if (!strcmp(tag, "path"))
+      return RPMTAG_BASENAMES;
+    else croak("unknown tag [%s]", tag);
+}
 
 MODULE = URPM            PACKAGE = URPM::Package       PREFIX = Pkg_
 
@@ -2867,21 +2885,7 @@ Db_traverse_tag(db,tag,names,callback)
     int len = av_len(names_av);
     int i, rpmtag;
 
-    if (!strcmp(tag, "name"))
-      rpmtag = RPMTAG_NAME;
-    else if (!strcmp(tag, "whatprovides"))
-      rpmtag = RPMTAG_PROVIDENAME;
-    else if (!strcmp(tag, "whatrequires"))
-      rpmtag = RPMTAG_REQUIRENAME;
-    else if (!strcmp(tag, "whatconflicts"))
-      rpmtag = RPMTAG_CONFLICTNAME;
-    else if (!strcmp(tag, "group"))
-      rpmtag = RPMTAG_GROUP;
-    else if (!strcmp(tag, "triggeredby"))
-      rpmtag = RPMTAG_TRIGGERNAME;
-    else if (!strcmp(tag, "path"))
-      rpmtag = RPMTAG_BASENAMES;
-    else croak("unknown tag [%s]", tag);
+    rpmtag = rpmtag_from_string(tag);
 
     for (i = 0; i <= len; ++i) {
       STRLEN str_len;
