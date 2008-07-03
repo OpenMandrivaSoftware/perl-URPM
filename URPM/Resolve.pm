@@ -104,7 +104,6 @@ sub strict_arch_check_installed {
 sub strict_arch_check {
     my ($installed_pkg, $pkg) = @_;
     if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
-	my $n = $pkg->name;
 	if ($installed_pkg->arch ne 'noarch') {
 	    $pkg->arch eq $installed_pkg->arch or return;
 	}
@@ -282,7 +281,7 @@ sub _find_required_package__kernel_source {
 
     $choices->[0]->name =~ /^kernel-(.*source-|.*-devel-)/ or return;
 
-    my @l = grep {
+    grep {
 	if ($_->name =~ /^kernel-.*source-stripped-(.*)/) {
 	    my $version = quotemeta($1);
 	    find {
@@ -307,8 +306,8 @@ sub _find_required_package__kmod {
 
     $choices->[0]->name =~ /^dkms-|-kernel-2\./ or return;
 
-    my @l = grep {
-	if (my ($name, $version, $flavor, $release) = $_->name =~ /(.*)-kernel-(2\..*)-(.*)-(.*)/) {
+    grep {
+	if (my ($_name, $version, $flavor, $release) = $_->name =~ /(.*)-kernel-(2\..*)-(.*)-(.*)/) {
 	    my $kernel = "kernel-$flavor-$version-$release";
 	    _is_selected_or_installed($urpm, $db, $kernel);
 	} elsif ($_->name =~ /^dkms-/) {
