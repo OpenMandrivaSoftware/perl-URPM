@@ -7,6 +7,7 @@ package URPM;
 use strict;
 use Config;
 
+sub listlength { scalar @_ }
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
 sub find(&@) {
@@ -23,6 +24,13 @@ sub property2name_range {
 }
 sub property2name_op_version {
     $_[0] =~ /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/;
+}
+
+sub packages_to_remove {
+    my ($state) = @_;
+    grep {
+	$state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted};
+    } keys %{$state->{rejected} || {}};
 }
 
 #- Find candidates packages from a require string (or id).
@@ -1822,9 +1830,7 @@ sub build_transaction_set {
 		);
 
 		my @upgrade = grep { ! exists $examined{$_} } keys %{$state->{transaction_state}{selected}};
-		my @remove = grep { $state->{transaction_state}{rejected}{$_}{removed} &&
-				    !$state->{transaction_state}{rejected}{$_}{obsoleted} }
-		             grep { ! exists $examined{$_} } keys %{$state->{transaction_state}{rejected}};
+		my @remove = grep { ! exists $examined{$_} } packages_to_remove($state->{transaction_state});
 
 		@upgrade || @remove or next;
 
@@ -1846,16 +1852,14 @@ sub build_transaction_set {
 	#- check that the transaction set has been correctly created.
 	#- (ie that no other package was removed)
 	if (keys(%{$state->{selected}}) == keys(%{$state->{transaction_state}{selected}}) &&
-	    (grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} } keys %{$state->{rejected}}) ==
-	    (grep { $state->{transaction_state}{rejected}{$_}{removed} && !$state->{transaction_state}{rejected}{$_}{obsoleted} }
-	     keys %{$state->{transaction_state}{rejected}})
-	   ) {
+	    listlength(packages_to_remove($state)) == listlength(packages_to_remove($state->{transaction_state}))
+	) {
 	    foreach (keys(%{$state->{selected}})) {
 		exists $state->{transaction_state}{selected}{$_} and next;
 		$urpm->{error}('using one big transaction') if $urpm->{error};
 		$state->{transaction} = []; last;
 	    }
-	    foreach (grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} } keys %{$state->{rejected}}) {
+	    foreach (packages_to_remove($state)) {
 		$state->{transaction_state}{rejected}{$_}{removed} &&
 		  !$state->{transaction_state}{rejected}{$_}{obsoleted} and next;
 		$urpm->{error}('using one big transaction') if $urpm->{error};
@@ -1869,8 +1873,7 @@ sub build_transaction_set {
 	$urpm->{debug_URPM}('using one big transaction') if $urpm->{debug_URPM};
 	push @{$state->{transaction}}, {
 					upgrade => [ keys %{$state->{selected}} ],
-					remove  => [ grep { $state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted} }
-						     keys %{$state->{rejected}} ],
+					remove  => [ packages_to_remove($state) ],
 				       };
     }
 
