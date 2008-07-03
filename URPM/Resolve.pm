@@ -449,7 +449,7 @@ sub unsatisfied_requires {
 			if (my ($pn, $ps) = property2name_range($_)) {
 			    $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
 			    $pn eq $n or next;
-			    ranges_overlap($ps, $s, 1) and ++$satisfied;
+			    URPM::ranges_overlap($ps, $s, 1) and ++$satisfied;
 			}
 		    }
 		});
@@ -1127,11 +1127,11 @@ sub _find_packages_obsoleting {
     grep {
 	!$_->flag_skip
 	  && $_->is_arch_compat
-	    && !exists $state->{rejected}->{$_->fullname}
+	    && !exists $state->{rejected}{$_->fullname}
 	      && $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release)
 		&& $_->fullname ne $p->fullname
 		  && (!strict_arch($urpm) || strict_arch_check($p, $_));
-    } packages_obsoleting($urpm, $p->name);
+    } $urpm->packages_obsoleting($p->name);
 }
 
 #- side-effects: $properties
