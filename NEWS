@@ -1,4 +1,6 @@
 - add traverse_tag_find()
+- handle $state->{orphans_to_remove} in selected_size() and
+  build_transaction_set()
 
 Version 3.16 - 26 June 2008, by Pascal "Pixel" Rigaux
 

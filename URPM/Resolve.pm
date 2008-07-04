@@ -1434,6 +1434,10 @@ sub _selected_size_filesize {
 	$size -= $_->{size};
     }
 
+    foreach (@{$state->{orphans_to_remove} || []}) {
+	$size -= $_->size;
+    }
+
     $size, $bad_filesize ? 0 : $filesize;
 }
 
@@ -1874,6 +1878,11 @@ sub build_transaction_set {
 					upgrade => [ keys %{$state->{selected}} ],
 					remove  => [ packages_to_remove($state) ],
 				       };
+    }
+
+    if ($state->{orphans_to_remove}) {
+	my @l = map { scalar $_->fullname } @{$state->{orphans_to_remove}};
+	push @{$state->{transaction}}, { remove  => \@l };
     }
 
     $state->{transaction};

@@ -840,6 +840,8 @@ B<rejected>: { fullname => {
      },
  } }
 
+B<orphans_to_remove>: [ pkg ]
+
 B<whatrequires>: { name => { id => undef } }
    # reversed requires_nosense for selected packages
 
