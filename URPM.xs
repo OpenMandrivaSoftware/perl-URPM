@@ -2921,6 +2921,49 @@ Db_traverse_tag(db,tag,names,callback)
   OUTPUT:
   RETVAL
 
+int
+Db_traverse_tag_find(db,tag,name,callback)
+  URPM::DB db
+  char *tag
+  char *name
+  SV *callback
+  PREINIT:
+  Header header;
+  rpmdbMatchIterator mi;
+  CODE:
+  int rpmtag = rpmtag_from_string(tag);
+  int found = 0;
+
+  db->ts = rpmtsLink(db->ts, "URPM::DB::traverse_tag");
+  ts_nosignature(db->ts);
+  mi = rpmtsInitIterator(db->ts, rpmtag, name, 0);
+  while ((header = rpmdbNextIterator(mi))) {
+      dSP;
+      URPM__Package pkg = calloc(1, sizeof(struct s_Package));
+
+      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
+      pkg->h = header;
+
+      PUSHMARK(SP);
+      XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
+      PUTBACK;
+
+      int count = call_sv(callback, G_SCALAR);
+
+      SPAGAIN;
+      pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
+
+      if (count == 1 && POPi) {
+	found = 1;
+	break;
+      }
+  }
+  rpmdbFreeIterator(mi);
+  rpmtsFree(db->ts);
+  RETVAL = found;
+  OUTPUT:
+  RETVAL
+
 URPM::Transaction
 Db_create_transaction(db, prefix="/")
   URPM::DB db

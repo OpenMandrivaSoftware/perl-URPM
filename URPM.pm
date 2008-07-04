@@ -453,6 +453,12 @@ $names is a reference to an array, holding the acceptable values of the said
 tag for the searched variables.
 Then, $callback is called for each matching package in the DB.
 
+=item $db->traverse_tag_find($tag,$name,$callback)
+
+Quite similar to C<traverse_tag>, but stops when $callback returns true.
+
+(also note that only one $name is handled)
+
 =item $db->create_transaction($prefix)
 
 Creates and returns a new transaction (an C<URPM::Transaction> object) on the
