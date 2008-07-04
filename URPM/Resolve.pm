@@ -32,6 +32,12 @@ sub packages_to_remove {
 	$state->{rejected}{$_}{removed} && !$state->{rejected}{$_}{obsoleted};
     } keys %{$state->{rejected} || {}};
 }
+sub removed_or_obsoleted_packages {
+    my ($state) = @_;
+    grep {
+	$state->{rejected}{$_}{removed} || $state->{rejected}{$_}{obsoleted};
+    } keys %{$state->{rejected} || {}};
+}
 
 #- Find candidates packages from a require string (or id).
 #- Takes care of direct choices using the '|' separator.
