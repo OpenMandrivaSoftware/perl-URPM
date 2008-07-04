@@ -1,3 +1,5 @@
+Version 3.17 - 4 July 2008, by Pascal "Pixel" Rigaux
+
 - add traverse_tag_find(), removed_or_obsoleted_packages()
 - handle $state->{orphans_to_remove} in selected_size() and
   build_transaction_set()
