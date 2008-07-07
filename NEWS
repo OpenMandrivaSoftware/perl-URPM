@@ -1,3 +1,5 @@
+Version 3.18 - 7 July 2008, by Pascal "Pixel" Rigaux
+
 - revert change introduced in 3.16 (it breaks too much, eg
   superuser--priority-upgrade.t test case), and introduce
   $state->{rejected_already_installed} instead
