@@ -829,7 +829,7 @@ B<selected>: { id => {
  } }
 
 B<rejected>: { fullname => { 
-     size => int, removed => bool, obsoleted => bool, installed => bool,
+     size => int, removed => bool, obsoleted => bool,
      backtrack => { # those info are only used to display why package is unselected
          promote => [ name ], keep => [ fullname ], 
          unsatisfied => [ id|property ], 
@@ -839,6 +839,8 @@ B<rejected>: { fullname => {
                                 conflicts => property },
      },
  } }
+
+B<rejected_already_installed>: { id => pkg }
 
 B<orphans_to_remove>: [ pkg ]
 

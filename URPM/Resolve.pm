@@ -680,7 +680,7 @@ sub _set_rejected_old_package {
     my ($state, $pkg, $new_pkg) = @_;
 
     if ($pkg->fullname eq $new_pkg->fullname) {
-	$state->{rejected}{$pkg->fullname}{installed} = 1;
+	$state->{rejected_already_installed}{$pkg->id} = $pkg;
     } else {
 	push @{$state->{rejected}{$pkg->fullname}{backtrack}{keep}}, scalar $new_pkg->fullname;
     }

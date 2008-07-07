@@ -1,3 +1,7 @@
+- revert change introduced in 3.16 (it breaks too much, eg
+  superuser--priority-upgrade.t test case), and introduce
+  $state->{rejected_already_installed} instead
+
 Version 3.17 - 4 July 2008, by Pascal "Pixel" Rigaux
 
 - add traverse_tag_find(), removed_or_obsoleted_packages()
