@@ -26,6 +26,7 @@
 #undef Fflush
 #undef Mkdir
 #undef Stat
+#undef Fstat
 
 #define RPM_VERSION(maj,min,pl) (((maj) << 16) + ((min) << 8) + (pl))
 
@@ -1263,10 +1264,18 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES | vsflags);
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0 && header) {
 	  char *basename;
+#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+	  struct stat sb;
+#else
 	  int_32 size;
+#endif
 
 	  basename = strrchr(filename, '/');
+#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+	  Fstat(fd, &sb);
+#else
 	  size = fdSize(fd);
+#endif
 	  Fclose(fd);
 
 	  /* this is only kept for compatibility with older distros
