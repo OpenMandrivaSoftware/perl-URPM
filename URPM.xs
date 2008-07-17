@@ -3905,7 +3905,9 @@ Urpm_spec2srcheader(specfile)
     const char *zero = "";
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
+#if RPM_VERSION_CODE < RPM_VERSION(4,5,0)
     if (! spec->sourceHeader)
+#endif
       initSourceHeader(spec
 #if RPM_VERSION_CODE >= RPM_VERSION(4,5,0)
       , NULL
