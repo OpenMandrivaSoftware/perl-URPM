@@ -509,6 +509,8 @@ Writes a line of information in a synthesis file.
 
 =item $package->description()
 
+=item $package->dirnames()
+
 =item $package->distribution()
 
 =item $package->epoch()
@@ -516,6 +518,8 @@ Writes a line of information in a synthesis file.
 =item $package->excludearchs()
 
 =item $package->exclusivearchs()
+
+=item $package->filelinktos()
 
 =item $package->files()
 

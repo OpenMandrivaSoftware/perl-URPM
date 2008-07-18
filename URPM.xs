@@ -2271,6 +2271,22 @@ Pkg_exclusivearchs(pkg)
   SPAGAIN;
   
 void
+Pkg_dirnames(pkg)
+  URPM::Package pkg
+  PPCODE:
+  PUTBACK;
+  xpush_simple_list_str(pkg->h, RPMTAG_DIRNAMES);
+  SPAGAIN;
+
+void
+Pkg_filelinktos(pkg)
+  URPM::Package pkg
+  PPCODE:
+  PUTBACK;
+  xpush_simple_list_str(pkg->h, RPMTAG_FILELINKTOS);
+  SPAGAIN;
+
+void
 Pkg_files(pkg)
   URPM::Package pkg
   PPCODE:
