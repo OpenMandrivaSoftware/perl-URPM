@@ -3279,6 +3279,8 @@ Trans_run(trans, data, ...)
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_OLDPACKAGE;
     } else if (len == 11 && !memcmp(s, "replacepkgs", 11)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEPKG;
+    } else if (len == 12 && !memcmp(s, "replacefiles", 12)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEOLDFILES | RPMPROB_FILTER_REPLACENEWFILES;
     } else if (len == 9 && !memcmp(s, "repackage", 9)) {
       if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_REPACKAGE;
     } else if (len == 6 && !memcmp(s, "justdb", 6)) {
