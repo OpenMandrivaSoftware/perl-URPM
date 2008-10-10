@@ -49,6 +49,10 @@ typedef struct rpmSpec_s * Spec;
 #define rpmProblemGetLong(p)    p->ulong1
 #endif
 #endif
+#if RPM_VERSION_CODE >= RPM_VERSION(5,0,0)
+#include <rpm/rpm4compat.h>
+#else
+
 #if RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
 #   define _RPMPS_INTERNAL
 #endif
@@ -56,9 +60,6 @@ typedef struct rpmSpec_s * Spec;
 #   define _RPMEVR_INTERNAL
 #include <rpm/rpmevr.h>
 #endif
-#if RPM_VERSION_CODE >= RPM_VERSION(5,0,0)
-#include <rpm/rpm4compat.h>
-#else
 
 #include <rpm/rpmlib.h>
 #include <rpm/header.h>
@@ -1324,7 +1325,9 @@ ts_nosignature(rpmts ts) {
   rpmtsSetVSFlags(ts, _RPMVSF_NODIGESTS | _RPMVSF_NOSIGNATURES);
 }
 
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,5)
+#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+typedef unsigned long long rpmCallbackSize_t;
+#elif RPM_VERSION_CODE >= RPM_VERSION(4,4,5)
 typedef uint64_t rpmCallbackSize_t;
 #else
 typedef unsigned long rpmCallbackSize_t;
@@ -3790,7 +3793,10 @@ Urpm_import_pubkey_file(db, filename)
     URPM::DB db
     char * filename
     PREINIT:
-    const byte * pkt = NULL;
+#if RPM_VERSION_CODE < RPM_VERSION(5,2,0)
+    const
+#endif
+    byte * pkt = NULL;
     size_t pktlen = 0;
     int rc;
     CODE:
