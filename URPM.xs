@@ -724,7 +724,7 @@ return_files(Header header, int filter_mode) {
 }
 
 void
-return_problems(rpmps ps, int translate_message) {
+return_problems(rpmps ps, int translate_message, int raw_message) {
   dSP;
   if (ps && rpmpsNumProblems(ps) > 0) {
 #ifdef RPM_ORG
@@ -746,7 +746,8 @@ return_problems(rpmps ps, int translate_message) {
 	if (rpm_codeset_is_utf8) SvUTF8_on(sv);
 	XPUSHs(sv_2mortal(sv));
 	_free(buf);
-      } else {
+      }
+      if (raw_message) {
 	const char *pkgNEVR = rpmProblemGetPkgNEVR(p) ? rpmProblemGetPkgNEVR(p) : "";
 	const char *altNEVR = rpmProblemGetAltNEVR(p) ? rpmProblemGetAltNEVR(p) : "";
 	const char *s = rpmProblemGetStr(p) ? rpmProblemGetStr(p) : "";
@@ -3168,7 +3169,7 @@ Trans_check(trans, ...)
       } else if (gimme == G_ARRAY) {
 	/* now translation is handled by rpmlib, but only for version 4.2 and above */
 	PUTBACK;
-	return_problems(ps, 1);
+	return_problems(ps, 1, 0);
 	SPAGAIN;
       }
     } else if (gimme == G_SCALAR) {
@@ -3251,7 +3252,7 @@ Trans_run(trans, data, ...)
   struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, 100000, data };
   rpmtransFlags transFlags = RPMTRANS_FLAG_NONE;
   int probFilter = 0;
-  int translate_message = 0;
+  int translate_message = 0, raw_message = 0;
   int i;
   PPCODE:
   for (i = 2 ; i < items - 1 ; i += 2) {
@@ -3282,6 +3283,8 @@ Trans_run(trans, data, ...)
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_OLDPACKAGE;
     } else if (len == 11 && !memcmp(s, "replacepkgs", 11)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEPKG;
+    } else if (len == 11 && !memcmp(s, "raw_message", 11)) {
+      raw_message = 1;
     } else if (len == 12 && !memcmp(s, "replacefiles", 12)) {
       if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEOLDFILES | RPMPROB_FILTER_REPLACENEWFILES;
     } else if (len == 9 && !memcmp(s, "repackage", 9)) {
@@ -3319,7 +3322,7 @@ Trans_run(trans, data, ...)
   if (rpmtsRun(trans->ts, NULL, probFilter) > 0) {
     rpmps ps = rpmtsProblems(trans->ts);
     PUTBACK;
-    return_problems(ps, translate_message);
+    return_problems(ps, translate_message, raw_message || !translate_message);
     SPAGAIN;
     ps = rpmpsFree(ps);
   }

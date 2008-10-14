@@ -1,3 +1,6 @@
+- $trans->run can now return both the translated errors, and some parsable
+  errors (useful for example to detect diskspace issues)
+ 
 Version 3.19 - 7 October 2008, by Pascal "Pixel" Rigaux
 
 - handle flag "replacefiles"
