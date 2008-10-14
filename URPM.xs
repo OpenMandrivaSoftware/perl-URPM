@@ -1326,7 +1326,7 @@ ts_nosignature(rpmts ts) {
 }
 
 #if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
-typedef unsigned long long rpmCallbackSize_t;
+typedef rpmuint64_t rpmCallbackSize_t;
 #elif RPM_VERSION_CODE >= RPM_VERSION(4,4,5)
 typedef uint64_t rpmCallbackSize_t;
 #else
