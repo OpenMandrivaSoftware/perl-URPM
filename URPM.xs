@@ -3050,7 +3050,10 @@ Trans_add(trans, pkg, ...)
 	  if (SvROK(ST(i+1)) && SvTYPE(SvRV(ST(i+1))) == SVt_PVAV) {
 	    AV *excludepath = (AV*)SvRV(ST(i+1));
 	    I32 j = 1 + av_len(excludepath);
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
+#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+	    int relno = 0;
+	    relocations = malloc(sizeof(rpmRelocation));
+#elif RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
 	    relocations = calloc(j + 1, sizeof(*relocations));
 #else
 	    relocations = calloc(j + 1, sizeof(rpmRelocation));
@@ -3058,7 +3061,11 @@ Trans_add(trans, pkg, ...)
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
 	      if (e != NULL && *e != NULL) {
-                relocations[j].oldPath = SvPV_nolen(*e);
+#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+		rpmfiAddRelocation(&relocations, &relno, SvPV_nolen(*e), NULL);
+#else
+		relocations[j].oldPath = SvPV_nolen(*e);
+#endif
 	      }
 	    }
 	  }
@@ -3067,7 +3074,11 @@ Trans_add(trans, pkg, ...)
     }
     RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(long)(pkg->flag & FLAG_ID)), update, relocations) == 0;
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
+#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+    rpmfiFreeRelocations(relocations);
+#else
     free(relocations);
+#endif
   } else RETVAL = 0;
   OUTPUT:
   RETVAL
