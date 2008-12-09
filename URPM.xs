@@ -775,9 +775,9 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 	  sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
 
 	case RPMPROB_DISKSPACE:
-	  sv = newSVpvf("diskspace@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetLong(p)); break;
+	  sv = newSVpvf("diskspace@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetDiskNeed(p)); break;
 	case RPMPROB_DISKNODES:
-	  sv = newSVpvf("disknodes@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetLong(p)); break;
+	  sv = newSVpvf("disknodes@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetDiskNeed(p)); break;
 	case RPMPROB_REQUIRES:
 	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
 
@@ -1209,17 +1209,17 @@ static void pack_rpm_header(Header *h) {
 }
 
 static void drop_tags(Header *h) {
-  headerRemoveEntry(*h, RPMTAG_FILEUSERNAME); /* user ownership is correct */
-  headerRemoveEntry(*h, RPMTAG_FILEGROUPNAME); /* group ownership is correct */
-  headerRemoveEntry(*h, RPMTAG_FILEMTIMES); /* correct time without it */
-  headerRemoveEntry(*h, RPMTAG_FILEINODES); /* hardlinks work without it */
-  headerRemoveEntry(*h, RPMTAG_FILEDEVICES); /* it is the same number for every file */
-  headerRemoveEntry(*h, RPMTAG_FILESIZES); /* ? */
-  headerRemoveEntry(*h, RPMTAG_FILERDEVS); /* it seems unused. always empty */
-  headerRemoveEntry(*h, RPMTAG_FILEVERIFYFLAGS); /* only used for -V */
+  headerDel(*h, RPMTAG_FILEUSERNAME); /* user ownership is correct */
+  headerDel(*h, RPMTAG_FILEGROUPNAME); /* group ownership is correct */
+  headerDel(*h, RPMTAG_FILEMTIMES); /* correct time without it */
+  headerDel(*h, RPMTAG_FILEINODES); /* hardlinks work without it */
+  headerDel(*h, RPMTAG_FILEDEVICES); /* it is the same number for every file */
+  headerDel(*h, RPMTAG_FILESIZES); /* ? */
+  headerDel(*h, RPMTAG_FILERDEVS); /* it seems unused. always empty */
+  headerDel(*h, RPMTAG_FILEVERIFYFLAGS); /* only used for -V */
 #if RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
-  headerRemoveEntry(*h, RPMTAG_FILEDIGESTALGOS); /* only used for -V */
-  headerRemoveEntry(*h, RPMTAG_FILEDIGESTS); /* only used for -V */ /* alias: RPMTAG_FILEMD5S */ 
+  headerDel(*h, RPMTAG_FILEDIGESTALGOS); /* only used for -V */
+  headerDel(*h, RPMTAG_FILEDIGESTS); /* only used for -V */ /* alias: RPMTAG_FILEMD5S */ 
 #endif
   /* keep RPMTAG_FILEFLAGS for %config (rpmnew) to work */
   /* keep RPMTAG_FILELANGS for %lang (_install_langs) to work */
@@ -1230,23 +1230,23 @@ static void drop_tags(Header *h) {
   /* keep RPMTAG_TRIGGERSCRIPTS RPMTAG_TRIGGERVERSION RPMTAG_TRIGGERFLAGS RPMTAG_TRIGGERNAME */
   /* small enough, and only in some packages. not needed per se */
 
-  headerRemoveEntry(*h, RPMTAG_ICON);
-  headerRemoveEntry(*h, RPMTAG_GIF);
-  headerRemoveEntry(*h, RPMTAG_EXCLUDE);
-  headerRemoveEntry(*h, RPMTAG_EXCLUSIVE);
-  headerRemoveEntry(*h, RPMTAG_COOKIE);
-  headerRemoveEntry(*h, RPMTAG_VERIFYSCRIPT);
+  headerDel(*h, RPMTAG_ICON);
+  headerDel(*h, RPMTAG_GIF);
+  headerDel(*h, RPMTAG_EXCLUDE);
+  headerDel(*h, RPMTAG_EXCLUSIVE);
+  headerDel(*h, RPMTAG_COOKIE);
+  headerDel(*h, RPMTAG_VERIFYSCRIPT);
 
   /* always the same for our packages */
-  headerRemoveEntry(*h, RPMTAG_VENDOR);
-  headerRemoveEntry(*h, RPMTAG_DISTRIBUTION);
+  headerDel(*h, RPMTAG_VENDOR);
+  headerDel(*h, RPMTAG_DISTRIBUTION);
 
   /* keep RPMTAG_SIGSIZE, useful to tell the size of the rpm file (+440) */
 
-  headerRemoveEntry(*h, RPMTAG_DSAHEADER);
-  headerRemoveEntry(*h, RPMTAG_SHA1HEADER);
-  headerRemoveEntry(*h, RPMTAG_SIGMD5);
-  headerRemoveEntry(*h, RPMTAG_SIGGPG);
+  headerDel(*h, RPMTAG_DSAHEADER);
+  headerDel(*h, RPMTAG_SHA1HEADER);
+  headerDel(*h, RPMTAG_SIGMD5);
+  headerDel(*h, RPMTAG_SIGGPG);
 
   pack_rpm_header(h);
 }
@@ -1286,7 +1286,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 
 	  /* this is only kept for compatibility with older distros
 	     (where ->filename on "unpacked" URPM::Package rely on FILENAME_TAG) */
-	  headerAddEntry(header, FILENAME_TAG, RPM_STRING_TYPE, basename != NULL ? basename + 1 : filename, 1);
+	  headerPutString(header, FILENAME_TAG, basename != NULL ? basename + 1 : filename);
 
 	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
 	  pkg->h = header;
@@ -2415,8 +2415,7 @@ Pkg_queryformat(pkg, fmt)
   char *s;
   PPCODE:
   if (pkg->h) {
-      s = headerSprintf(pkg->h, fmt,
-    	rpmTagTable, rpmHeaderFormats, NULL);
+    s = headerFormat(pkg->h, fmt, NULL);
       if (s) {
         XPUSHs(sv_2mortal(newSVpv_utf8(s,0)));
       }
@@ -3748,11 +3747,11 @@ Urpm_verify_signature(filename)
     switch(rc) {
       case RPMRC_OK:
 	if (h) {
-	  char *fmtsig = headerSprintf(
+	  char *fmtsig = headerFormat(
 	      h,
 	      "%|DSAHEADER?{%{DSAHEADER:pgpsig}}:{%|RSAHEADER?{%{RSAHEADER:pgpsig}}:"
 	      "{%|SIGGPG?{%{SIGGPG:pgpsig}}:{%|SIGPGP?{%{SIGPGP:pgpsig}}:{(none)}|}|}|}|",
-	      rpmTagTable, rpmHeaderFormats, NULL);
+	      NULL);
 	  snprintf(result, sizeof(result), "OK (%s)", fmtsig);
 	  free(fmtsig);
 	} else snprintf(result, sizeof(result), "NOT OK (bad rpm): %s", rpmlogMessage());
@@ -3917,7 +3916,6 @@ Urpm_spec2srcheader(specfile)
 		 , SPEC_VERIFY
 #endif
 		 )) {
-    const char *zero = "";
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
 #if RPM_VERSION_CODE < RPM_VERSION(4,5,0)
@@ -3930,7 +3928,7 @@ Urpm_spec2srcheader(specfile)
 	);
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
-    headerAddEntry(spec->sourceHeader, RPMTAG_SOURCERPM, RPM_INT32_TYPE, &zero, 1);
+    headerPutString(spec->sourceHeader, RPMTAG_SOURCERPM, "");
 
     /* parseSpec() sets RPMTAG_ARCH to %{_target_cpu} whereas we really a header similar to .src.rpm header */
     headerModifyEntry(spec->sourceHeader, RPMTAG_ARCH, RPM_STRING_TYPE, "src", 1);
