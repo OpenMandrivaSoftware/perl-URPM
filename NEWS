@@ -1,5 +1,7 @@
-- drop list_rpm_tag()
+Version 3.21 - 9 December 2008, by Pascal "Pixel" Rigaux
+
 - adapt to librpm4.6
+- drop list_rpm_tag()
 
 Version 3.20 - 14 October 2008, by Pascal "Pixel" Rigaux
 
