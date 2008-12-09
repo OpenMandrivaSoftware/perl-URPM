@@ -1198,17 +1198,14 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
 
 static void pack_rpm_header(Header *h) {
   Header packed = headerNew();
-  HeaderIterator hi;
-  int32_t type, c, tag;
-  void *p;
 
-  for (hi = headerInitIterator(*h);
-       headerNextIterator(hi, &tag, &type, (void *) &p, &c);
-       p = headerFreeData(p, type))
-    {
+  HeaderIterator hi = headerInitIterator(*h);
+  struct rpmtd_s td;
+  while (headerNext(hi, &td)) {
       // fprintf(stderr, "adding %s %d\n", tagname(tag), c);
-      headerAddEntry(packed, tag, type, p, c);
-    }
+      headerPut(packed, &td, HEADERPUT_DEFAULT);
+      rpmtdFreeData(&td);
+  }
 
   headerFreeIterator(hi);
   headerFree(*h);
@@ -3938,8 +3935,16 @@ Urpm_spec2srcheader(specfile)
     memset(pkg, 0, sizeof(struct s_Package));
     headerPutString(spec->sourceHeader, RPMTAG_SOURCERPM, "");
 
-    /* parseSpec() sets RPMTAG_ARCH to %{_target_cpu} whereas we really a header similar to .src.rpm header */
-    headerModifyEntry(spec->sourceHeader, RPMTAG_ARCH, RPM_STRING_TYPE, "src", 1);
+    {
+      struct rpmtd_s td = {
+	.tag = RPMTAG_ARCH,
+	.type = RPM_STRING_TYPE,
+	.data = (void *) "src",
+	.count = 1,
+      };
+      /* parseSpec() sets RPMTAG_ARCH to %{_target_cpu} whereas we really a header similar to .src.rpm header */
+      headerMod(spec->sourceHeader, &td);
+    }
 
     pkg->h = headerLink(spec->sourceHeader);
     sv_pkg = sv_newmortal();
