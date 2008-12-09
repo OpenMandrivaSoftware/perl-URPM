@@ -1291,6 +1291,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
 
 	  /*if (!keep_all_tags) drop_tags(&pkg->h);*/
+	  rpmtsFree(ts);
 	  return 1;
 	}
 	rpmtsFree(ts);
