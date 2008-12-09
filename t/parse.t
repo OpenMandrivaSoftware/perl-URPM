@@ -4,7 +4,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 41;
+use Test::More tests => 39;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
@@ -24,16 +24,9 @@ my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "RPMS/noarch/test-rpm
 ok(@{$a->{depslist}} == 1);
 my $pkg = $a->{depslist}[0];
 ok($pkg);
-my %tags = $a->list_rpm_tag;
-ok(keys %tags);
 is($pkg->get_tag(1000), 'test-rpm', 'name');
 is($pkg->get_tag(1001), '1.0', 'version');
 is($pkg->get_tag(1002), '1mdk', 'release');
-TODO: {
-    local $TODO = "not implemented";
-    is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
-	q/get headers from parsing rpm/);
-}
 
 mkdir 'headers';
 system('touch headers/empty');
