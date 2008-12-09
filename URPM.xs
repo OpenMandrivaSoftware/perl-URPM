@@ -195,20 +195,20 @@ get_fullname_parts(URPM__Package pkg, char **name, char **version, char **releas
 
 static char *
 get_name(Header header, int32_t tag) {
-  int32_t type, count;
-  char *name;
+  struct rpmtd_s val;
 
-  headerGetEntry(header, tag, &type, (void **) &name, &count);
+  headerGet(header, tag, &val, HEADERGET_MINMEM);
+  char *name = (char *) rpmtdGetString(&val);
   return name ? name : "";
 }
 
 static int
 get_int(Header header, int32_t tag) {
-  int32_t type, count;
-  int *i;
+  struct rpmtd_s val;
 
-  headerGetEntry(header, tag, &type, (void **) &i, &count);
-  return i ? *i : 0;
+  headerGet(header, tag, &val, HEADERGET_DEFAULT);
+  uint32_t *ep = rpmtdGetUint32(&val);
+  return ep ? *ep : 0;
 }
 
 static int
@@ -457,26 +457,25 @@ return_list_str(char *s, Header header, int32_t tag_name, int32_t tag_flags, int
       if (f(s, eos ? eos-s : 0, NULL, 0, NULL, param)) return -count;
     }
   } else if (header) {
-    int32_t type, c;
-    char **list = NULL;
-    int32_t *flags = NULL;
-    char **list_evr = NULL;
-    int i;
+    struct rpmtd_s list, flags, list_evr;
 
-    headerGetEntry(header, tag_name, &type, (void **) &list, &c);
-    if (list) {
-      if (tag_flags) headerGetEntry(header, tag_flags, &type, (void **) &flags, &c);
-      if (tag_version) headerGetEntry(header, tag_version, &type, (void **) &list_evr, &c);
-      for(i = 0; i < c; i++) {
+    if (headerGet(header, tag_name, &list, HEADERGET_DEFAULT)) {
+      if (tag_flags) headerGet(header, tag_flags, &flags, HEADERGET_DEFAULT);
+      if (tag_version) headerGet(header, tag_version, &list_evr, HEADERGET_DEFAULT);
+      while (rpmtdNext(&list) >= 0) {
 	++count;
-	if (f(NULL, 0, list[i], flags ? flags[i] : 0, list_evr ? list_evr[i] : NULL, param)) {
-	  free(list);
-	  free(list_evr);
+	uint32_t *flag = rpmtdNextUint32(&flags);
+	if (f(NULL, 0, rpmtdGetString(&list), flag ? *flag : 0, 
+	      rpmtdNextString(&list_evr), param)) {
+	  rpmtdFreeData(&list);
+	  rpmtdFreeData(&flags);
+	  rpmtdFreeData(&list_evr);
 	  return -count;
 	}
       }
-      free(list);
-      free(list_evr);
+      rpmtdFreeData(&list);
+      rpmtdFreeData(&flags);
+      rpmtdFreeData(&list_evr);
     }
   }
   return count;
@@ -486,18 +485,19 @@ static int
 xpush_simple_list_str(Header header, int32_t tag_name) {
   dSP;
   if (header) {
-    int32_t type, c;
-    char **list = NULL;
-    int i;
+    struct rpmtd_s list;
+    const char *val;
+    int size;
 
-    headerGetEntry(header, tag_name, &type, (void **) &list, &c);
-    if (!list) return 0;
+    if (!headerGet(header, tag_name, &list, HEADERGET_DEFAULT)) return 0;
+    size = rpmtdCount(&list);
 
-    for(i = 0; i < c; i++) 
-      XPUSHs(sv_2mortal(newSVpv(list[i], 0)));
-    free(list);
+    while ((val = rpmtdNextString(&list))) {
+        XPUSHs(sv_2mortal(newSVpv(val, 0)));
+    }
+    rpmtdFreeData(&list);
     PUTBACK;
-    return c;
+    return size;
   } else return 0;
 }
 
@@ -505,15 +505,13 @@ void
 return_list_int32_t(Header header, int32_t tag_name) {
   dSP;
   if (header) {
-    int32_t type, count;
-    int32_t *list = NULL;
-    int i;
+    struct rpmtd_s list;
 
-    headerGetEntry(header, tag_name, &type, (void **) &list, &count);
-    if (list) {
-      for(i = 0; i < count; i++) {
-	XPUSHs(sv_2mortal(newSViv(list[i])));
-      }
+    if (headerGet(header, tag_name, &list, HEADERGET_DEFAULT)) {
+      uint32_t *val;
+      while ((val = rpmtdNextUint32(&list)))
+	XPUSHs(sv_2mortal(newSViv(*val)));
+      rpmtdFreeData(&list);
     }
   }
   PUTBACK;
@@ -523,15 +521,15 @@ void
 return_list_uint_16(Header header, int32_t tag_name) {
   dSP;
   if (header) {
-    int32_t type, count;
-    uint_16 *list = NULL;
-    int i;
-
-    headerGetEntry(header, tag_name, &type, (void **) &list, &count);
-    if (list) {
+    struct rpmtd_s list;
+    if (headerGet(header, tag_name, &list, HEADERGET_DEFAULT)) {
+      int count = rpmtdCount(&list);
+      int i;
+      uint16_t *list_ = list.data;
       for(i = 0; i < count; i++) {
-	XPUSHs(sv_2mortal(newSViv(list[i])));
+	XPUSHs(sv_2mortal(newSViv(list_[i])));
       }
+      rpmtdFreeData(&list);
     }
   }
   PUTBACK;
@@ -541,9 +539,10 @@ void
 return_list_tag_modifier(Header header, int32_t tag_name) {
   dSP;
   int i;
-  int32_t *list;
-  int32_t count, type;
-  headerGetEntry(header, tag_name, &type, (void **) &list, &count);
+  struct rpmtd_s td;
+  if (!headerGet(header, tag_name, &td, HEADERGET_DEFAULT)) return;
+  int count = rpmtdCount(&td);
+  int32_t *list = td.data;
 
   for (i = 0; i < count; i++) {
     char buff[15];
@@ -564,11 +563,13 @@ return_list_tag_modifier(Header header, int32_t tag_name) {
       if (list[i] & RPMFILE_PUBKEY)    *s++ = 'p';
     break;
     default:
+      rpmtdFreeData(&td);
       return;  
     }
     *s = '\0';
     XPUSHs(sv_2mortal(newSVpv(buff, strlen(buff))));
   }
+  rpmtdFreeData(&td);
   PUTBACK;
 }
 
@@ -576,15 +577,14 @@ void
 return_list_tag(URPM__Package pkg, int32_t tag_name) {
   dSP;
   if (pkg->h != NULL) {
-    void *list = NULL;
-    int32_t count, type;
-    headerGetEntry(pkg->h, tag_name, &type, (void **) &list, &count);
-
-    if (list) {
+    struct rpmtd_s td;
+    if (headerGet(pkg->h, tag_name, &td, HEADERGET_DEFAULT)) {
+      void *list = td.data;
+      int32_t count = rpmtdCount(&td);
       if (tag_name == RPMTAG_ARCH) {
 	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? (char *) list : "src", 0)));
       } else
-	switch (type) {
+	switch (rpmtdType(&td)) {
 	  case RPM_NULL_TYPE:
 	    break;
 #if RPM_VERSION_CODE < RPM_VERSION(5,0,0)
@@ -674,29 +674,34 @@ return_files(Header header, int filter_mode) {
     char buff[4096];
     char *p, *s;
     STRLEN len;
-    int32_t type, count;
-    char **list = NULL;
-    char **baseNames = NULL;
-    char **dirNames = NULL;
-    int32_t *dirIndexes = NULL;
-    int32_t *flags = NULL;
-    uint_16 *fmodes = NULL;
     int i;
 
+    struct rpmtd_s td_flags, td_fmodes;
+    int32_t *flags = NULL;
+    uint16_t *fmodes = NULL;
     if (filter_mode) {
-      headerGetEntry(header, RPMTAG_FILEFLAGS, &type, (void **) &flags, &count);
-      headerGetEntry(header, RPMTAG_FILEMODES, &type, (void **) &fmodes, &count);
+      headerGet(header, RPMTAG_FILEFLAGS, &td_flags, HEADERGET_DEFAULT);
+      headerGet(header, RPMTAG_FILEMODES, &td_fmodes, HEADERGET_DEFAULT);
+      flags = td_flags.data;
+      fmodes = td_fmodes.data;
     }
 
-    headerGetEntry(header, RPMTAG_BASENAMES, &type, (void **) &baseNames, &count);
-    headerGetEntry(header, RPMTAG_DIRINDEXES, &type, (void **) &dirIndexes, NULL);
-    headerGetEntry(header, RPMTAG_DIRNAMES, &type, (void **) &dirNames, NULL);
+    struct rpmtd_s td_baseNames, td_dirIndexes, td_dirNames, td_list;
+    headerGet(header, RPMTAG_BASENAMES, &td_baseNames, HEADERGET_DEFAULT);
+    headerGet(header, RPMTAG_DIRINDEXES, &td_dirIndexes, HEADERGET_DEFAULT);
+    headerGet(header, RPMTAG_DIRNAMES, &td_dirNames, HEADERGET_DEFAULT);
+
+    char **baseNames = td_baseNames.data;
+    char **dirNames = td_dirNames.data;
+    int32_t *dirIndexes = td_dirIndexes.data;
+
+    char **list = NULL;
     if (!baseNames || !dirNames || !dirIndexes) {
-      headerGetEntry(header, RPMTAG_OLDFILENAMES, &type, (void **) &list, &count);
-      if (!list) return;
+      if (!headerGet(header, RPMTAG_OLDFILENAMES, &td_list, HEADERGET_DEFAULT)) return;
+      list = td_list.data;
     }
 
-    for(i = 0; i < count; i++) {
+    for(i = 0; i < rpmtdCount(&td_baseNames); i++) {
       if (list) {
 	s = list[i];
 	len = strlen(list[i]);
@@ -800,18 +805,19 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 static char *
 pack_list(Header header, int32_t tag_name, int32_t tag_flags, int32_t tag_version, int32_t (*check_flag)(int32_t)) {
   char buff[65536];
-  int32_t type, count;
-  char **list = NULL;
   int32_t *flags = NULL;
   char **list_evr = NULL;
   int i;
   char *p = buff;
 
-  headerGetEntry(header, tag_name, &type, (void **) &list, &count);
-  if (list) {
-    if (tag_flags) headerGetEntry(header, tag_flags, &type, (void **) &flags, &count);
-    if (tag_version) headerGetEntry(header, tag_version, &type, (void **) &list_evr, &count);
-    for(i = 0; i < count; i++) {
+  struct rpmtd_s td;
+  if (headerGet(header, tag_name, &td, HEADERGET_DEFAULT)) {
+    char **list = td.data;
+    
+    struct rpmtd_s td_flags, td_list_evr;
+    if (tag_flags   && headerGet(header, tag_flags,   &td_flags, HEADERGET_DEFAULT))    flags    = td_flags.data;
+    if (tag_version && headerGet(header, tag_version, &td_list_evr, HEADERGET_DEFAULT)) list_evr = td_list_evr.data;
+    for(i = 0; i < rpmtdCount(&td); i++) {
       if (check_flag && !check_flag(flags[i])) continue;
       int len = print_list_entry(p, sizeof(buff)-(p-buff)-1, list[i], flags ? flags[i] : 0, list_evr ? list_evr[i] : NULL);
       if (len < 0) continue;
@@ -904,25 +910,25 @@ static void
 update_provides(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     int len;
-    int32_t type, count;
-    char **list = NULL;
+    struct rpmtd_s td, td_flags;
     int32_t *flags = NULL;
     int i;
 
     /* examine requires for files which need to be marked in provides */
-    headerGetEntry(pkg->h, RPMTAG_REQUIRENAME, &type, (void **) &list, &count);
-    if (list) {
-      for (i = 0; i < count; ++i) {
+    if (headerGet(pkg->h, RPMTAG_REQUIRENAME, &td, HEADERGET_DEFAULT)) {
+      char **list = td.data;
+      for (i = 0; i < rpmtdCount(&td); ++i) {
 	len = strlen(list[i]);
 	if (list[i][0] == '/') hv_fetch(provides, list[i], len, 1);
       }
     }
 
     /* update all provides */
-    headerGetEntry(pkg->h, RPMTAG_PROVIDENAME, &type, (void **) &list, &count);
-    if (list) {
-      headerGetEntry(pkg->h, RPMTAG_PROVIDEFLAGS, &type, (void **) &flags, &count);
-      for (i = 0; i < count; ++i) {
+    if (headerGet(pkg->h, RPMTAG_PROVIDENAME, &td, HEADERGET_DEFAULT)) {
+      char **list = td.data;
+      if (headerGet(pkg->h, RPMTAG_PROVIDEFLAGS, &td_flags, HEADERGET_DEFAULT))
+	flags = td_flags.data;
+      for (i = 0; i < rpmtdCount(&td); ++i) {
 	len = strlen(list[i]);
 	if (!strncmp(list[i], "rpmlib(", 7)) continue;
 	update_provide_entry(list[i], len, 1, flags && flags[i] & (RPMSENSE_PREREQ|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POSTUN|RPMSENSE_SCRIPT_POST|RPMSENSE_LESS|RPMSENSE_EQUAL|RPMSENSE_GREATER),
@@ -965,15 +971,15 @@ update_provides(URPM__Package pkg, HV *provides) {
 static void
 update_obsoletes(URPM__Package pkg, HV *obsoletes) {
   if (pkg->h) {
-    int32_t type, count;
-    char **list = NULL;
-    int i;
+    struct rpmtd_s td;
 
     /* update all provides */
-    headerGetEntry(pkg->h, RPMTAG_OBSOLETENAME, &type, (void **) &list, &count);
-    if (list)
-      for (i = 0; i < count; ++i)
+    if (headerGet(pkg->h, RPMTAG_OBSOLETENAME, &td, HEADERGET_DEFAULT)) {
+      char **list = td.data;
+      int i;
+      for (i = 0; i < rpmtdCount(&td); ++i)
 	update_hash_entry(obsoletes, list[i], 0, 1, 0, pkg);
+    }
   } else {
     char *ps, *s;
 
@@ -996,21 +1002,22 @@ static void
 update_provides_files(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     STRLEN len;
-    int32_t type, count;
     char **list = NULL;
-    char **baseNames = NULL;
-    char **dirNames = NULL;
-    int32_t *dirIndexes = NULL;
     int i;
 
-    headerGetEntry(pkg->h, RPMTAG_BASENAMES, &type, (void **) &baseNames, &count);
-    headerGetEntry(pkg->h, RPMTAG_DIRINDEXES, &type, (void **) &dirIndexes, NULL);
-    headerGetEntry(pkg->h, RPMTAG_DIRNAMES, &type, (void **) &dirNames, NULL);
-    if (baseNames && dirNames && dirIndexes) {
+    struct rpmtd_s td_baseNames, td_dirIndexes, td_dirNames;
+    if (headerGet(pkg->h, RPMTAG_BASENAMES, &td_baseNames, HEADERGET_DEFAULT) &&
+	headerGet(pkg->h, RPMTAG_DIRINDEXES, &td_dirIndexes, HEADERGET_DEFAULT) &&
+	headerGet(pkg->h, RPMTAG_DIRNAMES, &td_dirNames, HEADERGET_DEFAULT)) {
+
+      char **baseNames = td_baseNames.data;
+      char **dirNames = td_dirNames.data;
+      int32_t *dirIndexes = td_dirIndexes.data;
+
       char buff[4096];
       char *p;
 
-      for(i = 0; i < count; i++) {
+      for(i = 0; i < rpmtdCount(&td_baseNames); i++) {
 	len = strlen(dirNames[dirIndexes[i]]);
 	if (len >= sizeof(buff)) continue;
 	memcpy(p = buff, dirNames[dirIndexes[i]], len + 1); p += len;
@@ -1024,9 +1031,10 @@ update_provides_files(URPM__Package pkg, HV *provides) {
       free(baseNames);
       free(dirNames);
     } else {
-      headerGetEntry(pkg->h, RPMTAG_OLDFILENAMES, &type, (void **) &list, &count);
+      struct rpmtd_s td;
+      headerGet(pkg->h, RPMTAG_OLDFILENAMES, &td, HEADERGET_DEFAULT);
       if (list) {
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < rpmtdCount(&td); i++) {
 	  len = strlen(list[i]);
 
 	  update_provide_entry(list[i], len, 0, 0, pkg, provides);
@@ -1600,7 +1608,7 @@ Pkg_is_platform_compat(pkg)
   read_config_files(0);
   if (pkg->h && headerIsEntry(pkg->h, RPMTAG_PLATFORM)) {
     int32_t count, type;
-    (void) headerGetEntry(pkg->h, RPMTAG_PLATFORM, &type, (void **) &platform, &count);
+    (void) headerGet(pkg->h, RPMTAG_PLATFORM, &platform, HEADERGET_DEFAULT);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     platform = headerFreeData(platform, type);
   } else if (pkg->info) {
