@@ -303,10 +303,6 @@ parse_synthesis()).
 
 Force the re-reading of the RPM configuration files.
 
-=item URPM::list_rpm_tag()
-
-Returns a hash containing the key/id values of known rpm tags.
-
 =item URPM::ranges_overlap($range1, $range2 [, $nopromoteepoch])
 
 This utility function compares two version ranges, in order to calculate

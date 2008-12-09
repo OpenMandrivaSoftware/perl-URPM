@@ -3363,36 +3363,8 @@ Urpm_read_config_files()
 void
 Urpm_list_rpm_tag(urpm=Nullsv)
    SV *urpm
-   PREINIT:
-       int i = 0;
-       const struct headerSprintfExtension_s * ext = rpmHeaderFormats;
-   PPCODE:
-       read_config_files(0);
-      
-       for (i = 0; i < rpmTagTableSize; i++) {
-	XPUSHs(sv_2mortal(newSVpv(rpmTagTable[i].name + 7, 0)));
-	XPUSHs(sv_2mortal(newSViv(rpmTagTable[i].val)));
-       }
-
-       while (ext->name != NULL) {
-          if (ext->type == HEADER_EXT_MORE) {
-#if RPM_VERSION_CODE >= RPM_VERSION(5,0,0)
-		  ext = *ext->u.more;
-#else
-		  ext = ext->u.more;
-#endif
-		  continue;
-	  }
-	  for (i = 0; i < rpmTagTableSize; i++) {
-		  if (!strcmp(rpmTagTable[i].name, ext->name))
-			  break;
-	  }
-	  if (i >= rpmTagTableSize && ext->type == HEADER_EXT_TAG) {
-	  	XPUSHs(sv_2mortal(newSVpv(ext->name + 7, 0)));
-	  	XPUSHs(sv_newmortal());
-	  }
-  	  ext++;
-       }
+   CODE:
+   croak("list_rpm_tag() has been removed from perl-URPM. please report if you need it back");
 
 int
 rpmvercmp(one, two)
