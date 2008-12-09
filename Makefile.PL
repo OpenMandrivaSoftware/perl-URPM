@@ -50,7 +50,7 @@ ChangeLog:
 }
 
 my @rpmflags;
-if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("4.5")) {
+if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("4.7")) {
     # rpm.org version
     push @rpmflags, "-DRPM_ORG";
 } else {
@@ -68,7 +68,7 @@ WriteMakefile(
     },
     CCFLAGS	=> $ccflags,
     VERSION_FROM	=> 'URPM.pm',
-    LIBS	=> [ '-lrpm -lrpmio -lrpmdb -lrpmbuild -lpopt -lz' ],
+    LIBS	=> [ '-lrpm -lrpmio -lrpmbuild' ],
     INC		=> '-I/usr/include/rpm',
     dist	=> { COMPRESS => "bzip2", SUFFIX => ".bz2" },
     realclean	=> { FILES => "t/RPMS/noarch/*" },
