@@ -731,8 +731,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
   if (ps && rpmpsNumProblems(ps) > 0) {
 #ifdef RPM_ORG
     rpmpsi iterator = rpmpsInitIterator(ps);
-    rpmpsFreeIterator(iterator);
-    while (rpmpsNextIterator(iterator)) {
+    while (rpmpsNextIterator(iterator) >= 0) {
       rpmProblem p = rpmpsGetProblem(iterator);
 #else
     int i;
@@ -791,6 +790,9 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 	XPUSHs(sv_2mortal(sv));
       }
     }
+#ifdef RPM_ORG
+    rpmpsFreeIterator(iterator);
+#endif
   }
   PUTBACK;
 }
