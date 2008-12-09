@@ -194,8 +194,8 @@ get_fullname_parts(URPM__Package pkg, char **name, char **version, char **releas
 }
 
 static char *
-get_name(Header header, int_32 tag) {
-  int_32 type, count;
+get_name(Header header, int32_t tag) {
+  int32_t type, count;
   char *name;
 
   headerGetEntry(header, tag, &type, (void **) &name, &count);
@@ -203,8 +203,8 @@ get_name(Header header, int_32 tag) {
 }
 
 static int
-get_int(Header header, int_32 tag) {
-  int_32 type, count;
+get_int(Header header, int32_t tag) {
+  int32_t type, count;
   int *i;
 
   headerGetEntry(header, tag, &type, (void **) &i, &count);
@@ -217,7 +217,7 @@ sigsize_to_filesize(int sigsize) {
 }
 
 static int
-print_list_entry(char *buff, int sz, char *name, int_32 flags, char *evr) {
+print_list_entry(char *buff, int sz, const char *name, uint32_t flags, const char *evr) {
   int len = strlen(name);
   char *p = buff;
 
@@ -248,7 +248,7 @@ print_list_entry(char *buff, int sz, char *name, int_32 flags, char *evr) {
 }
 
 static int
-ranges_overlap(int_32 aflags, char *sa, int_32 bflags, char *sb, int b_nopromote) {
+ranges_overlap(uint32_t aflags, char *sa, uint32_t bflags, char *sb, int b_nopromote) {
   if (!aflags || !bflags)
     return 1; /* really faster to test it there instead of later */
   else {
@@ -314,19 +314,19 @@ ranges_overlap(int_32 aflags, char *sa, int_32 bflags, char *sb, int b_nopromote
 }
 
 static int has_old_suggests;
-int_32 is_old_suggests(int_32 flags) { 
+int32_t is_old_suggests(int32_t flags) { 
   int is = flags & RPMSENSE_MISSINGOK;
   if (is) has_old_suggests = is;
   return is;
 }
-int_32 is_not_old_suggests(int_32 flags) {
+int32_t is_not_old_suggests(int32_t flags) {
   return !is_old_suggests(flags);
 }
 
-typedef int (*callback_list_str)(char *s, int slen, char *name, int_32 flags, char *evr, void *param);
+typedef int (*callback_list_str)(char *s, int slen, const char *name, const uint32_t flags, const char *evr, void *param);
 
 static int
-callback_list_str_xpush(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+callback_list_str_xpush(char *s, int slen, const char *name, uint32_t flags, const char *evr, void *param) {
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
@@ -341,7 +341,7 @@ callback_list_str_xpush(char *s, int slen, char *name, int_32 flags, char *evr, 
   return 0;
 }
 static int
-callback_list_str_xpush_requires(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+callback_list_str_xpush_requires(char *s, int slen, const char *name, const uint32_t flags, const char *evr, void *param) {
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
@@ -356,7 +356,7 @@ callback_list_str_xpush_requires(char *s, int slen, char *name, int_32 flags, ch
   return 0;
 }
 static int
-callback_list_str_xpush_old_suggests(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, uint32_t flags, const char *evr, void *param) {
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
@@ -373,14 +373,14 @@ callback_list_str_xpush_old_suggests(char *s, int slen, char *name, int_32 flags
 
 struct cb_overlap_s {
   char *name;
-  int_32 flags;
+  int32_t flags;
   char *evr;
   int direction; /* indicate to compare the above at left or right to the iteration element */
   int b_nopromote;
 };
 
 static int
-callback_list_str_overlap(char *s, int slen, char *name, int_32 flags, char *evr, void *param) {
+callback_list_str_overlap(char *s, int slen, const char *name, uint32_t flags, const char *evr, void *param) {
   struct cb_overlap_s *os = (struct cb_overlap_s *)param;
   int result = 0;
   char *eos = NULL;
@@ -414,9 +414,9 @@ callback_list_str_overlap(char *s, int slen, char *name, int_32 flags, char *evr
   if (!strcmp(name, os->name)) {
     /* perform overlap according to direction needed, negative for left */
     if (os->direction < 0)
-      result = ranges_overlap(os->flags, os->evr, flags, evr, os->b_nopromote);
+      result = ranges_overlap(os->flags, os->evr, flags, (char *) evr, os->b_nopromote);
     else
-      result = ranges_overlap(flags, evr, os->flags, os->evr, os->b_nopromote);
+      result = ranges_overlap(flags, (char *) evr, os->flags, os->evr, os->b_nopromote);
   }
 
   /* fprintf(stderr, "cb_list_str_overlap result=%d, os->direction=%d, os->name=%s, os->evr=%s, name=%s, evr=%s\n",
@@ -430,7 +430,7 @@ callback_list_str_overlap(char *s, int slen, char *name, int_32 flags, char *evr
 }
 
 static int
-return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, callback_list_str f, void *param) {
+return_list_str(char *s, Header header, int32_t tag_name, int32_t tag_flags, int32_t tag_version, callback_list_str f, void *param) {
   int count = 0;
 
   if (s != NULL) {
@@ -457,9 +457,9 @@ return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_3
       if (f(s, eos ? eos-s : 0, NULL, 0, NULL, param)) return -count;
     }
   } else if (header) {
-    int_32 type, c;
+    int32_t type, c;
     char **list = NULL;
-    int_32 *flags = NULL;
+    int32_t *flags = NULL;
     char **list_evr = NULL;
     int i;
 
@@ -483,10 +483,10 @@ return_list_str(char *s, Header header, int_32 tag_name, int_32 tag_flags, int_3
 }
 
 static int
-xpush_simple_list_str(Header header, int_32 tag_name) {
+xpush_simple_list_str(Header header, int32_t tag_name) {
   dSP;
   if (header) {
-    int_32 type, c;
+    int32_t type, c;
     char **list = NULL;
     int i;
 
@@ -502,11 +502,11 @@ xpush_simple_list_str(Header header, int_32 tag_name) {
 }
 
 void
-return_list_int_32(Header header, int_32 tag_name) {
+return_list_int32_t(Header header, int32_t tag_name) {
   dSP;
   if (header) {
-    int_32 type, count;
-    int_32 *list = NULL;
+    int32_t type, count;
+    int32_t *list = NULL;
     int i;
 
     headerGetEntry(header, tag_name, &type, (void **) &list, &count);
@@ -520,10 +520,10 @@ return_list_int_32(Header header, int_32 tag_name) {
 }
 
 void
-return_list_uint_16(Header header, int_32 tag_name) {
+return_list_uint_16(Header header, int32_t tag_name) {
   dSP;
   if (header) {
-    int_32 type, count;
+    int32_t type, count;
     uint_16 *list = NULL;
     int i;
 
@@ -538,11 +538,11 @@ return_list_uint_16(Header header, int_32 tag_name) {
 }
 
 void
-return_list_tag_modifier(Header header, int_32 tag_name) {
+return_list_tag_modifier(Header header, int32_t tag_name) {
   dSP;
   int i;
-  int_32 *list;
-  int_32 count, type;
+  int32_t *list;
+  int32_t count, type;
   headerGetEntry(header, tag_name, &type, (void **) &list, &count);
 
   for (i = 0; i < count; i++) {
@@ -573,11 +573,11 @@ return_list_tag_modifier(Header header, int_32 tag_name) {
 }
 
 void
-return_list_tag(URPM__Package pkg, int_32 tag_name) {
+return_list_tag(URPM__Package pkg, int32_t tag_name) {
   dSP;
   if (pkg->h != NULL) {
     void *list = NULL;
-    int_32 count, type;
+    int32_t count, type;
     headerGetEntry(pkg->h, tag_name, &type, (void **) &list, &count);
 
     if (list) {
@@ -619,6 +619,8 @@ return_list_tag(URPM__Package pkg, int_32 tag_name) {
 	    }
 	    break;
 	  case RPM_I18NSTRING_TYPE:
+	    break;
+	  case RPM_INT64_TYPE:
 	    break;
 	}
     }
@@ -672,12 +674,12 @@ return_files(Header header, int filter_mode) {
     char buff[4096];
     char *p, *s;
     STRLEN len;
-    int_32 type, count;
+    int32_t type, count;
     char **list = NULL;
     char **baseNames = NULL;
     char **dirNames = NULL;
-    int_32 *dirIndexes = NULL;
-    int_32 *flags = NULL;
+    int32_t *dirIndexes = NULL;
+    int32_t *flags = NULL;
     uint_16 *fmodes = NULL;
     int i;
 
@@ -794,11 +796,11 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 }
 
 static char *
-pack_list(Header header, int_32 tag_name, int_32 tag_flags, int_32 tag_version, int_32 (*check_flag)(int_32)) {
+pack_list(Header header, int32_t tag_name, int32_t tag_flags, int32_t tag_version, int32_t (*check_flag)(int32_t)) {
   char buff[65536];
-  int_32 type, count;
+  int32_t type, count;
   char **list = NULL;
-  int_32 *flags = NULL;
+  int32_t *flags = NULL;
   char **list_evr = NULL;
   int i;
   char *p = buff;
@@ -900,9 +902,9 @@ static void
 update_provides(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     int len;
-    int_32 type, count;
+    int32_t type, count;
     char **list = NULL;
-    int_32 *flags = NULL;
+    int32_t *flags = NULL;
     int i;
 
     /* examine requires for files which need to be marked in provides */
@@ -961,7 +963,7 @@ update_provides(URPM__Package pkg, HV *provides) {
 static void
 update_obsoletes(URPM__Package pkg, HV *obsoletes) {
   if (pkg->h) {
-    int_32 type, count;
+    int32_t type, count;
     char **list = NULL;
     int i;
 
@@ -992,11 +994,11 @@ static void
 update_provides_files(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     STRLEN len;
-    int_32 type, count;
+    int32_t type, count;
     char **list = NULL;
     char **baseNames = NULL;
     char **dirNames = NULL;
-    int_32 *dirIndexes = NULL;
+    int32_t *dirIndexes = NULL;
     int i;
 
     headerGetEntry(pkg->h, RPMTAG_BASENAMES, &type, (void **) &baseNames, &count);
@@ -1187,7 +1189,7 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
 static void pack_rpm_header(Header *h) {
   Header packed = headerNew();
   HeaderIterator hi;
-  int_32 type, c, tag;
+  int32_t type, c, tag;
   void *p;
 
   for (hi = headerInitIterator(*h);
@@ -1269,7 +1271,7 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 #if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
 	  struct stat sb;
 #else
-	  int_32 size;
+	  int32_t size;
 #endif
 
 	  basename = strrchr(filename, '/');
@@ -1335,9 +1337,9 @@ typedef unsigned long rpmCallbackSize_t;
 #endif
 
 static void *rpmRunTransactions_callback(const void *h,
-					 const rpmCallbackType what,
-					 const rpmCallbackSize_t amount,
-					 const rpmCallbackSize_t total,
+					 const rpmCallbackType what, 
+					 const rpm_loff_t amount, 
+					 const rpm_loff_t total,
 					 fnpyKey pkgKey,
 					 rpmCallbackData data) {
   static struct timeval tprev;
@@ -1594,7 +1596,7 @@ Pkg_is_platform_compat(pkg)
 #if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
   read_config_files(0);
   if (pkg->h && headerIsEntry(pkg->h, RPMTAG_PLATFORM)) {
-    int_32 count, type;
+    int32_t count, type;
     (void) headerGetEntry(pkg->h, RPMTAG_PLATFORM, &type, (void **) &platform, &count);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     platform = headerFreeData(platform, type);
@@ -2327,7 +2329,7 @@ Pkg_files_mtime(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int_32(pkg->h, RPMTAG_FILEMTIMES);
+  return_list_int32_t(pkg->h, RPMTAG_FILEMTIMES);
   SPAGAIN;
 
 void
@@ -2335,7 +2337,7 @@ Pkg_files_size(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int_32(pkg->h, RPMTAG_FILESIZES);
+  return_list_int32_t(pkg->h, RPMTAG_FILESIZES);
   SPAGAIN;
 
 void
@@ -2343,7 +2345,7 @@ Pkg_files_uid(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int_32(pkg->h, RPMTAG_FILEUIDS);
+  return_list_int32_t(pkg->h, RPMTAG_FILEUIDS);
   SPAGAIN;
 
 void
@@ -2351,7 +2353,7 @@ Pkg_files_gid(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int_32(pkg->h, RPMTAG_FILEGIDS);
+  return_list_int32_t(pkg->h, RPMTAG_FILEGIDS);
   SPAGAIN;
 
 void
@@ -2367,7 +2369,7 @@ Pkg_files_flags(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int_32(pkg->h, RPMTAG_FILEFLAGS);
+  return_list_int32_t(pkg->h, RPMTAG_FILEFLAGS);
   SPAGAIN;
   
 void
@@ -2383,7 +2385,7 @@ Pkg_changelog_time(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int_32(pkg->h, RPMTAG_CHANGELOGTIME);
+  return_list_int32_t(pkg->h, RPMTAG_CHANGELOGTIME);
   SPAGAIN;
 
 void
@@ -3810,7 +3812,7 @@ Urpm_import_pubkey_file(db, filename)
 #if RPM_VERSION_CODE < RPM_VERSION(5,2,0)
     const
 #endif
-    byte * pkt = NULL;
+    uint8_t *pkt = NULL;
     size_t pktlen = 0;
     int rc;
     CODE:
@@ -3818,7 +3820,7 @@ Urpm_import_pubkey_file(db, filename)
     rpmts ts = rpmtsLink(db->ts, "URPM::import_pubkey_file");
     rpmtsClean(ts);
     
-    if ((rc = pgpReadPkts(filename, &pkt, &pktlen)) <= 0) {
+    if ((rc = pgpReadPkts(filename, (uint8_t ** ) &pkt, &pktlen)) <= 0) {
         RETVAL = 0;
     } else if (rc != PGPARMOR_PUBKEY) {
         RETVAL = 0;
