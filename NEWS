@@ -1,3 +1,6 @@
+- fix scriptlet failing:
+  adapt to librpm4.6, rpmtsSetRootDir(ts, "") is forbidden 
+
 Version 3.21 - 9 December 2008, by Pascal "Pixel" Rigaux
 
 - adapt to librpm4.6

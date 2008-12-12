@@ -2815,7 +2815,7 @@ Pkg_set_rflags(pkg, ...)
 MODULE = URPM            PACKAGE = URPM::DB            PREFIX = Db_
 
 URPM::DB
-Db_open(prefix="", write_perm=0)
+Db_open(prefix=NULL, write_perm=0)
   char *prefix
   int write_perm
   PREINIT:
@@ -2825,7 +2825,7 @@ Db_open(prefix="", write_perm=0)
   db = malloc(sizeof(struct s_Transaction));
   db->count = 1;
   db->ts = rpmtsCreate();
-  rpmtsSetRootDir(db->ts, prefix);
+  rpmtsSetRootDir(db->ts, prefix && prefix[0] ? prefix : NULL);
   if (rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0) {
     RETVAL = db;
   } else {
