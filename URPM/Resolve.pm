@@ -235,13 +235,12 @@ sub _find_required_package__sort {
 
 	my ($best, @other) = sort {
 	      $a->[1] <=> $b->[1] #- we want the lowest (ie preferred arch)
-	      || $b->[2] <=> $a->[2] #- and the higher score
-	      || URPM::rpmvercmp($b->[3], $a->[3]); #- and the highest provided version
+	      || $b->[2] <=> $a->[2]; #- and the higher score
 	} map {
 	    my $score = 0;
 	    $score += 2 if $_->flag_requested;
 	    $score += $_->flag_upgrade ? 1 : -1 if $_->flag_installed;
-	    [ $_, $_->is_arch_compat, $score, $provided_version->{$_} || 0 ];
+	    [ $_, $_->is_arch_compat, $score ];
 	} @$packages;
 
 	my @chosen_with_score = ($best, grep { $_->[1] == $best->[1] && $_->[2] == $best->[2] } @other);
@@ -278,7 +277,13 @@ sub _find_required_package__sort {
     # propose to select all packages for installed locales
     my @prefered = grep { $_->[1] == 3 } @chosen_with_score;
 
-    [ map { $_->[0] } @chosen_with_score ], [ map { $_->[0] } @prefered ];
+    @chosen = map { $_->[0] } @chosen_with_score;
+    if (%$provided_version) {
+	# highest provided version first
+	# (nb: this sort overrules the sort on media (cf ->id above))
+	@chosen = sort { URPM::rpmvercmp($provided_version->{$b} || 0, $provided_version->{$a} || 0) } @chosen;
+    }
+    \@chosen, [ map { $_->[0] } @prefered ];
 }
 
 #- prefer the pkgs corresponding to installed/selected kernels
