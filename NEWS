@@ -1,3 +1,5 @@
+- fix bad free() (thanks to glibc for detecting it)
+
 Version 3.22 - 12 December 2008, by Pascal "Pixel" Rigaux
 
 - fix scriptlet failing:

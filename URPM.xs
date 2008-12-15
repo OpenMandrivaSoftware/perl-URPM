@@ -468,14 +468,14 @@ return_list_str(char *s, Header header, int32_t tag_name, int32_t tag_flags, int
 	if (f(NULL, 0, rpmtdGetString(&list), flag ? *flag : 0, 
 	      rpmtdNextString(&list_evr), param)) {
 	  rpmtdFreeData(&list);
-	  rpmtdFreeData(&flags);
-	  rpmtdFreeData(&list_evr);
+	  if (tag_flags) rpmtdFreeData(&flags);
+	  if (tag_version) rpmtdFreeData(&list_evr);
 	  return -count;
 	}
       }
       rpmtdFreeData(&list);
-      rpmtdFreeData(&flags);
-      rpmtdFreeData(&list_evr);
+      if (tag_flags) rpmtdFreeData(&flags);
+      if (tag_version) rpmtdFreeData(&list_evr);
     }
   }
   return count;
