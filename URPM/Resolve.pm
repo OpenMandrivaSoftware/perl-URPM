@@ -7,6 +7,8 @@ package URPM;
 use strict;
 use Config;
 
+
+#- a few functions from MDK::Common copied here:
 sub listlength { scalar @_ }
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
@@ -16,6 +18,8 @@ sub find(&@) {
     undef;
 }
 
+#- property2name* functions below parse things like "mandriva-release[>= 2008.1]"
+#- which is the format returned by URPM.xs for ->requires, ->provides, ->conflicts...
 sub property2name {
     $_[0] =~ /^([^\s\[]*)/ && $1;
 }
@@ -26,6 +30,7 @@ sub property2name_op_version {
     $_[0] =~ /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/;
 }
 
+#- wrappers around $state (cf "The $state object" in "perldoc URPM")
 sub packages_to_remove {
     my ($state) = @_;
     grep {
@@ -40,7 +45,8 @@ sub removed_or_obsoleted_packages {
 }
 
 #- Find candidates packages from a require string (or id).
-#- Takes care of direct choices using the '|' separator.
+#- Takes care of choices using the '|' separator.
+#- (nb: see also find_required_package())
 #-
 #- side-effects: none
 sub find_candidate_packages_ {
@@ -70,7 +76,7 @@ sub find_candidate_packages_ {
     @packages;
 }
 
-#- deprecated
+#- deprecated, use find_candidate_packages_() directly
 #-
 #- side-effects: none
 sub find_candidate_packages {
@@ -83,6 +89,7 @@ sub find_candidate_packages {
     \%packages;
 }
 
+#- returns the "arch" of package $n in rpm db
 sub get_installed_arch {
     my ($db, $n) = @_;
     my $arch;
@@ -90,11 +97,17 @@ sub get_installed_arch {
     $arch;
 }
 
+#- is "strict-arch" wanted? (cf "man urpmi")
+#- since it's slower we only force it on bi-arch
 sub strict_arch {
     my ($urpm) = @_;
     defined $urpm->{options}{'strict-arch'} ? $urpm->{options}{'strict-arch'} : $Config{archname} =~ /x86_64|sparc64|ppc64/;
 }
 my %installed_arch;
+
+#- checks wether $pkg could be installed under strict-arch policy
+#- (ie check wether $pkg->name with different arch is not installed)
+#-
 #- side-effects: none (but uses a cache)
 sub strict_arch_check_installed {
     my ($db, $pkg) = @_;
@@ -107,6 +120,11 @@ sub strict_arch_check_installed {
     }
     1;
 }
+
+#- check wether $installed_pkg and $pkg have same arch
+#- (except for src/noarch of course)
+#-
+#- side-effects: none
 sub strict_arch_check {
     my ($installed_pkg, $pkg) = @_;
     if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
@@ -117,6 +135,8 @@ sub strict_arch_check {
     1;
 }
 
+#- is $pkg->name installed?
+#-
 #- side-effects: none
 sub is_package_installed {
     my ($db, $pkg) = @_;
@@ -136,6 +156,8 @@ sub _is_selected_or_installed {
       $db->traverse_tag('name', [ $name ], undef) > 0;
 }
 
+#- finds $pkg "provides" that matches $provide_name, and returns the version provided
+#- eg: $pkg provides "a = 3", $provide_name is "a > 1", returns "3"
 sub provided_version_that_overlaps {
     my ($pkg, $provide_name) = @_;
 
@@ -153,9 +175,13 @@ sub provided_version_that_overlaps {
     $version;
 }
 
-# deprecated function name
+#- deprecated function, use find_required_package()
 sub find_chosen_packages { &find_required_package }
 
+#- find the package (or packages) to install matching $id_prop
+#- returns (list ref of matches, list ref of preferred matches)
+#- (see also find_candidate_packages_())
+#-
 #- side-effects: flag_install, flag_upgrade (and strict_arch_check_installed cache)
 sub find_required_package {
     my ($urpm, $db, $state, $id_prop) = @_;
@@ -333,6 +359,9 @@ sub _find_required_package__kmod {
 #- Packages that require locales-xxx when the corresponding locales are
 #- already installed should be preferred over packages that require locales
 #- which are not installed.
+#-
+#- eg: locales-fr & locales-de are installed, 
+#-     prefer firefox-fr & firefox-de which respectively require locales-fr & locales-de
 sub _score_for_locales {
     my ($urpm, $db, $pkg) = @_;
 
@@ -366,7 +395,7 @@ sub _choose_required {
     #- packages. If multiple packages are possible, simply ask the user which
     #- one to choose; else take the first one available.
     if (!@$chosen) {
-	$urpm->{debug_URPM}("no packages match " . _dep_to_name($urpm, $dep) . " (it may be in skip.list)") if $urpm->{debug_URPM};
+	$urpm->{debug_URPM}("no packages match " . _dep_to_name($urpm, $dep) . " (it is either in skip.list or already rejected)") if $urpm->{debug_URPM};
 	unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, %options);
 	return; #- backtrack code choose to continue with same package or completely new strategy.
     } elsif ($options{callback_choices} && @$chosen > 1) {
