@@ -97,6 +97,7 @@ sub build_listid {
         (($start || 0) .. (defined($end) ? $end : $#{$urpm->{depslist}}));
 }
 
+#- this is used when faking a URPM::DB: $urpm can be used as-a $db
 sub traverse {
     my ($urpm, $callback) = @_;
 
@@ -109,6 +110,8 @@ sub traverse {
     scalar @{$urpm->{depslist} || []};
 }
 
+
+#- this is used when faking a URPM::DB: $urpm can be used as-a $db
 sub traverse_tag {
     my ($urpm, $tag, $names, $callback) = @_;
     my $count = 0; 
@@ -376,6 +379,8 @@ this $urpm. The behaviour of the search is influenced by several options:
 Executes the callback for each package in the depslist, passing a
 C<URPM::Package> object as argument the callback.
 
+This is used when faking a URPM::DB: $urpm can be used as-a $db
+
 =item $urpm->traverse_tag($tag, $names, $callback)
 
 $tag may be one of C<name>, C<whatprovides>, C<whatrequires>, C<whatconflicts>,
@@ -383,6 +388,8 @@ C<group>, C<triggeredby>, or C<path>.
 $names is a reference to an array, holding the acceptable values of the said
 tag for the searched variables.
 Then, $callback is called for each matching package in the depslist.
+
+This is used when faking a URPM::DB: $urpm can be used as-a $db
 
 =item URPM::verify_rpm($file, %options)
 
