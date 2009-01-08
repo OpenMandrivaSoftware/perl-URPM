@@ -240,6 +240,16 @@ sub find_required_package {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 	}
 
+	#- if another package requires one of the potential candidates,
+	#- we select this candidate instead of keeping all the 
+	#- other packages.
+	foreach my $pkg (@packages) {
+	    exists $state->{whatrequires}->{$pkg->name} or next;
+	    $urpm->{debug_URPM}("forcing use of " . $pkg->name . " for $id_prop because " . join(", ", map { $urpm->{depslist}[$_]->name } keys %{$state->{whatrequires}->{$pkg->name}}) . " require(s) it") if $urpm->{debug_URPM};
+	    
+	    return [ $pkg ];
+	}
+	
 	if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@packages)) {
 	    $urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @packages)) if $urpm->{debug_URPM};
 	    return \@kernel_source, \@kernel_source;

@@ -1,5 +1,9 @@
 - fix sorting choices on provided version (feature introduced in 3.08, 
   but was not working if packages were coming from different repository)
+- when a "Requires:" can be fullfilled by several different packages and
+  one of those packages is explicitly required by another package which
+  is also being installed, silently choose this package instead of letting
+  the choice up to perl-URPM user (fixes bug #46874)
 
 Version 3.23 - 12 December 2008, by Pascal "Pixel" Rigaux
 
