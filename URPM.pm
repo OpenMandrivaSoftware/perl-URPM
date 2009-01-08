@@ -98,6 +98,7 @@ sub build_listid {
 }
 
 #- this is used when faking a URPM::DB: $urpm can be used as-a $db
+#- (used for urpmi --env)
 sub traverse {
     my ($urpm, $callback) = @_;
 
@@ -112,6 +113,7 @@ sub traverse {
 
 
 #- this is used when faking a URPM::DB: $urpm can be used as-a $db
+#- (used for urpmi --env)
 sub traverse_tag {
     my ($urpm, $tag, $names, $callback) = @_;
     my $count = 0; 
