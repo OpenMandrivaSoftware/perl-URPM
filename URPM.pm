@@ -174,7 +174,7 @@ sub traverse_tag {
     $count;
 }
 
-sub parse_hdlist_or_synthesis {
+sub _parse_hdlist_or_synthesis {
     my ($parse_func, $urpm, $file, %options) = @_;
 
     my $previous_indice = @{$urpm->{depslist}};
@@ -194,8 +194,8 @@ sub parse_hdlist_or_synthesis {
 	();
     }
 }
-sub parse_synthesis { parse_hdlist_or_synthesis(\&parse_synthesis__XS, @_) }
-sub parse_hdlist { parse_hdlist_or_synthesis(\&parse_hdlist__XS, @_) }
+sub parse_synthesis { _parse_hdlist_or_synthesis(\&parse_synthesis__XS, @_) }
+sub parse_hdlist { _parse_hdlist_or_synthesis(\&parse_hdlist__XS, @_) }
 
 sub add_macro {
     my ($s) = @_;
