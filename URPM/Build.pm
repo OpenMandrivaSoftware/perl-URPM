@@ -537,6 +537,7 @@ our $MAKEDELTARPM = '/usr/bin/makedeltarpm';
 #- make_delta_rpm($old_rpm_file, $new_rpm_file)
 # Creates a delta rpm in the current directory.
 
+# DEPRECATED. UNUSED
 sub make_delta_rpm ($$) {
     @_ == 2 or return 0;
     -e $_[0] && -e $_[1] && -x $MAKEDELTARPM or return 0;
