@@ -298,6 +298,7 @@ sub _find_required_package__sort {
 	       $b->[1] <=> $a->[1] || $b->[0]->compare_pkg($a->[0]);
 	} map { [ $_, _score_for_locales($urpm, $db, $_), pkg2media($urpm->{media}, $_) ] } @chosen;
     } else {
+	# obsolete code which should not happen, kept just in case
 	$urpm->{debug_URPM}("can't sort choices by media") if $urpm->{debug_URPM};
 	@chosen_with_score = sort {
 	    $b->[1] <=> $a->[1] ||
@@ -633,12 +634,12 @@ sub backtrack_selected {
 	} else {
 	    #- the backtrack need to examine diff_provides promotion on $n.
 	    with_db_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
-				      my ($p, @l) = @_;
+				      my ($p, @unsatisfied) = @_;
 				      #- typically a redo of the diff_provides code should be applied...
 				      resolve_rejected_($urpm, $db, $state, \@properties, {
 							      rejected_pkg => $p, removed => 1,
 							      from => $dep->{psel},
-							      why => { unsatisfied => \@l }
+							      why => { unsatisfied => \@unsatisfied }
 							  });
 			      });
 	}
@@ -813,12 +814,12 @@ sub resolve_rejected_ {
 			}
 		    }
 		    with_db_unsatisfied_requires($urpm, $db, $state, $n, sub {
-			    my ($p, @l) = @_;
+			    my ($p, @unsatisfied) = @_;
 
 			    my $newly_rejected = set_rejected($urpm, $state, {
 				rejected_pkg => $p,
 				from => $rdep->{rejected_pkg}, 
-				why => { unsatisfied => \@l },
+				why => { unsatisfied => \@unsatisfied },
 				obsoleted => $rdep->{obsoleted},
 				removed => $rdep->{removed},
 			    });				
@@ -1191,7 +1192,7 @@ sub _handle_diff_provides {
     my ($urpm, $db, $state, $properties, $n, $pkg, %options) = @_;
 
     with_any_unsatisfied_requires($urpm, $db, $state, $n, sub {
-	my ($p, @l) = @_;
+	my ($p, @unsatisfied) = @_;
 
 	#- try if upgrading the package will be satisfying all the requires...
 	#- there is no need to avoid promoting epoch as the package examined is not
@@ -1215,14 +1216,14 @@ sub _handle_diff_provides {
 	    #- no package have been found, we may need to remove the package examined unless
 	    #- there exists enough packages that provided the unsatisfied requires.
 	    my @best;
-	    foreach (@l) {
+	    foreach (@unsatisfied) {
 		my @packages = find_candidate_packages_($urpm, $_, $state->{rejected});
 		if (@packages = grep { $_->fullname ne $p->fullname } @packages) {
 		    push @best, join('|', map { $_->id } @packages);
 		}
 	    }
 
-	    if (@best == @l) {
+	    if (@best == @unsatisfied) {
 		$urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, @best)) . " because of conflict above") if $urpm->{debug_URPM};
 		push @$properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 	    } else {
@@ -1232,7 +1233,7 @@ sub _handle_diff_provides {
 		    resolve_rejected_($urpm, $db, $state, $properties, {
 				      rejected_pkg => $p, removed => 1,
 				      from => $pkg,
-				      why => { unsatisfied => \@l },
+				      why => { unsatisfied => \@unsatisfied },
 				  });
 		}
 	    }
