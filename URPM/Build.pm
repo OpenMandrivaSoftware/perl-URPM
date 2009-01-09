@@ -438,6 +438,8 @@ sub build_hdlist {
 }
 
 #- build synthesis file.
+#- used by genhdlist2 and mkcd
+#-
 #- parameters are :
 #-   synthesis : synthesis file to create (mandatory if fd not given).
 #-   fd        : file descriptor (mandatory if synthesis not given).
@@ -481,6 +483,7 @@ sub build_synthesis {
     close $fh; # returns true on success
 }
 
+# DEPRECATED. ONLY USED BY MKCD
 #- write depslist.ordered file according to info in params.
 #- parameters are :
 #-   depslist : depslist.ordered file to create.
