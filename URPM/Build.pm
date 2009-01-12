@@ -111,6 +111,8 @@ sub parse_rpms_build_headers {
     @headers;
 }
 
+# DEPRECATED. ONLY USED BY MKCD
+#
 #- allow rereading of hdlist and clean.
 sub unresolved_provides_clean {
     my ($urpm) = @_;
@@ -118,6 +120,8 @@ sub unresolved_provides_clean {
     $urpm->{provides}{$_} = undef foreach keys %{$urpm->{provides} || {}};
 }
 
+# DEPRECATED. ONLY USED BY MKCD
+#
 #- read a list of headers (typically when building an hdlist when provides have
 #- been cleaned).
 #- parameters are :
