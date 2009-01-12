@@ -174,6 +174,8 @@ sub traverse_tag {
     $count;
 }
 
+# wrapper around XS functions
+# it handles error cases
 sub _parse_hdlist_or_synthesis {
     my ($parse_func, $urpm, $file, %options) = @_;
 
@@ -340,12 +342,6 @@ file and adds them to the URPM object. Allowed options are
 
 The return value is a two-element array containing the first and the last id
 parsed.
-
-=item $urpm->parse_rpms($files, %options)
-
-This method loads rpm informations from rpm headers and adds them to the URPM
-object. The return value is a two-element array containing the first and the
-last id parsed.
 
 =item $urpm->parse_rpm($file, %options)
 

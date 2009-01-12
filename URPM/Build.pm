@@ -141,24 +141,6 @@ sub parse_headers {
     defined $id ? ($start, $id) : @{[]};
 }
 
-# parse_rpms, same behaviour than parse_{hdlist, synthesis}
-# ie: ($start, $end) = parse_*(filestoparse, %options);
-
-sub parse_rpms {
-    my ($urpm, $rpms, %options) = @_;
-    my ($start, $end);
-    $urpm->parse_rpms_build_headers(
-        rpms => $rpms, 
-        %options, 
-        callback => sub {
-            my (undef, $id) = @_;
-	    $start = $id if $start > $id || ! defined($start);
-	    $end = $id   if $end < $id   || ! defined($end);
-        }
-    ) ? ($start, $end) : ();
-}
-
-
 # DEPRECATED. ONLY USED BY MKCD
 #- compute dependencies, result in stored in info values of urpm.
 #- operations are incremental, it is possible to read just one hdlist, compute
