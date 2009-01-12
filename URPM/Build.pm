@@ -10,6 +10,8 @@ sub _get_tmp_dir () {
     "$t/.build_hdlist";
 }
 
+# DEPRECATED. ONLY USED BY MKCD
+#
 #- prepare build of an hdlist from a list of files.
 #- it can be used to start computing depslist.
 #- parameters are :
@@ -156,29 +158,6 @@ sub parse_rpms {
     ) ? ($start, $end) : ();
 }
 
-# fuzzy_parse is a simple wrapper for parse_rpm* function
-# It detect if the file passed is a dir, an hdlist, a synthesis or a rpm
-# it call the good function. 
-sub fuzzy_parse {
-    my ($urpm, %options) = @_;
-    my ($start, $end);
-    foreach my $entry (@{$options{paths} || []}) {
-        if (-d $entry) { # it is a dir
-	    ($start, $end) = $urpm->parse_rpms([ glob("$entry/*.rpm") ], %options);
-	    defined ($start) and return ($start .. $end);
-	} else { # we try some methode to load the file
-	    ($start, $end) = $urpm->parse_hdlist($entry);
-	    defined ($start) and return ($start .. $end);
-
-	    ($start, $end) = $urpm->parse_synthesis($entry);
-	    defined ($start) and return ($start .. $end);
-
-	    ($start, $end) = $urpm->parse_rpms([ $entry ], %options);
-	    defined ($start) and return ($start .. $end);
-        }
-    }
-    return ();
-}
 
 # DEPRECATED. ONLY USED BY MKCD
 #- compute dependencies, result in stored in info values of urpm.
