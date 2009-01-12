@@ -373,6 +373,8 @@ sub compute_deps {
     ($start, $end);
 }
 
+# DEPRECATED. ONLY USED BY MKCD
+#
 #- build an hdlist from existing depslist, from start to end inclusive.
 #- parameters are :
 #-   hdlist   : hdlist file to use.
