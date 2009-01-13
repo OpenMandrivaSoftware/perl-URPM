@@ -1,3 +1,5 @@
+Version 3.24 - 13 January 2009, by Christophe Fergeau
+
 - fix sorting choices on provided version (feature introduced in 3.08, 
   but was not working if packages were coming from different repository)
 - when a "Requires:" can be fullfilled by several different packages and
