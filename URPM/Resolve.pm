@@ -240,16 +240,6 @@ sub find_required_package {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 	}
 
-	#- if another package requires one of the potential candidates,
-	#- we select this candidate instead of keeping all the 
-	#- other packages.
-	foreach my $pkg (@packages) {
-	    exists $state->{whatrequires}->{$pkg->name} or next;
-	    $urpm->{debug_URPM}("forcing use of " . $pkg->name . " for $id_prop because " . join(", ", map { $urpm->{depslist}[$_]->name } keys %{$state->{whatrequires}->{$pkg->name}}) . " require(s) it") if $urpm->{debug_URPM};
-	    
-	    return [ $pkg ];
-	}
-	
 	if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@packages)) {
 	    $urpm->{debug_URPM}("packageCallbackChoices: kernel source chosen " . join(",", map { $_->name } @kernel_source) . " in " . join(",", map { $_->name } @packages)) if $urpm->{debug_URPM};
 	    return \@kernel_source, \@kernel_source;
@@ -399,6 +389,23 @@ sub _choose_required {
     #- take the best choice possible.
     my ($chosen, $prefered) = find_required_package($urpm, $db, $state, $dep->{required});
 
+    if ((@$chosen > 1) && ($dep->{from})) {
+	#- if another package requires one of the potential candidates,
+	#- we select this candidate instead of keeping all the 
+	#- other packages.
+	foreach my $pkg (@$chosen) {
+	    #- get list of packages that requires something provided by $pkg
+	    my @requiring_pkg = grep { exists $state->{whatrequires}->{$_} } $pkg->provides_nosense;
+	    foreach (@requiring_pkg) {
+		my @requires_from_elsewhere = grep { $_->name ne $dep->{from}->name } whatrequires($urpm, $state, $_) or next;
+
+		$urpm->{debug_URPM}("forcing use of " . $pkg->name . " for $dep->{required} because " . join(", ", map { $_->name } @requires_from_elsewhere) . " require(s) it") if $urpm->{debug_URPM};
+		@$chosen = $pkg;
+		undef $prefered;
+	    }
+	}
+    }
+
     #- If no choice is found, this means that nothing can be possibly selected
     #- according to $dep, so we need to retry the selection, allowing all
     #- packages that conflict or anything similar to see which strategy can be
@@ -423,6 +430,7 @@ sub _choose_required {
 	} @l;
 	return; #- always redo according to choices.
     }
+
 
     #- now do the real work, select the package.
     my $pkg = shift @$chosen;

@@ -1,3 +1,5 @@
+- previous fix for bug #46874 was bogus, really fix it this time
+
 Version 3.24 - 13 January 2009, by Christophe Fergeau
 
 - fix sorting choices on provided version (feature introduced in 3.08, 
