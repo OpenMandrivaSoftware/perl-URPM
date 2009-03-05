@@ -1,3 +1,7 @@
+- verify_signature: enable to check signatures against a chrooted rpmdb
+  (especially important for installer where there's no rpmdb in / and thus no
+  keys to check against)
+
 Version 3.25 - 16 January 2009, by Christophe Fergeau
 
 - previous fix for bug #46874 was bogus, really fix it this time

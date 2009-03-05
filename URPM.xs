@@ -3728,8 +3728,9 @@ Urpm_verify_rpm(filename, ...)
   RETVAL
 
 char *
-Urpm_verify_signature(filename)
+Urpm_verify_signature(filename, prefix="/")
   char *filename
+  char *prefix
   PREINIT:
   rpmts ts = NULL;
   char result[1024];
@@ -3743,7 +3744,7 @@ Urpm_verify_signature(filename)
   } else {
     read_config_files(0);
     ts = rpmtsCreate();
-    rpmtsSetRootDir(ts, "/");
+    rpmtsSetRootDir(ts, prefix);
     rpmtsOpenDB(ts, O_RDONLY);
     rpmtsSetVSFlags(ts, RPMVSF_DEFAULT);
     rc = rpmReadPackageFile(ts, fd, filename, &h);
