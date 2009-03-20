@@ -1015,7 +1015,7 @@ sub resolve_requested__no_suggests_ {
 	    push @diff_provides, map { +{ name => $_, pkg => $pkg } } keys %diff_provides_h;
 	}
 	if (my $diff = shift @diff_provides) {
-	    _handle_diff_provides($urpm, $db, $state, \@properties, $diff->{name}, $diff->{pkg}, %options);
+	    _handle_diff_provides($urpm, $db, $state, \@properties, \@diff_provides, $diff->{name}, $diff->{pkg}, %options);
 	}
     } while @diff_provides || @properties;
 
@@ -1197,7 +1197,7 @@ sub _find_packages_obsoleting {
 #-   + those of backtrack_selected_psel_keep ($state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 #-   + those of resolve_rejected_ ($state->{rejected}, $properties)
 sub _handle_diff_provides {
-    my ($urpm, $db, $state, $properties, $n, $pkg, %options) = @_;
+    my ($urpm, $db, $state, $properties, $diff_provides, $n, $pkg, %options) = @_;
 
     with_any_unsatisfied_requires($urpm, $db, $state, $n, sub {
 	my ($p, @unsatisfied) = @_;
@@ -1238,11 +1238,13 @@ sub _handle_diff_provides {
 		if ($options{keep}) {
 		    backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
-		    resolve_rejected_($urpm, $db, $state, $properties, {
+		    my %diff_provides_h;
+		    set_rejected_and_compute_diff_provides($urpm, $state, \%diff_provides_h, {
 				      rejected_pkg => $p, removed => 1,
 				      from => $pkg,
 				      why => { unsatisfied => \@unsatisfied },
 				  });
+		    push @$diff_provides, map { +{ name => $_, pkg => $pkg } } keys %diff_provides_h;
 		}
 	    }
 	}
