@@ -554,8 +554,8 @@ sub with_state_unsatisfied_requires {
 
 sub with_any_unsatisfied_requires {
     my ($urpm, $db, $state, $name, $do) = @_;
-    with_db_unsatisfied_requires($urpm, $db, $state, $name, $do);
-    with_state_unsatisfied_requires($urpm, $db, $state, $name, $do);
+    with_db_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 0, @l)});
+    with_state_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 1, @l)});
 }
 
 
@@ -1196,11 +1196,13 @@ sub _find_packages_obsoleting {
 #- side-effects: $properties
 #-   + those of backtrack_selected_psel_keep ($state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 #-   + those of resolve_rejected_ ($state->{rejected}, $properties)
+#-   + those of disable_selected_and_unrequested_dependencies (flag_requested, flag_required, $state->{selected}, $state->{whatrequires}, $state->{rejected})
+#-   + those of _set_rejected_from ($state->{rejected})
 sub _handle_diff_provides {
     my ($urpm, $db, $state, $properties, $diff_provides, $n, $pkg, %options) = @_;
 
     with_any_unsatisfied_requires($urpm, $db, $state, $n, sub {
-	my ($p, @unsatisfied) = @_;
+	my ($p, $from_state, @unsatisfied) = @_;
 
 	#- try if upgrading the package will be satisfying all the requires...
 	#- there is no need to avoid promoting epoch as the package examined is not
@@ -1235,7 +1237,10 @@ sub _handle_diff_provides {
 		$urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, @best)) . " because of conflict above") if $urpm->{debug_URPM};
 		push @$properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 	    } else {
-		if ($options{keep}) {
+		if ($from_state) {
+		    disable_selected_and_unrequested_dependencies($urpm, $db, $state, $p);
+		    _set_rejected_from($state, $p, $pkg);
+		} elsif ($options{keep}) {
 		    backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
 		    my %diff_provides_h;
