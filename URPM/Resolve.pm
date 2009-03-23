@@ -873,7 +873,7 @@ sub resolve_requested {
 	    $urpm->{debug_URPM}("requested " . join(', ', keys %suggests) . " suggested by " . $pkg->fullname) if $urpm->{debug_URPM};
 	    
 	    my %new_requested = map { $_ => undef } keys %suggests;
-	    my @new_selected = resolve_requested__no_suggests($urpm, $db, $state, \%new_requested, %options);
+	    my @new_selected = resolve_requested__no_suggests_($urpm, $db, $state, \%new_requested, %options);
 	    $state->{selected}{$_->id}{suggested} = 1 foreach @new_selected;
 	    push @selected, @new_selected;
 	    push @todo, @new_selected;
