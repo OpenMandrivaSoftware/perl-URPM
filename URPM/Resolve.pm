@@ -1851,7 +1851,7 @@ sub sort_by_dependencies {
 sub sorted_rpms_to_string {
     my ($urpm, @sorted) = @_;
 
-    'rpms sorted by dependence: ' . join(' ', map { 
+    "rpms sorted by dependencies:\n" . join("\n", map { 
 	join('+', _ids_to_names($urpm, @$_));
     } @sorted);
 }
