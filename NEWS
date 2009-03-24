@@ -1,3 +1,11 @@
+Version 3.27 - 24 March 2009, by Christophe Fergeau
+
+- don't silently install suggests (bug #47934)
+- fix _handle_diff_provides in case of impossible-to-satisfy selected 
+  packages (bug #48223, Anssi Hannula)
+- check rep for another pkg providing X if the prev pkg gets removed 
+  due to a conflict (bug #47803, Anssi Hannula)
+
 Version 3.26 - 5 March 2009, by Thierry Vignaud
 
 - verify_signature: enable to check signatures against a chrooted rpmdb
