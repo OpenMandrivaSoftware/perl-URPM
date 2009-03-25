@@ -1,3 +1,6 @@
+- postpone user choices as much as possible to avoid asking the user
+  unnecessary questions, (bug #48100, Anssi Hannula)
+
 Version 3.27 - 24 March 2009, by Christophe Fergeau
 
 - don't silently install suggests (bug #47934)

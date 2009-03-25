@@ -381,54 +381,44 @@ sub _score_for_locales {
     }
 }
 
-#- side-effects: $properties
+#- side-effects: $properties, $choices
 #-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub _choose_required {
-    my ($urpm, $db, $state, $dep, $properties, %options) = @_;
+    my ($urpm, $db, $state, $dep, $properties, $choices, %options) = @_;
 
     #- take the best choice possible.
     my ($chosen, $prefered) = find_required_package($urpm, $db, $state, $dep->{required});
-
-    if ((@$chosen > 1) && ($dep->{from})) {
-	#- if another package requires one of the potential candidates,
-	#- we select this candidate instead of keeping all the 
-	#- other packages.
-	foreach my $pkg (@$chosen) {
-	    #- get list of packages that requires something provided by $pkg
-	    my @requiring_pkg = grep { exists $state->{whatrequires}->{$_} } $pkg->provides_nosense;
-	    foreach (@requiring_pkg) {
-		my @requires_from_elsewhere = grep { $_->name ne $dep->{from}->name } whatrequires($urpm, $state, $_) or next;
-
-		$urpm->{debug_URPM}("forcing use of " . $pkg->name . " for $dep->{required} because " . join(", ", map { $_->name } @requires_from_elsewhere) . " require(s) it") if $urpm->{debug_URPM};
-		@$chosen = $pkg;
-		undef $prefered;
-	    }
-	}
-    }
 
     #- If no choice is found, this means that nothing can be possibly selected
     #- according to $dep, so we need to retry the selection, allowing all
     #- packages that conflict or anything similar to see which strategy can be
     #- tried. Backtracking is used to avoid trying multiple times the same
-    #- packages. If multiple packages are possible, simply ask the user which
+    #- packages. If multiple packages are possible and properties is not
+    #- empty, postpone the choice for a later time as one of the packages
+    #- may be selected for another reason. Otherwise simply ask the user which
     #- one to choose; else take the first one available.
     if (!@$chosen) {
 	$urpm->{debug_URPM}("no packages match " . _dep_to_name($urpm, $dep) . " (it is either in skip.list or already rejected)") if $urpm->{debug_URPM};
 	unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, %options);
 	return; #- backtrack code choose to continue with same package or completely new strategy.
-    } elsif ($options{callback_choices} && @$chosen > 1) {
-	my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _dep_to_name($urpm, $dep), $prefered);
-	$urpm->{debug_URPM}("replacing " . _dep_to_name($urpm, $dep) . " with " . 
-			      join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
-	unshift @$properties, map {
-	    +{
-		required => $_->id,
-		_choices => $dep->{required},
-		exists $dep->{from} ? (from => $dep->{from}) : @{[]},
-		exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
-	    };
-	} @l;
-	return; #- always redo according to choices.
+    } elsif (@$chosen > 1) {
+	if (@$properties) {
+	    unshift @$choices, $dep;
+	    return;
+	} elsif ($options{callback_choices}) {
+	    my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _dep_to_name($urpm, $dep), $prefered);
+	    $urpm->{debug_URPM}("replacing " . _dep_to_name($urpm, $dep) . " with " . 
+				join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
+	    unshift @$properties, map {
+		+{
+		    required => $_->id,
+		    _choices => $dep->{required},
+		    exists $dep->{from} ? (from => $dep->{from}) : @{[]},
+		    exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+		};
+	    } @l;
+	    return; #- always redo according to choices.
+	}
     }
 
 
@@ -929,7 +919,7 @@ sub resolve_requested__no_suggests_ {
 	{ required => $_, requested => $requested->{$_} };
     } keys %$requested;
 
-    my (@diff_provides, @selected);
+    my (@diff_provides, @selected, @choices);
 
     #- for each dep property evaluated, examine which package will be obsoleted on $db,
     #- then examine provides that will be removed (which need to be satisfied by another
@@ -942,7 +932,7 @@ sub resolve_requested__no_suggests_ {
 		exists $state->{selected}{$dep->{from}->id} or next;
 	    }
 
-	    my $pkg = _choose_required($urpm, $db, $state, $dep, \@properties, %options) or next;
+	    my $pkg = _choose_required($urpm, $db, $state, $dep, \@properties, \@choices, %options) or next;
 
 	    !$pkg || exists $state->{selected}{$pkg->id} and next;
 
@@ -1016,8 +1006,10 @@ sub resolve_requested__no_suggests_ {
 	}
 	if (my $diff = shift @diff_provides) {
 	    _handle_diff_provides($urpm, $db, $state, \@properties, \@diff_provides, $diff->{name}, $diff->{pkg}, %options);
+	} elsif (my $dep = shift @choices) {
+	    push @properties, $dep;
 	}
-    } while @diff_provides || @properties;
+    } while @diff_provides || @properties || @choices;
 
     #- return what has been selected by this call (not all selected hash which may be not empty
     #- previously. avoid returning rejected packages which weren't selectable.
