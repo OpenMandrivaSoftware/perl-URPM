@@ -1235,13 +1235,11 @@ sub _handle_diff_provides {
 		} elsif ($options{keep}) {
 		    backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
-		    my %diff_provides_h;
-		    set_rejected_and_compute_diff_provides($urpm, $state, \%diff_provides_h, {
+		    resolve_rejected_($urpm, $db, $state, $properties, {
 				      rejected_pkg => $p, removed => 1,
 				      from => $pkg,
 				      why => { unsatisfied => \@unsatisfied },
 				  });
-		    push @$diff_provides, map { +{ name => $_, pkg => $pkg } } keys %diff_provides_h;
 		}
 	    }
 	}
