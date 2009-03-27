@@ -769,7 +769,11 @@ sub set_rejected {
 sub set_rejected_and_compute_diff_provides {
     my ($urpm, $state, $diff_provides_h, $rdep) = @_;
 
-    set_rejected($urpm, $state, $rdep);
+    my $newly_rejected = set_rejected($urpm, $state, $rdep);
+
+    #- no need to compute diff_provides if package was already rejected
+    $newly_rejected or return;
+
     _compute_diff_provides_of_removed_pkg($urpm, $state, $diff_provides_h, $rdep->{rejected_pkg});
 }
 
@@ -1235,11 +1239,13 @@ sub _handle_diff_provides {
 		} elsif ($options{keep}) {
 		    backtrack_selected_psel_keep($urpm, $db, $state, $pkg, [ scalar $p->fullname ]);
 		} else {
-		    resolve_rejected_($urpm, $db, $state, $properties, {
+		    my %diff_provides_h;
+		    set_rejected_and_compute_diff_provides($urpm, $state, \%diff_provides_h, {
 				      rejected_pkg => $p, removed => 1,
 				      from => $pkg,
 				      why => { unsatisfied => \@unsatisfied },
 				  });
+		    push @$diff_provides, map { +{ name => $_, pkg => $pkg } } keys %diff_provides_h;
 		}
 	    }
 	}

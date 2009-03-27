@@ -1,6 +1,3 @@
-- revert part of the fix for bug #47803 because it's breaking upgrades
-  from 2008.1
-
 Version 3.28 - 25 March 2009, by Christophe Fergeau
 
 - postpone user choices as much as possible to avoid asking the user
