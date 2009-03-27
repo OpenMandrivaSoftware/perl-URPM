@@ -1,3 +1,9 @@
+Version 3.29 - 27 March 2009, by Christophe Fergeau
+
+- fix regression introduced by fix for bug #47803 (fix by Anssi Hannula).
+  Without this patch, urpmi got stuck in an infinite loop when trying 
+  to upgrade from 2008.1.
+
 Version 3.28 - 25 March 2009, by Christophe Fergeau
 
 - postpone user choices as much as possible to avoid asking the user
