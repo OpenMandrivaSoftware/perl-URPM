@@ -25,7 +25,7 @@ sub compare_pubkeys {
     $diff <= $options{diff} ? 0 : $diff;
 }
 
-#- parse an armored file and import in keys hash if the key does not already exists.
+#- parse an armored file 
 sub parse_armored_file {
     my (undef, $file) = @_;
     my ($block, $content, @l);
