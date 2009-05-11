@@ -2,62 +2,6 @@ package URPM;
 
 use strict;
 
-#- compare keys to avoid glitches introduced during the importation where
-#- some characters may be modified on the fly by rpm --import...
-sub compare_pubkeys {
-    my ($a, $b) = @_;
-    my $diff = 0;
-    my @a = unpack "C*", $a->{content};
-    my @b = unpack "C*", $b->{content};
-
-    my %options;
-    $options{start} ||= 0;
-    $options{end} ||= @a < @b ? scalar(@b) : scalar(@a);
-    $options{diff} ||= 1;
-
-    #- check element one by one, count all difference (do not work well if elements
-    #- have been inserted/deleted).
-    foreach ($options{start} .. $options{end}) {
-	$a[$_] != $b[$_] and ++$diff;
-    }
-
-    #- diff options give level to consider the key equal (a character is not always the same).
-    $diff <= $options{diff} ? 0 : $diff;
-}
-
-#- parse an armored file 
-sub parse_armored_file {
-    my (undef, $file) = @_;
-    my ($block, $content, @l);
-
-    #- check if an already opened file has been given directly.
-    unless (ref $file) {
-	my $F;
-	open $F, $file or return ();
-	$file = $F;
-    }
-
-    #- read armored file.
-    local $_;
-    while (<$file>) {
-	my $inside_block = /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
-	if ($inside_block) {
-	    $block .= $_;
-	    if ($inside_block =~ /E/) {
-		#- block is needed to import the key if needed.
-		push @l, { block => $block, content => $content };
-		$block = $content = undef;
-	    } else {
-		#- compute content for finding the right key.
-		chomp;
-		/^$/ and $content = '';
-		defined $content and $content .= $_;
-	    }
-	}
-    }
-    @l;
-}
-
 #- parse from rpmlib db.
 #-
 #- side-effects: $urpm
@@ -117,25 +61,23 @@ sub import_needed_pubkeys_from_file {
 
     my @keys = parse_pubkeys_($db);
 
-    my $find_key = sub {
-	my ($k) = @_;
-	my ($kv) = grep { compare_pubkeys($k, $_) == 0 } @keys;
-	$kv && $kv->{id};
-    };
-
-    foreach my $k (parse_armored_file(undef, $pubkey_file)) {
-	my $imported;
-	my $id = $find_key->($k);
-	if (!$id) {
-	    $imported = 1;
-	    import_pubkey_file($db, $pubkey_file);
+    my $keyid = substr get_gpg_fingerprint($pubkey_file), 8;
+    my ($kv) = grep { ($keyid == $_->{id}) } @keys;
+    my $imported;
+    if (!$kv) {
+	    if (!import_pubkey_file($db, $pubkey_file)) {
+		#$urpm->{debug_URPM}("Couldn't import public key from ".$pubkey_file) if $urpm->{debug_URPM};
+		$imported = 0;
+	    } else {
+		$imported = 1;
+	    }
 	    @keys = parse_pubkeys_($db);
-	    $id = $find_key->($k);
-	}
-	#- let the caller know about what has been found.
-	#- this is an error if the key is not found.
-	$o_callback and $o_callback->($id, $imported);
+	    ($kv) = grep { ($keyid == $_->{id}) } @keys;
     }
+
+    #- let the caller know about what has been found.
+    #- this is an error if the key is not found.
+    $o_callback and $o_callback->($kv?$kv->{id}:undef, $imported);
 }
 
 1;
