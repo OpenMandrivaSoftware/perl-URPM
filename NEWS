@@ -1,3 +1,10 @@
+Version 3.30 - 11 May 2009, by Christophe Fergeau
+
+- rework public key handling since librpm behaviour has changed. It's no longer
+  possible to tell it to add the same key multiple times which was causing
+  weird "unable to import pubkey" messages when a mirror contains different
+  pubkeys for the same key
+
 Version 3.29 - 27 March 2009, by Christophe Fergeau
 
 - fix regression introduced by fix for bug #47803 (fix by Anssi Hannula).
