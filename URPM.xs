@@ -3745,10 +3745,8 @@ Urpm_get_gpg_fingerprint(filename)
     CODE:
     memset (fingerprint, 0, sizeof (fingerprint));
     if ((rc = pgpReadPkts(filename, (uint8_t ** ) &pkt, &pktlen)) <= 0) {
-	fprintf(stderr, "pgpReadPkts failed\n");
 	pktlen = 0;
     } else if (rc != PGPARMOR_PUBKEY) {
-	fprintf(stderr, "not an armoured pubkey\n");
 	pktlen = 0;
     } else {
 	unsigned int i;
