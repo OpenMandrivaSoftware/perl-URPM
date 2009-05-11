@@ -3727,6 +3727,42 @@ Urpm_verify_rpm(filename, ...)
   OUTPUT:
   RETVAL
 
+
+char *
+Urpm_get_gpg_fingerprint(filename)
+    URPM::DB db
+    char * filename
+    PREINIT:
+    uint8_t fingerprint[sizeof(pgpKeyID_t)];
+    char fingerprint_str[sizeof(pgpKeyID_t) * 2 + 1];
+#if RPM_VERSION_CODE < RPM_VERSION(5,2,0)
+    const
+#endif
+    uint8_t *pkt = NULL;
+    size_t pktlen = 0;
+    int rc;
+
+    CODE:
+    memset (fingerprint, 0, sizeof (fingerprint));
+    if ((rc = pgpReadPkts(filename, (uint8_t ** ) &pkt, &pktlen)) <= 0) {
+	fprintf(stderr, "pgpReadPkts failed\n");
+	pktlen = 0;
+    } else if (rc != PGPARMOR_PUBKEY) {
+	fprintf(stderr, "not an armoured pubkey\n");
+	pktlen = 0;
+    } else {
+	unsigned int i;
+        pgpPubkeyFingerprint (pkt, pktlen, fingerprint);
+   	for (i = 0; i < sizeof (pgpKeyID_t); i++) {
+	    sprintf(&fingerprint_str[i*2], "%02x", fingerprint[i]);
+	}
+    }
+    _free(pkt);
+    RETVAL = fingerprint_str;
+    OUTPUT:
+    RETVAL
+
+
 char *
 Urpm_verify_signature(filename, prefix="/")
   char *filename
