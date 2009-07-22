@@ -18,9 +18,9 @@ URPM::setVerbosity(2);
 my $a = new URPM;
 ok($a);
 
-END { system('rm -rf hdlist.cz empty_hdlist.cz headers') }
+END { system('rm -rf hdlist.cz empty_hdlist.cz headers tmp') }
 
-my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
+my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
 ok(@{$a->{depslist}} == 1);
 my $pkg = $a->{depslist}[0];
 ok($pkg);
@@ -69,7 +69,7 @@ rpm_is_jbj_version() ?
   ok($pkg->is_platform_compat() > 0, "can evaluate platform score") :
   pass('no platform compat');
 
-my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
+my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
 						    dir => 'headers') ] };
 is($@, '', 'parse_rpms_build_headers');
 is(int @$headers, 1, 'parse_rpms_build_headers');
