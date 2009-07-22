@@ -1,4 +1,9 @@
 # $Id$
+
+# prevent distepoch & disttag to be added and appended to package filename
+%undefine distepoch
+%undefine disttag
+
 Summary: test rpm for perl-URPM test suite
 BuildArch: noarch
 Name: test-rpm
