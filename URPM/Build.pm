@@ -414,14 +414,16 @@ sub build_hdlist {
 #-   end       : index of last package (defaults to last index of depslist).
 #-   idlist    : id list of rpm to compute (defaults is start .. end)
 #-   ratio     : compression ratio (default 9).
+#-   filter    : program to filter through (default is 'gzip -$ratio').
 #- returns true on success
 sub build_synthesis {
     my ($urpm, %options) = @_;
-    my ($ratio, @idlist);
+    my ($ratio, $filter, @idlist);
 
     @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist});
 
     $ratio = $options{ratio} || 9;
+    $filter = $options{filter} ? $options{filter} : "gzip -$ratio";
     $options{synthesis} || defined $options{fd} or die "invalid parameters given";
 
     #- first pass: traverse provides to find files provided.
@@ -435,7 +437,7 @@ sub build_synthesis {
 
 
     #- second pass: write each info including files provided.
-    $options{synthesis} and open my $fh, "| " . ($ENV{LD_LOADER} || '') . " gzip -$ratio >'$options{synthesis}'";
+    $options{synthesis} and open my $fh, "| " . ($ENV{LD_LOADER} || '') . " $filter >'$options{synthesis}'";
     foreach (@idlist) {
 	my $pkg = $urpm->{depslist}[$_];
 	my %files;
