@@ -28,42 +28,16 @@
 #undef Stat
 #undef Fstat
 
-#define RPM_VERSION(maj,min,pl) (((maj) << 16) + ((min) << 8) + (pl))
-
 #ifdef RPM_ORG
-#define byte uint8_t
 static inline void *_free(const void * p) { 
   if (p != NULL) free((void *)p); 
   return NULL;
 }
 typedef struct rpmSpec_s * Spec;
 #else
-#if RPM_VERSION_CODE < RPM_VERSION(5,0,0)
-#define	rpmtsImportPubkey	rpmcliImportPubkey
-#endif
-#if RPM_VERSION_CODE <= RPM_VERSION(4,5,0)
-#define rpmProblemGetType(p)    p->type
-#define rpmProblemGetPkgNEVR(p) p->pkgNEVR
-#define rpmProblemGetAltNEVR(p) p->altNEVR
-#define rpmProblemGetStr(p)     p->str1
-#define rpmProblemGetLong(p)    p->ulong1
-#endif
-#endif
-#if RPM_VERSION_CODE >= RPM_VERSION(5,0,0)
-#include <rpm/rpm4compat.h>
-#else
-
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
-#   define _RPMPS_INTERNAL
-#endif
-#if RPM_VERSION_CODE >= RPM_VERSION(4,5,0)
-#   define _RPMEVR_INTERNAL
-#include <rpm/rpmevr.h>
+#include <rpm/rpm46compat.h>
 #endif
 
-#include <rpm/rpmlib.h>
-#include <rpm/header.h>
-#endif
 #include <rpm/rpmio.h>
 #include <rpm/rpmdb.h>
 #include <rpm/rpmts.h>
@@ -145,18 +119,11 @@ static const void* unused_variable(const void *p) {
 }
 
 static int rpmError_callback_data;
-#if defined(RPM_ORG) || RPM_VERSION_CODE >= RPM_VERSION(5,0,0)
 
 int rpmError_callback() {
   write_nocheck(rpmError_callback_data, rpmlogMessage(), strlen(rpmlogMessage()));
   return RPMLOG_DEFAULT;
 }
-#else
-void rpmError_callback() {
-  if (rpmErrorCode() != RPMERR_UNLINK && rpmErrorCode() != RPMERR_RMDIR)
-    write_nocheck(rpmError_callback_data, rpmlogMessage(), strlen(rpmlogMessage()));
-}
-#endif
 
 static int rpm_codeset_is_utf8 = 0;
 
@@ -587,7 +554,7 @@ return_list_tag(URPM__Package pkg, int32_t tag_name) {
 	switch (rpmtdType(&td)) {
 	  case RPM_NULL_TYPE:
 	    break;
-#if RPM_VERSION_CODE < RPM_VERSION(5,0,0)
+#ifdef RPM_ORG
 	  case RPM_CHAR_TYPE:
 #endif
 	  case RPM_INT8_TYPE:
@@ -734,16 +701,9 @@ void
 return_problems(rpmps ps, int translate_message, int raw_message) {
   dSP;
   if (ps && rpmpsNumProblems(ps) > 0) {
-#ifdef RPM_ORG
     rpmpsi iterator = rpmpsInitIterator(ps);
     while (rpmpsNextIterator(iterator) >= 0) {
       rpmProblem p = rpmpsGetProblem(iterator);
-#else
-    int i;
-
-    for (i = 0; i < rpmpsNumProblems(ps); i++) {
-      rpmProblem p = ps->probs + i;
-#endif
 
       if (translate_message) {
 	/* translate error using rpm localization */
@@ -795,9 +755,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 	XPUSHs(sv_2mortal(sv));
       }
     }
-#ifdef RPM_ORG
     rpmpsFreeIterator(iterator);
-#endif
   }
   PUTBACK;
 }
@@ -1222,7 +1180,7 @@ static void drop_tags(Header *h) {
   headerDel(*h, RPMTAG_FILESIZES); /* ? */
   headerDel(*h, RPMTAG_FILERDEVS); /* it seems unused. always empty */
   headerDel(*h, RPMTAG_FILEVERIFYFLAGS); /* only used for -V */
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
+#ifndef RPM_ORG
   headerDel(*h, RPMTAG_FILEDIGESTALGOS); /* only used for -V */
   headerDel(*h, RPMTAG_FILEDIGESTS); /* only used for -V */ /* alias: RPMTAG_FILEMD5S */ 
 #endif
@@ -1275,14 +1233,14 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES | vsflags);
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0 && header) {
 	  char *basename;
-#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+#ifndef RPM_ORG
 	  struct stat sb;
 #else
 	  int32_t size;
 #endif
 
 	  basename = strrchr(filename, '/');
-#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+#ifndef RPM_ORG
 	  Fstat(fd, &sb);
 #else
 	  size = fdSize(fd);
@@ -1335,14 +1293,6 @@ static void
 ts_nosignature(rpmts ts) {
   rpmtsSetVSFlags(ts, _RPMVSF_NODIGESTS | _RPMVSF_NOSIGNATURES);
 }
-
-#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
-typedef rpmuint64_t rpmCallbackSize_t;
-#elif RPM_VERSION_CODE >= RPM_VERSION(4,4,5)
-typedef uint64_t rpmCallbackSize_t;
-#else
-typedef unsigned long rpmCallbackSize_t;
-#endif
 
 static void *rpmRunTransactions_callback(const void *h,
 					 const rpmCallbackType what, 
@@ -1559,7 +1509,7 @@ int
 Pkg_is_arch_compat__XS(pkg)
   URPM::Package pkg
   INIT:
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   char * platform;
 #endif
   CODE:
@@ -1570,7 +1520,7 @@ Pkg_is_arch_compat__XS(pkg)
 
     get_fullname_parts(pkg, NULL, NULL, NULL, &arch, &eos);
     *eos = 0;
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
     platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(platform);
@@ -1580,7 +1530,7 @@ Pkg_is_arch_compat__XS(pkg)
     *eos = '@';
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     char *arch = get_name(pkg->h, RPMTAG_ARCH);
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
     platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(platform);
@@ -1597,17 +1547,18 @@ int
 Pkg_is_platform_compat(pkg)
   URPM::Package pkg
   INIT:
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   char * platform = NULL;
+  struct rpmtd_s val;
 #endif
   CODE:
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   read_config_files(0);
   if (pkg->h && headerIsEntry(pkg->h, RPMTAG_PLATFORM)) {
-    int32_t count, type;
-    (void) headerGet(pkg->h, RPMTAG_PLATFORM, &platform, HEADERGET_DEFAULT);
+    (void) headerGet(pkg->h, RPMTAG_PLATFORM, &val, HEADERGET_DEFAULT);
+    platform = (char *) rpmtdGetString(&val);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
-    platform = headerFreeData(platform, type);
+    platform = headerFreeData(platform, val.type);
   } else if (pkg->info) {
     char *arch;
     char *eos;
@@ -3039,7 +2990,7 @@ Trans_add(trans, pkg, ...)
   CODE:
   if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL) {
     int update = 0;
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
+#ifndef RPM_ORG
     rpmRelocation  relocations = NULL;
 #else
     rpmRelocation *relocations = NULL;
@@ -3059,18 +3010,16 @@ Trans_add(trans, pkg, ...)
 	  if (SvROK(ST(i+1)) && SvTYPE(SvRV(ST(i+1))) == SVt_PVAV) {
 	    AV *excludepath = (AV*)SvRV(ST(i+1));
 	    I32 j = 1 + av_len(excludepath);
-#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+#ifndef RPM_ORG
 	    int relno = 0;
 	    relocations = malloc(sizeof(rpmRelocation));
-#elif RPM_VERSION_CODE >= RPM_VERSION(4,4,6)
-	    relocations = calloc(j + 1, sizeof(*relocations));
 #else
 	    relocations = calloc(j + 1, sizeof(rpmRelocation));
 #endif
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
 	      if (e != NULL && *e != NULL) {
-#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+#ifndef RPM_ORG
 		rpmfiAddRelocation(&relocations, &relno, SvPV_nolen(*e), NULL);
 #else
 		relocations[j].oldPath = SvPV_nolen(*e);
@@ -3083,7 +3032,7 @@ Trans_add(trans, pkg, ...)
     }
     RETVAL = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(long)(pkg->flag & FLAG_ID)), update, relocations) == 0;
     /* free allocated memory, check rpm is copying it just above, at least in 4.0.4 */
-#if RPM_VERSION_CODE >= RPM_VERSION(5,2,0)
+#ifndef RPM_ORG
     rpmfiFreeRelocations(relocations);
 #else
     free(relocations);
@@ -3735,10 +3684,7 @@ Urpm_get_gpg_fingerprint(filename)
     PREINIT:
     uint8_t fingerprint[sizeof(pgpKeyID_t)];
     char fingerprint_str[sizeof(pgpKeyID_t) * 2 + 1];
-#if RPM_VERSION_CODE < RPM_VERSION(5,2,0)
-    const
-#endif
-    uint8_t *pkt = NULL;
+    const uint8_t *pkt = NULL;
     size_t pktlen = 0;
     int rc;
 
@@ -3823,10 +3769,7 @@ Urpm_import_pubkey_file(db, filename)
     URPM::DB db
     char * filename
     PREINIT:
-#if RPM_VERSION_CODE < RPM_VERSION(5,2,0)
-    const
-#endif
-    uint8_t *pkt = NULL;
+    const uint8_t *pkt = NULL;
     size_t pktlen = 0;
     int rc;
     CODE:
@@ -3861,12 +3804,12 @@ int
 Urpm_archscore(arch)
   const char * arch
   PREINIT:
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   char * platform = NULL;
 #endif
   CODE:
   read_config_files(0);
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
   RETVAL=rpmPlatformScore(platform, NULL, 0);
   _free(platform);
@@ -3880,12 +3823,12 @@ int
 Urpm_osscore(os)
   const char * os
   PREINIT:
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   char * platform = NULL;
 #endif
   CODE:
   read_config_files(0);
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   platform = rpmExpand("%{_target_cpu}-%{_target_vendor}-", os, "%{?_gnu}", NULL);
   RETVAL=rpmPlatformScore(platform, NULL, 0);
   _free(platform);
@@ -3900,7 +3843,7 @@ Urpm_platformscore(platform)
   const char * platform
   CODE:
   read_config_files(0);
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
+#ifndef RPM_ORG
   RETVAL=rpmPlatformScore(platform, NULL, 0);
 #else
   unused_variable(platform);
@@ -3947,25 +3890,13 @@ Urpm_spec2srcheader(specfile)
 #define SPEC_FORCE 1
 /* check what it does */
 #define SPEC_VERIFY 0
-  if (!parseSpec(ts, specfile, "/"
-#if RPM_VERSION_CODE < RPM_VERSION(4,4,8)
-		 , NULL
-#endif
-		 , 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE
-#if RPM_VERSION_CODE >= RPM_VERSION(4,4,8)
-		 , SPEC_VERIFY
-#endif
-		 )) {
+  if (!parseSpec(ts, specfile, "/", NULL, 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE)) {
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
-#if RPM_VERSION_CODE < RPM_VERSION(4,5,0)
+#ifdef RPM_ORG
     if (! spec->sourceHeader)
 #endif
-      initSourceHeader(spec
-#if RPM_VERSION_CODE >= RPM_VERSION(4,5,0)
-      , NULL
-#endif
-	);
+      initSourceHeader(spec);
     pkg = (URPM__Package)malloc(sizeof(struct s_Package));
     memset(pkg, 0, sizeof(struct s_Package));
     headerPutString(spec->sourceHeader, RPMTAG_SOURCERPM, "");
@@ -4042,10 +3973,6 @@ rpmErrorWriteTo(fd)
   int fd
   CODE:
   rpmError_callback_data = fd;
-  rpmlogSetCallback(rpmError_callback
-#if defined(RPM_ORG) || RPM_VERSION_CODE >= RPM_VERSION(5,0,0)
-		    , NULL
-#endif
-		    );
+  rpmlogSetCallback(rpmError_callback, NULL);
 
   /* vim:set ts=8 sts=2 sw=2: */
