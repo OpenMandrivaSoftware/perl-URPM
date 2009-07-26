@@ -828,7 +828,7 @@ pack_header(URPM__Package pkg) {
       pkg->summary = memcpy(malloc(len), summary, len);
     }
 
-    if (!(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+    if (!(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h =headerFree(pkg->h);
     pkg->h = 0;
   }
 }
@@ -877,7 +877,7 @@ update_provides(URPM__Package pkg, HV *provides) {
       char **list = td.data;
       for (i = 0; i < rpmtdCount(&td); ++i) {
 	len = strlen(list[i]);
-	if (list[i][0] == '/') hv_fetch(provides, list[i], len, 1);
+	if (list[i][0] == '/') (void)hv_fetch(provides, list[i], len, 1);
       }
     }
 
@@ -901,13 +901,13 @@ update_provides(URPM__Package pkg, HV *provides) {
       while(ps != NULL) {
 	if (s[0] == '/') {
 	  *ps = 0; es = strchr(s, '['); if (!es) es = strchr(s, ' '); *ps = '@';
-	  hv_fetch(provides, s, es != NULL ? es-s : ps-s, 1);
+	  (void)hv_fetch(provides, s, es != NULL ? es-s : ps-s, 1);
 	}
 	s = ps + 1; ps = strchr(s, '@');
       }
       if (s[0] == '/') {
 	es = strchr(s, '['); if (!es) es = strchr(s, ' ');
-	hv_fetch(provides, s, es != NULL ? es-s : strlen(s), 1);
+	(void)hv_fetch(provides, s, es != NULL ? es-s : strlen(s), 1);
       }
     }
 
@@ -1166,7 +1166,7 @@ static void pack_rpm_header(Header *h) {
   }
 
   headerFreeIterator(hi);
-  headerFree(*h);
+  *h = headerFree(*h);
 
   *h = packed;
 }
@@ -1251,21 +1251,21 @@ update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags)
 	     (where ->filename on "unpacked" URPM::Package rely on FILENAME_TAG) */
 	  headerPutString(header, FILENAME_TAG, basename != NULL ? basename + 1 : filename);
 
-	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
 	  pkg->h = header;
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
 
 	  /*if (!keep_all_tags) drop_tags(&pkg->h);*/
-	  rpmtsFree(ts);
+	  ts = rpmtsFree(ts);
 	  return 1;
 	}
-	rpmtsFree(ts);
+	ts = rpmtsFree(ts);
       } else if (sig[0] == 0x8e && sig[1] == 0xad && sig[2] == 0xe8 && sig[3] == 0x01) {
 	FD_t fd = fdDup(d);
 
 	close(d);
 	if (fd != NULL) {
-	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
 	  pkg->h = headerRead(fd, HEADER_MAGIC_YES);
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
 	  Fclose(fd);
@@ -1443,7 +1443,7 @@ Pkg_DESTROY(pkg)
   free(pkg->provides);
   free(pkg->rflags);
   free(pkg->summary);
-  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
   free(pkg);
 
 void
@@ -2434,7 +2434,7 @@ void
 Pkg_free_header(pkg)
   URPM::Package pkg
   CODE:
-  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) headerFree(pkg->h);
+  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
   pkg->h = NULL;
 
 void
@@ -2781,7 +2781,7 @@ Db_open(prefix=NULL, write_perm=0)
     RETVAL = db;
   } else {
     RETVAL = NULL;
-    rpmtsFree(db->ts);
+    db->ts = rpmtsFree(db->ts);
     free(db);
   }
   OUTPUT:
@@ -2797,7 +2797,7 @@ Db_rebuild(prefix="")
   ts = rpmtsCreate();
   rpmtsSetRootDir(ts, prefix);
   RETVAL = rpmtsRebuildDB(ts) == 0;
-  rpmtsFree(ts);
+  ts = rpmtsFree(ts);
   OUTPUT:
   RETVAL
 
@@ -2818,7 +2818,7 @@ void
 Db_DESTROY(db)
   URPM::DB db
   CODE:
-  rpmtsFree(db->ts);
+  db->ts = rpmtsFree(db->ts);
   if (!--db->count) free(db);
 
 int
@@ -2853,7 +2853,7 @@ Db_traverse(db,callback)
     ++count;
   }
   rpmdbFreeIterator(mi);
-  rpmtsFree(db->ts);
+  db->ts = rpmtsFree(db->ts);
   RETVAL = count;
   OUTPUT:
   RETVAL
@@ -2902,8 +2902,8 @@ Db_traverse_tag(db,tag,names,callback)
 	}
 	++count;
       }
-      rpmdbFreeIterator(mi);
-      rpmtsFree(db->ts);
+      mi = rpmdbFreeIterator(mi);
+      db->ts = rpmtsFree(db->ts);
     } 
   } else croak("bad arguments list");
   RETVAL = count;
@@ -2947,8 +2947,8 @@ Db_traverse_tag_find(db,tag,name,callback)
 	break;
       }
   }
-  rpmdbFreeIterator(mi);
-  rpmtsFree(db->ts);
+  mi = rpmdbFreeIterator(mi);
+  db->ts = rpmtsFree(db->ts);
   RETVAL = found;
   OUTPUT:
   RETVAL
@@ -2973,7 +2973,7 @@ void
 Trans_DESTROY(trans)
   URPM::Transaction trans
   CODE:
-  rpmtsFree(trans->ts);
+  trans->ts = rpmtsFree(trans->ts);
   if (!--trans->count) free(trans);
 
 void
@@ -3296,7 +3296,7 @@ Trans_run(trans, data, ...)
     ps = rpmpsFree(ps);
   }
   rpmtsEmpty(trans->ts);
-  rpmtsFree(trans->ts);
+  trans->ts = rpmtsFree(trans->ts);
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
@@ -3669,7 +3669,7 @@ Urpm_verify_rpm(filename, ...)
       RETVAL = 1;
     }
     Fclose(fd);
-    rpmtsFree(ts);
+    ts = rpmtsFree(ts);
   }
   rpmlogSetMask(oldlogmask);
 
@@ -3756,8 +3756,8 @@ Urpm_verify_signature(filename, prefix="/")
 	break;
     }
     RETVAL = result;
-    if (h) headerFree(h);
-    rpmtsFree(ts);
+    if (h) h = headerFree(h);
+    ts = rpmtsFree(ts);
   }
 
   OUTPUT:
@@ -3786,8 +3786,8 @@ Urpm_import_pubkey_file(db, filename)
     } else {
         RETVAL = 1;
     }
-    _free(pkt);
-    rpmtsFree(ts);
+    pkt = _free(pkt);
+    ts = rpmtsFree(ts);
     OUTPUT:
     RETVAL
 
