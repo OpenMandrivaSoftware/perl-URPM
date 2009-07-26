@@ -293,7 +293,7 @@ int32_t is_not_old_suggests(int32_t flags) {
 typedef int (*callback_list_str)(char *s, int slen, const char *name, const uint32_t flags, const char *evr, void *param);
 
 static int
-callback_list_str_xpush(char *s, int slen, const char *name, uint32_t flags, const char *evr, void *param) {
+callback_list_str_xpush(char *s, int slen, const char *name, uint32_t flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
@@ -308,7 +308,7 @@ callback_list_str_xpush(char *s, int slen, const char *name, uint32_t flags, con
   return 0;
 }
 static int
-callback_list_str_xpush_requires(char *s, int slen, const char *name, const uint32_t flags, const char *evr, void *param) {
+callback_list_str_xpush_requires(char *s, int slen, const char *name, const uint32_t flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
@@ -323,7 +323,7 @@ callback_list_str_xpush_requires(char *s, int slen, const char *name, const uint
   return 0;
 }
 static int
-callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, uint32_t flags, const char *evr, void *param) {
+callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, uint32_t flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
   if (s) {
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
@@ -641,7 +641,7 @@ return_files(Header header, int filter_mode) {
     char buff[4096];
     char *p, *s;
     STRLEN len;
-    int i;
+    unsigned int i;
 
     struct rpmtd_s td_flags, td_fmodes;
     int32_t *flags = NULL;
@@ -765,7 +765,7 @@ pack_list(Header header, int32_t tag_name, int32_t tag_flags, int32_t tag_versio
   char buff[65536];
   int32_t *flags = NULL;
   char **list_evr = NULL;
-  int i;
+  unsigned int i;
   char *p = buff;
 
   struct rpmtd_s td;
@@ -870,7 +870,7 @@ update_provides(URPM__Package pkg, HV *provides) {
     int len;
     struct rpmtd_s td, td_flags;
     int32_t *flags = NULL;
-    int i;
+    unsigned int i;
 
     /* examine requires for files which need to be marked in provides */
     if (headerGet(pkg->h, RPMTAG_REQUIRENAME, &td, HEADERGET_DEFAULT)) {
@@ -906,8 +906,7 @@ update_provides(URPM__Package pkg, HV *provides) {
 	s = ps + 1; ps = strchr(s, '@');
       }
       if (s[0] == '/') {
-	es = strchr(s, '['); if (!es) es = strchr(s, ' ');
-	(void)hv_fetch(provides, s, es != NULL ? es-s : strlen(s), 1);
+	(void)hv_fetch(provides, s, es != NULL ? es-s : (signed)strlen(s), 1);
       }
     }
 
@@ -934,7 +933,7 @@ update_obsoletes(URPM__Package pkg, HV *obsoletes) {
     /* update all provides */
     if (headerGet(pkg->h, RPMTAG_OBSOLETENAME, &td, HEADERGET_DEFAULT)) {
       char **list = td.data;
-      int i;
+      unsigned int i;
       for (i = 0; i < rpmtdCount(&td); ++i)
 	update_hash_entry(obsoletes, list[i], 0, 1, 0, pkg);
     }
@@ -961,7 +960,7 @@ update_provides_files(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     STRLEN len;
     char **list = NULL;
-    int i;
+    unsigned int i;
 
     struct rpmtd_s td_baseNames, td_dirIndexes, td_dirNames;
     if (headerGet(pkg->h, RPMTAG_BASENAMES, &td_baseNames, HEADERGET_DEFAULT) &&
@@ -1215,7 +1214,7 @@ static void drop_tags(Header *h) {
 }
 
 static int
-update_header(char *filename, URPM__Package pkg, int keep_all_tags, int vsflags) {
+update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int keep_all_tags, int vsflags) {
   int d = open(filename, O_RDONLY);
 
   if (d >= 0) {
@@ -1294,7 +1293,7 @@ ts_nosignature(rpmts ts) {
   rpmtsSetVSFlags(ts, _RPMVSF_NODIGESTS | _RPMVSF_NOSIGNATURES);
 }
 
-static void *rpmRunTransactions_callback(const void *h,
+static void *rpmRunTransactions_callback(__attribute__((unused)) const void *h,
 					 const rpmCallbackType what, 
 					 const rpm_loff_t amount, 
 					 const rpm_loff_t total,
@@ -2445,7 +2444,7 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
   CODE:
   if (pkg->info) {
     char buff[65536];
-    int size;
+    size_t size;
 
     /* info line should be the last to be written */
     if (pkg->provides && *pkg->provides) {

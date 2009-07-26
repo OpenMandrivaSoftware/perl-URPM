@@ -59,7 +59,7 @@ if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("4.7")) {
     # rpm5.org version
     $ldflags = `pkg-config --libs rpm`;
 }
-my $ccflags = join(' ', '-Wall -fno-strict-aliasing', @rpmflags);
+my $ccflags = join(' ', '-Wall -Wextra -fno-strict-aliasing', @rpmflags);
 
 print "Found RPM version $version (compiling with flags: $ccflags)\n";
 
