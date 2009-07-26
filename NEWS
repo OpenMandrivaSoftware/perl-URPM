@@ -1,3 +1,6 @@
+Version 3.31 - ? ? 2009, by ? ?
+- clean up and bring back rpm5.org support (by Per Øyvind Karlsen)
+
 Version 3.30 - 11 May 2009, by Christophe Fergeau
 
 - rework public key handling since librpm behaviour has changed. It's no longer
