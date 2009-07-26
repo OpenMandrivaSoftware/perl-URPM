@@ -1256,10 +1256,10 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
 
 	  /*if (!keep_all_tags) drop_tags(&pkg->h);*/
-	  ts = rpmtsFree(ts);
+	  (void)rpmtsFree(ts);
 	  return 1;
 	}
-	ts = rpmtsFree(ts);
+	(void)rpmtsFree(ts);
       } else if (sig[0] == 0x8e && sig[1] == 0xad && sig[2] == 0xe8 && sig[3] == 0x01) {
 	FD_t fd = fdDup(d);
 
@@ -2781,7 +2781,7 @@ Db_open(prefix=NULL, write_perm=0)
     RETVAL = db;
   } else {
     RETVAL = NULL;
-    db->ts = rpmtsFree(db->ts);
+    (void)rpmtsFree(db->ts);
     free(db);
   }
   OUTPUT:
@@ -2797,7 +2797,7 @@ Db_rebuild(prefix="")
   ts = rpmtsCreate();
   rpmtsSetRootDir(ts, prefix);
   RETVAL = rpmtsRebuildDB(ts) == 0;
-  ts = rpmtsFree(ts);
+  (void)rpmtsFree(ts);
   OUTPUT:
   RETVAL
 
@@ -2818,7 +2818,7 @@ void
 Db_DESTROY(db)
   URPM::DB db
   CODE:
-  db->ts = rpmtsFree(db->ts);
+  (void)rpmtsFree(db->ts);
   if (!--db->count) free(db);
 
 int
@@ -2853,7 +2853,7 @@ Db_traverse(db,callback)
     ++count;
   }
   rpmdbFreeIterator(mi);
-  db->ts = rpmtsFree(db->ts);
+  (void)rpmtsFree(db->ts);
   RETVAL = count;
   OUTPUT:
   RETVAL
@@ -2902,8 +2902,8 @@ Db_traverse_tag(db,tag,names,callback)
 	}
 	++count;
       }
-      mi = rpmdbFreeIterator(mi);
-      db->ts = rpmtsFree(db->ts);
+      (void)rpmdbFreeIterator(mi);
+      (void)rpmtsFree(db->ts);
     } 
   } else croak("bad arguments list");
   RETVAL = count;
@@ -2947,8 +2947,8 @@ Db_traverse_tag_find(db,tag,name,callback)
 	break;
       }
   }
-  mi = rpmdbFreeIterator(mi);
-  db->ts = rpmtsFree(db->ts);
+  (void)rpmdbFreeIterator(mi);
+  (void)rpmtsFree(db->ts);
   RETVAL = found;
   OUTPUT:
   RETVAL
@@ -2973,7 +2973,7 @@ void
 Trans_DESTROY(trans)
   URPM::Transaction trans
   CODE:
-  trans->ts = rpmtsFree(trans->ts);
+  (void)rpmtsFree(trans->ts);
   if (!--trans->count) free(trans);
 
 void
@@ -3296,7 +3296,7 @@ Trans_run(trans, data, ...)
     ps = rpmpsFree(ps);
   }
   rpmtsEmpty(trans->ts);
-  trans->ts = rpmtsFree(trans->ts);
+  (void)rpmtsFree(trans->ts);
 
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
@@ -3669,7 +3669,7 @@ Urpm_verify_rpm(filename, ...)
       RETVAL = 1;
     }
     Fclose(fd);
-    ts = rpmtsFree(ts);
+    (void)rpmtsFree(ts);
   }
   rpmlogSetMask(oldlogmask);
 
@@ -3757,7 +3757,7 @@ Urpm_verify_signature(filename, prefix="/")
     }
     RETVAL = result;
     if (h) h = headerFree(h);
-    ts = rpmtsFree(ts);
+    (void)rpmtsFree(ts);
   }
 
   OUTPUT:
@@ -3787,7 +3787,7 @@ Urpm_import_pubkey_file(db, filename)
         RETVAL = 1;
     }
     pkt = _free(pkt);
-    ts = rpmtsFree(ts);
+    (void)rpmtsFree(ts);
     OUTPUT:
     RETVAL
 
