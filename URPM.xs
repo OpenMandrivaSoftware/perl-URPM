@@ -2243,6 +2243,24 @@ Pkg_dirnames(pkg)
   xpush_simple_list_str(pkg->h, RPMTAG_DIRNAMES);
   SPAGAIN;
 
+void Pkg_distepoch(pkg)
+  URPM::Package pkg
+  PPCODE:
+#ifdef RPMTAG_DISTEPOCH
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_DISTEPOCH), 0)));
+  }
+#else
+  croak("distepoch isn't available with this rpm version");
+#endif
+
+void Pkg_disttag(pkg)
+  URPM::Package pkg
+  PPCODE:
+  if (pkg->h) {
+    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_DISTTAG), 0)));
+  }
+
 void
 Pkg_filelinktos(pkg)
   URPM::Package pkg
