@@ -1,5 +1,5 @@
 Version 3.31 - ? ? 2009, by ? ?
-- add support for %disttag & %distepoch (by Per Øyvind Karlsen)
+- add support for querying %disttag & %distepoch (by Per Øyvind Karlsen)
 - clean up and bring back rpm5.org support (by Per Øyvind Karlsen)
 
 Version 3.30 - 11 May 2009, by Christophe Fergeau
