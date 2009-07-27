@@ -3697,7 +3697,6 @@ Urpm_verify_rpm(filename, ...)
 
 char *
 Urpm_get_gpg_fingerprint(filename)
-    URPM::DB db
     char * filename
     PREINIT:
     uint8_t fingerprint[sizeof(pgpKeyID_t)];
