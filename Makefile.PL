@@ -50,11 +50,11 @@ ChangeLog:
 }
 
 my @rpmflags;
+my $ldflags = `pkg-config --libs rpm`;
 if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("4.7")) {
     # rpm.org version
     push @rpmflags, "-DRPM_ORG";
-} else {
-    # rpm5.org version
+    $ldflags .= ' -lrpmbuild';
 }
 my $ccflags = join(' ', '-Wall -Wextra -fno-strict-aliasing', @rpmflags);
 
@@ -67,7 +67,7 @@ WriteMakefile(
     },
     CCFLAGS	=> $ccflags,
     VERSION_FROM	=> 'URPM.pm',
-    LIBS	=> [ `pkg-config --libs rpm` ],
+    LIBS	=> [ $ldflags ],
     INC		=> '-I/usr/include/rpm',
     dist	=> { COMPRESS => "bzip2", SUFFIX => ".bz2" },
     realclean	=> { FILES => "t/RPMS/noarch/*" },
