@@ -682,6 +682,14 @@ sub _remove_rejected_from {
     my ($state, $fullname, $from_fullname) = @_;
 
     my $rv = $state->{rejected}{$fullname} or return;
+
+    foreach (qw(removed obsoleted)) {
+	if (exists $rv->{$_} && exists $rv->{$_}{$from_fullname}) {
+	    delete $rv->{$_}{$from_fullname};
+	    delete $rv->{$_} if !%{$rv->{$_}};
+	}
+    }
+
     exists $rv->{closure}{$from_fullname} or return;
     delete $rv->{closure}{$from_fullname};
     if (%{$rv->{closure}}) {
@@ -756,8 +764,13 @@ sub set_rejected {
 
     #- set removed and obsoleted level.
     foreach (qw(removed obsoleted)) {
-	$rdep->{$_} && (! exists $rv->{$_} || $rdep->{$_} <= $rv->{$_})
-	  and $rv->{$_} = $rdep->{$_};
+	if ($rdep->{$_}) {
+	    if ($rdep->{from}) {
+		$rv->{$_}{scalar $rdep->{from}->fullname} = undef;
+	    } else {
+		$rv->{$_}{asked} = undef;
+	    }
+	}
     }
 
     $newly_rejected;

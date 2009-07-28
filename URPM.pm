@@ -834,7 +834,8 @@ B<selected>: { id => {
  } }
 
 B<rejected>: { fullname => { 
-     size => int, removed => bool, obsoleted => bool,
+     size => int, removed => { fullname|"asked" => undef },
+     obsoleted => { fullname|"asked" => undef },
      backtrack => { # those info are only used to display why package is unselected
          promote => [ name ], keep => [ fullname ], 
          unsatisfied => [ id|property ], 
