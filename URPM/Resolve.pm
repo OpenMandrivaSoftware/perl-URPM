@@ -984,6 +984,8 @@ sub resolve_requested__no_suggests_ {
 		_unselect_package_deprecated_by($urpm, $db, $state, \%diff_provides_h, $pkg);
 	    }
 
+	    _handle_conflicts_with_selected($urpm, $state, $pkg);
+
 	    #- all requires should be satisfied according to selected package, or installed packages.
 	    if (my @l = unsatisfied_requires($urpm, $db, $state, $pkg)) {
 		$urpm->{debug_URPM}("requiring " . join(',', sort @l) . " for " . $pkg->fullname) if $urpm->{debug_URPM};
@@ -1033,8 +1035,23 @@ sub resolve_requested__no_suggests_ {
     grep { exists $state->{selected}{$_->id} } @selected;
 }
 
+#- pre-disables packages that $pkg has conflict entries for
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
+sub _handle_conflicts_with_selected {
+    my ($urpm, $state, $pkg) = @_;
+    foreach ($pkg->conflicts) {
+	if (my ($n, $o, $v) = property2name_op_version($_)) {
+	    foreach my $p ($urpm->packages_providing($n)) {
+		$pkg == $p and next;
+		$p->provides_overlap($_) or next;
+		_set_rejected_from($state, $p, $pkg);
+	    }
+	}
+    }
+}
+
+#- side-effects:
 #-   + those of set_rejected_and_compute_diff_provides ($state->{rejected}, $diff_provides_h)
 #-   + those of _handle_conflict ($properties, $keep, $diff_provides_h)
 sub _handle_conflicts {
@@ -1044,14 +1061,6 @@ sub _handle_conflicts {
     #- be upgraded to a new version which will be safe, else it should be removed.
     foreach ($pkg->conflicts) {
 	$keep && @$keep and last;
-	#- propagate conflicts to avoid
-	if (my ($n, $o, $v) = property2name_op_version($_)) {
-	    foreach my $p ($urpm->packages_providing($n)) {
-		$pkg == $p and next;
-		$p->provides_overlap($_) or next;
-		_set_rejected_from($state, $p, $pkg);
-	    }
-	}
 	if (my ($file) = m!^(/[^\s\[]*)!) {
 	    $db->traverse_tag('path', [ $file ], sub {
 		$keep && @$keep and return;
