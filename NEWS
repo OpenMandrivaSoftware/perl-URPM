@@ -1,4 +1,4 @@
-Version 3.31 - ? ? 2009, by ? ?
+Version 3.31 - 28 July 2009, by Christophe Fergeau
 
 - add support for querying %disttag & %distepoch (by Per Øyvind Karlsen)
 - clean up and bring back rpm5.org support (by Per Øyvind Karlsen)
