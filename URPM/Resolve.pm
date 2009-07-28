@@ -984,7 +984,7 @@ sub resolve_requested__no_suggests_ {
 		_unselect_package_deprecated_by($urpm, $db, $state, \%diff_provides_h, $pkg);
 	    }
 
-	    _handle_conflicts_with_selected($urpm, $state, $pkg);
+	    _handle_conflicts_with_selected($urpm, $db, $state, $pkg, $dep, \@properties) or next;
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
 	    if (my @l = unsatisfied_requires($urpm, $db, $state, $pkg)) {
@@ -1035,20 +1035,31 @@ sub resolve_requested__no_suggests_ {
     grep { exists $state->{selected}{$_->id} } @selected;
 }
 
-#- pre-disables packages that $pkg has conflict entries for
+#- pre-disables packages that $pkg has conflict entries for, and
+#- unselects $pkg if such a package is already selected
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
+#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
+#-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub _handle_conflicts_with_selected {
-    my ($urpm, $state, $pkg) = @_;
+    my ($urpm, $db, $state, $pkg, $dep, $properties) = @_;
     foreach ($pkg->conflicts) {
 	if (my ($n, $o, $v) = property2name_op_version($_)) {
 	    foreach my $p ($urpm->packages_providing($n)) {
 		$pkg == $p and next;
 		$p->provides_overlap($_) or next;
+		if (exists $state->{selected}{$p->id}) {
+		    $urpm->{debug_URPM}($pkg->fullname . " conflicts with already selected package " . $p->fullname) if $urpm->{debug_URPM};
+		    disable_selected($urpm, $db, $state, $pkg);
+		    _set_rejected_from($state, $pkg, $p);
+		    unshift @$properties, backtrack_selected($urpm, $db, $state, $dep);
+		    return;
+		}
 		_set_rejected_from($state, $p, $pkg);
 	    }
 	}
     }
+    1;
 }
 
 #- side-effects:
