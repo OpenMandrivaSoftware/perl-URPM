@@ -1048,7 +1048,7 @@ sub _handle_conflicts {
 	if (my ($n, $o, $v) = property2name_op_version($_)) {
 	    foreach my $p ($urpm->packages_providing($n)) {
 		$pkg == $p and next;
-		$p->name eq $n && (!$o || eval($p->compare($v) . $o . 0)) or next;
+		$p->provides_overlap($_) or next;
 		_set_rejected_from($state, $p, $pkg);
 	    }
 	}
