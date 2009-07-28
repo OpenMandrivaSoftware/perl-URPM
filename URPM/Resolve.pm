@@ -575,6 +575,11 @@ sub backtrack_selected {
 		    if ($state->{rejected}{$_->fullname}) {
 			#- keep in mind a backtrack has happening here...
 			exists $dep->{promote} and _add_rejected_backtrack($state, $_, { promote => [ $dep->{promote} ] });
+
+			my $closure = $state->{rejected}{$_->fullname}{closure} || {};
+			foreach my $p (grep { exists $closure->{$_}{avoid} } keys %$closure) {
+				_add_rejected_backtrack($state, $_, { conflicts => [ $p ] })
+			}
 			#- backtrack callback should return a strictly positive value if the selection of the new
 			#- package is prefered over the currently selected package.
 			next;
@@ -723,7 +728,7 @@ sub _set_rejected_from {
 
     $pkg->fullname ne $from_pkg->fullname or return;
 
-    $state->{rejected}{$pkg->fullname}{closure}{$from_pkg->fullname} ||= undef;
+    $state->{rejected}{$pkg->fullname}{closure}{$from_pkg->fullname}{avoid} ||= undef;
 }
 
 #- side-effects: $state->{rejected}
