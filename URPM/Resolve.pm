@@ -561,9 +561,7 @@ sub backtrack_selected {
 
     if (defined $dep->{required}) {
 	#- avoid deadlock here...
-	if (exists $state->{backtrack}{deadlock}{$dep->{required}}) {
-	    $options{keep} = 1; #- force keeping package to that backtrack is doing something.
-	} else {
+	if (!exists $state->{backtrack}{deadlock}{$dep->{required}}) {
 	    $state->{backtrack}{deadlock}{$dep->{required}} = undef;
 
 	    #- search for all possible packages, first is to try the selection, then if it is
@@ -593,6 +591,8 @@ sub backtrack_selected {
 		    return { required => $_->id,
 			     exists $dep->{from} ? (from => $dep->{from}) : @{[]},
 			     exists $dep->{requested} ? (requested => $dep->{requested}) : @{[]},
+			     exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
+			     exists $dep->{psel} ? (psel => $dep->{psel}) : @{[]},
 			   };
 	    }
 	}
