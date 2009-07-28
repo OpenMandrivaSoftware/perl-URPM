@@ -1238,7 +1238,7 @@ sub _handle_diff_provides {
 	#- already installed.
 	my @packages = find_candidate_packages_($urpm, $p->name, $state->{rejected});
 	@packages = 
-	  grep { ($_->name eq $p->name ? $_->fullname ne $p->fullname :
+	  grep { ($_->name eq $p->name ? $p->compare_pkg($_) < 0 :
 		    $_->obsoletes_overlap($p->name . " == " . $p->epoch . ":" . $p->version . "-" . $p->release))
 		   && (!strict_arch($urpm) || strict_arch_check($p, $_))
 	     } @packages;
