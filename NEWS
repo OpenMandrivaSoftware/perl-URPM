@@ -1,6 +1,18 @@
 Version 3.31 - ? ? 2009, by ? ?
+
 - add support for querying %disttag & %distepoch (by Per Øyvind Karlsen)
 - clean up and bring back rpm5.org support (by Per Øyvind Karlsen)
+- keep track of sources for obsoleted/removed levels (#50666) Anssi Hannula)
+- keep psel/promote info and remove deadlocked pkg instead of aborting upgrade
+  (#52105, Anssi Hannula)
+- _handle_conflicts: check all provides for conflicts, not just package name
+  (#52135, Anssi Hannula)
+- unselect current package if an avoided package is already selected (#52145,
+  Anssi Hannula)
+- do not try to promote to an older package (#52460, Anssi Hannula)
+- add a backtrack entry "conflicts" for avoided packages in backtrack_selected
+  (#52153, Anssi Hannula)
+
 
 Version 3.30 - 11 May 2009, by Christophe Fergeau
 
