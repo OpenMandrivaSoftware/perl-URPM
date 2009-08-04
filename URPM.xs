@@ -907,7 +907,7 @@ update_provides(URPM__Package pkg, HV *provides) {
       }
       if (s[0] == '/') {
       es = strchr(s, '['); if (!es) es = strchr(s, ' ');
-	(void)hv_fetch(provides, s, es != NULL ? es-s : (signed)strlen(s), 1);
+	(void)hv_fetch(provides, s, es != NULL ? (U32)(es-s) : strlen(s), 1);
       }
     }
 
