@@ -13,7 +13,6 @@ Version 3.31 - 28 July 2009, by Christophe Fergeau
 - add a backtrack entry "conflicts" for avoided packages in backtrack_selected
   (#52153, Anssi Hannula)
 
-
 Version 3.30 - 11 May 2009, by Christophe Fergeau
 
 - rework public key handling since librpm behaviour has changed. It's no longer
