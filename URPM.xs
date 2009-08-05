@@ -3905,8 +3905,6 @@ Urpm_spec2srcheader(specfile)
 #define SPEC_ANYARCH 1
 /* Do not verify whether sources exist */
 #define SPEC_FORCE 1
-/* check what it does */
-#define SPEC_VERIFY 0
   if (!parseSpec(ts, specfile, "/", NULL, 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE)) {
     SV *sv_pkg;
     spec = rpmtsSetSpec(ts, NULL);
