@@ -384,7 +384,7 @@ sub _score_for_locales {
 #- side-effects: $properties, $choices
 #-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub _choose_required {
-    my ($urpm, $db, $state, $dep, $properties, $choices, %options) = @_;
+    my ($urpm, $db, $state, $dep, $properties, $choices, $diff_provides, %options) = @_;
 
     #- take the best choice possible.
     my ($chosen, $prefered) = find_required_package($urpm, $db, $state, $dep->{required});
@@ -399,7 +399,7 @@ sub _choose_required {
     #- one to choose; else take the first one available.
     if (!@$chosen) {
 	$urpm->{debug_URPM}("no packages match " . _dep_to_name($urpm, $dep) . " (it is either in skip.list or already rejected)") if $urpm->{debug_URPM};
-	unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, %options);
+	unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, $diff_provides, %options);
 	return; #- backtrack code choose to continue with same package or completely new strategy.
     } elsif (@$chosen > 1) {
 	if (@$properties) {
@@ -554,10 +554,10 @@ sub with_any_unsatisfied_requires {
 #- side-effects: $state->{backtrack}, $state->{selected}
 #-   + those of disable_selected_and_unrequested_dependencies ($state->{whatrequires}, flag_requested, flag_required)
 #-   + those of _set_rejected_from ($state->{rejected})
-#-   + those of resolve_rejected_ ($state->{rejected})
+#-   + those of set_rejected_and_compute_diff_provides ($state->{rejected}, $diff_provides_h)
 #-   + those of _add_rejected_backtrack ($state->{rejected})
 sub backtrack_selected {
-    my ($urpm, $db, $state, $dep, %options) = @_;
+    my ($urpm, $db, $state, $dep, $diff_provides, %options) = @_;
 
     if (defined $dep->{required}) {
 	#- avoid deadlock here...
@@ -638,12 +638,13 @@ sub backtrack_selected {
 	    #- the backtrack need to examine diff_provides promotion on $n.
 	    with_db_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
 				      my ($p, @unsatisfied) = @_;
-				      #- typically a redo of the diff_provides code should be applied...
-				      resolve_rejected_($urpm, $db, $state, \@properties, {
+				      my %diff_provides_h;
+				      set_rejected_and_compute_diff_provides($urpm, $state, \%diff_provides_h, {
 							      rejected_pkg => $p, removed => 1,
 							      from => $dep->{psel},
 							      why => { unsatisfied => \@unsatisfied }
 							  });
+				      push @$diff_provides, map { +{ name => $_, pkg => $dep->{psel} } } keys %diff_provides_h;
 			      });
 	}
     }
@@ -954,7 +955,7 @@ sub resolve_requested__no_suggests_ {
 		exists $state->{selected}{$dep->{from}->id} or next;
 	    }
 
-	    my $pkg = _choose_required($urpm, $db, $state, $dep, \@properties, \@choices, %options) or next;
+	    my $pkg = _choose_required($urpm, $db, $state, $dep, \@properties, \@choices, \@diff_provides, %options) or next;
 
 	    !$pkg || exists $state->{selected}{$pkg->id} and next;
 
@@ -989,7 +990,7 @@ sub resolve_requested__no_suggests_ {
 		_unselect_package_deprecated_by($urpm, $db, $state, \%diff_provides_h, $pkg);
 	    }
 
-	    _handle_conflicts_with_selected($urpm, $db, $state, $pkg, $dep, \@properties, %options) or next;
+	    _handle_conflicts_with_selected($urpm, $db, $state, $pkg, $dep, \@properties, \@diff_provides, %options) or next;
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
 	    if (my @l = unsatisfied_requires($urpm, $db, $state, $pkg)) {
@@ -1047,7 +1048,7 @@ sub resolve_requested__no_suggests_ {
 #-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
 #-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub _handle_conflicts_with_selected {
-    my ($urpm, $db, $state, $pkg, $dep, $properties, %options) = @_;
+    my ($urpm, $db, $state, $pkg, $dep, $properties, $diff_provides, %options) = @_;
     foreach ($pkg->conflicts) {
 	if (my ($n, $o, $v) = property2name_op_version($_)) {
 	    foreach my $p ($urpm->packages_providing($n)) {
@@ -1057,7 +1058,7 @@ sub _handle_conflicts_with_selected {
 		    $urpm->{debug_URPM}($pkg->fullname . " conflicts with already selected package " . $p->fullname) if $urpm->{debug_URPM};
 		    disable_selected($urpm, $db, $state, $pkg);
 		    _set_rejected_from($state, $pkg, $p);
-		    unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, %options);
+		    unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, $diff_provides, %options);
 		    return;
 		}
 		_set_rejected_from($state, $p, $pkg);

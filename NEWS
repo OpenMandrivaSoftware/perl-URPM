@@ -1,3 +1,5 @@
+- backtrack_selected: use set_rejected_and_compute_diff_provides for package
+  removal (Anssi Hannula)
 - obey options (keep, nodeps) when unselecting current package in the case
   that was added in 3.31 (Anssi Hannula)
 
