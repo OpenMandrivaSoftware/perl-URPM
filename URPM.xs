@@ -1154,6 +1154,7 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
   }
 }
 
+#if 0
 static void pack_rpm_header(Header *h) {
   Header packed = headerNew();
 
@@ -1213,6 +1214,7 @@ static void drop_tags(Header *h) {
 
   pack_rpm_header(h);
 }
+#endif
 
 static int
 update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int keep_all_tags, int vsflags) {
