@@ -1,3 +1,5 @@
+- fix lookup of existing pubkeys (#53710)
+
 Version 3.32 - 10 August 2009, by Christophe Fergeau
 
 - backtrack_selected: use set_rejected_and_compute_diff_provides for package

@@ -62,7 +62,7 @@ sub import_needed_pubkeys_from_file {
     my @keys = parse_pubkeys_($db);
 
     my $keyid = substr get_gpg_fingerprint($pubkey_file), 8;
-    my ($kv) = grep { ($keyid == $_->{id}) } @keys;
+    my ($kv) = grep { ($keyid eq $_->{id}) } @keys;
     my $imported;
     if (!$kv) {
 	    if (!import_pubkey_file($db, $pubkey_file)) {
@@ -72,7 +72,7 @@ sub import_needed_pubkeys_from_file {
 		$imported = 1;
 	    }
 	    @keys = parse_pubkeys_($db);
-	    ($kv) = grep { ($keyid == $_->{id}) } @keys;
+	    ($kv) = grep { ($keyid eq $_->{id}) } @keys;
     }
 
     #- let the caller know about what has been found.
