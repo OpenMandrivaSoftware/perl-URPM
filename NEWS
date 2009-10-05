@@ -1,4 +1,6 @@
-- fix lookup of existing pubkeys (#53710)
+Version 3.33 - 5 October 2009, by Christophe Fergeau
+
+- fix lookup of existing pubkeys (#53710) (by Pascal Terjan)
 
 Version 3.32 - 10 August 2009, by Christophe Fergeau
 
