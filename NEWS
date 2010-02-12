@@ -1,3 +1,6 @@
+- check for conflicting selected packages before selecting a package (#57224)
+  (by Anssi Hannula)
+
 Version 3.33 - 5 October 2009, by Christophe Fergeau
 
 - fix lookup of existing pubkeys (#53710) (by Pascal Terjan)

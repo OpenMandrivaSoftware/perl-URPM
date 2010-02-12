@@ -968,6 +968,9 @@ sub resolve_requested__no_suggests_ {
 		    _no_more_recent_installed_and_providing($urpm, $db, $state, $pkg, $dep->{required}) or next;
 		}
 	    }
+
+	    _handle_conflicts_with_selected($urpm, $db, $state, $pkg, $dep, \@properties, \@diff_provides, %options) or next;
+
 	    $urpm->{debug_URPM}("selecting " . $pkg->fullname) if $urpm->{debug_URPM};
 
 	    #- keep in mind the package has be selected, remove the entry in requested input hash,
@@ -989,8 +992,6 @@ sub resolve_requested__no_suggests_ {
 	    if ($pkg->arch ne 'src' && !$pkg->flag_disable_obsolete) {
 		_unselect_package_deprecated_by($urpm, $db, $state, \%diff_provides_h, $pkg);
 	    }
-
-	    _handle_conflicts_with_selected($urpm, $db, $state, $pkg, $dep, \@properties, \@diff_provides, %options) or next;
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
 	    if (my @l = unsatisfied_requires($urpm, $db, $state, $pkg)) {
@@ -1045,7 +1046,7 @@ sub resolve_requested__no_suggests_ {
 #- unselects $pkg if such a package is already selected
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
-#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
+#-   + those of _remove_all_rejected_from ($state->{rejected})
 #-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
 sub _handle_conflicts_with_selected {
     my ($urpm, $db, $state, $pkg, $dep, $properties, $diff_provides, %options) = @_;
@@ -1056,7 +1057,7 @@ sub _handle_conflicts_with_selected {
 		$p->provides_overlap($_) or next;
 		if (exists $state->{selected}{$p->id}) {
 		    $urpm->{debug_URPM}($pkg->fullname . " conflicts with already selected package " . $p->fullname) if $urpm->{debug_URPM};
-		    disable_selected($urpm, $db, $state, $pkg);
+		    _remove_all_rejected_from($state, $pkg);
 		    _set_rejected_from($state, $pkg, $p);
 		    unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, $diff_provides, %options);
 		    return;
