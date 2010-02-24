@@ -51,7 +51,7 @@ ChangeLog:
 
 my @rpmflags;
 my $ldflags = `pkg-config --libs rpm`;
-if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("4.7")) {
+if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("5.0")) {
     # rpm.org version
     push @rpmflags, "-DRPM_ORG";
     $ldflags .= ' -lrpmbuild';
