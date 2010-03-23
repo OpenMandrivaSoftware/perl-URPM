@@ -646,6 +646,11 @@ sub backtrack_selected {
 							  });
 				      push @$diff_provides, map { +{ name => $_, pkg => $dep->{psel} } } keys %diff_provides_h;
 			      });
+	    with_state_unsatisfied_requires($urpm, $db, $state, $dep->{promote}, sub {
+				      my ($p) = @_;
+				      _set_rejected_from($state, $p, $dep->{psel});
+				      disable_selected_and_unrequested_dependencies($urpm, $db, $state, $p);
+			      });
 	}
     }
 

@@ -1,3 +1,6 @@
+- check selected packages for unsatisfied requires when a promoted package is
+  backtracked and no replacement is found (#57224, Anssi Hannula)
+
 Version 3.34 - 24 February 2010
 
 - check for conflicting selected packages before selecting a package (#57224)
