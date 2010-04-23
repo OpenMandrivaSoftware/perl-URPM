@@ -1,3 +1,5 @@
+- when using auto-select, honour search-medias if some were specified
+
 Version 3.34.1 - 23 March 2010
 
 - check selected packages for unsatisfied requires when a promoted package is

@@ -1674,7 +1674,6 @@ sub request_packages_to_upgrade {
     $db->traverse(sub {
 	my ($pkg_installed) = @_;
 	my $name = $pkg_installed->name;
-
 	my $pkg;
 	if (exists $by_name{$name}) {
 	    if (my $p = $by_name{$name}) {
@@ -1700,6 +1699,10 @@ sub request_packages_to_upgrade {
 		$pkg = undef;
 	    }
 	}
+	if ($pkg && %options->{idlist} && !grep { $pkg->id == $_ } @{%options->{idlist}}) {
+		$urpm->{debug_URPM}("not auto-selecting $pkg->fullname because it's not in search medias");
+		$pkg = undef;
+	} 
 
 	$pkg and $urpm->{debug_URPM}("auto-select: adding " . $pkg->fullname . " replacing " .  $pkg_installed->fullname) if $urpm->{debug_URPM};
 	    
