@@ -1,3 +1,1244 @@
+2010-07-23 02:43  
+
+	* - fix deferencement on hash (instead hashref), warning triggered
+	  by perl 5.12
+
+2010-04-23 16:06  
+
+	* only print debug message if debug callback is defined
+
+2010-04-23 15:40  
+
+	* 3.35
+
+2010-04-23 15:39  
+
+	* honour search medias when using --auto-select
+
+2010-03-23 15:48  
+
+	* 3.34.1
+
+2010-03-23 15:47  
+
+	* check selected packages for unsatisfied requires when a promoted
+	  package is backtracked and no replacement is found
+	  
+	  (#57224, Anssi Hannula)
+
+2010-03-23 15:47  
+
+	* 3.34
+
+2010-02-24 11:01  
+
+	* adjust rpm.org/rpm5.org detection code
+	  
+	  It used to assume that rpm.org had version numbers < 4.7, but
+	  it's
+	  no longer true with rpm 4.8 being released. Test against 5.0
+	  since
+	  rpm5.org releases started at 5.0
+
+2010-02-12 15:58  
+
+	* check for conflicting selected packages before selecting a
+	  package
+	  
+	  check for conflicting selected packages before selecting a
+	  package
+	  instead of after selecting it, to avoid having to unselect
+	  package
+	  in case of conflict (which incorrectly unselected packages with
+	  unsatisfied dependencies as well, making the following
+	  backtrack_selected
+	  call behave wrongly as it simply noticed that the package is no
+	  longer
+	  required)
+	  
+	  Here's the second patch again, now with the function comment
+	  updated
+	  and added _remove_all_rejected_from() call so that prerejections
+	  are
+	  still cleared (this was previously called from the
+	  removed disable_selected() call). Testsuites pass.
+	  
+	  Patch by Anssi Hannula, fixes #57224
+
+2009-10-05 09:48  
+
+	* 3.33
+
+2009-10-03 15:18  
+
+	* Improve previous fix
+
+2009-10-03 14:56  
+
+	* fix lookup of existing pubkeys (#53710)
+
+2009-08-10 14:37  
+
+	* update NEWS for 3.32
+
+2009-08-10 14:37  
+
+	* 3.32
+
+2009-08-10 14:37  
+
+	* comment out unused code
+
+2009-08-10 14:37  
+
+	* use set_rejected_and_compute_diff_provides for package removal
+	  
+	  Patch by Anssi Hannula, fixes bug #52667
+	  
+	  k1-1 provides k, but not k1-2
+	  l-1 and l-2 requires k
+	  m-1 requires k but not m-2
+	  n requires m
+	  
+	  User has l-1, m-1, n-1, k1-1.
+	  
+	  There is only one upgrade path:
+	  k1-1 -> k1-2
+	  m-1 -> m-2
+	  removal of l-1
+	  
+	  When transaction is created with all of them (e.g. what
+	  --auto-select does
+	  first), the path is resolved correctly.
+	  However, when the upgrade is triggered with the upgrade of k1,
+	  and l is in RPM
+	  db before n, resolving proceeds as follows:
+	  1. k1 selected and old version rejected
+	  2. l is promoted
+	  3. m is promoted
+	  4. l-2 is therefore selected
+	  5. no packages are found for k (as k1-1 was rejected in step 1)
+	  6. backtrack_selected calls resolve_rejected to reject the chain
+	  7. rejection process rejects l, m, n
+	  8. m-2 is selected because of step 3
+	  End result: n is wrongly removed.
+	  
+	  Therefore, when using --auto-select (with --split-length 1
+	  --split-level 1 in
+	  this small case, to force splitting) to trigger the upgrade, the
+	  early resolve
+	  is done correctly, but the first splitted transaction ("rpms
+	  sorted by
+	  dependencies" has k1 and m separately, so split is tried) tries
+	  to remove n and
+	  URPM fallbacks to single big transaction.
+	  
+	  In reverse, when using "urpmi k1" to trigger the upgrade, urpmi
+	  asks user
+	  confirmation for n removal, but the transaction is created with
+	  both k1 and m
+	  ("rpms sorted by dependencies" has k1+m, so they are put in same
+	  transaction),
+	  thus triggering the correct behaviour and n is not really removed
+	  after all,
+	  even if user agreed to it.
+	  
+	  Attached patch fixes this by switching backtrack_selected() to
+	  use
+	  set_rejected_and_compute_diff_provides() for package removal
+	  instead of
+	  resolve_rejected_(). The code already contained a comment
+	  indicating that
+	  diff_provides code should be applied.
+	  The patch introduces no regression in the urpmi and perl-URPM
+	  testsuites.
+
+2009-08-05 20:24  
+
+	* Obey options (keep, nodeps) when unselecting current package in
+	  the case
+	  that was added in 3.31 (Anssi Hannula). In a simple mistake,
+	  %options was
+	  not passed to backtrack_selected.
+
+2009-08-05 20:17  
+
+	* remove extra newline from NEWS
+
+2009-08-05 11:15  
+
+	* remove no longer used SPEC_VERIFY constant
+
+2009-08-04 16:47  
+
+	* disttag & distepoch isn't utf8…
+
+2009-08-04 16:28  
+
+	* cast (es-s) to U32 (as the hv_fetch prototype expects) rather
+	  than casting strlen(s) to signed
+
+2009-07-28 16:15  
+
+	* 3.31
+
+2009-07-28 16:15  
+
+	* we need to link with rpmbuild with rpm 4.6
+
+2009-07-28 13:16  
+
+	* update NEWS file
+
+2009-07-28 13:16  
+
+	* add a backtrack entry "conflicts" for avoided packages in
+	  backtrack_selected
+	  
+	  Patch from Anssi Hannula, fixes part of bug #52153
+
+2009-07-28 13:15  
+
+	* do not try to promote to an older package
+	  
+	  Patch by Anssi Hannula, fixes bug #52460
+	  
+	  When searching for possible promotions, _handle_diff_provides()
+	  allows
+	  downgrade as well as upgrade.
+	  
+	  However, downgrade is not currently supported, and will fail
+	  early in
+	  _no_more_recent_installed_and_providing(), called from
+	  resolve_requested__no_suggests_().
+	  
+	  As no backtracking is done for early failures in this function
+	  (should it be?
+	  dunno), the promotion gets forgotten and a failing transaction
+	  will occur.
+	  
+	  Simple fix is to only allow upgrade before doing the promotion.
+	  Patch attached.
+	  It introduces no regressions in urpmi or perl-URPM testsuite.
+
+2009-07-28 13:15  
+
+	* unselect current package if an avoided package is already
+	  selected
+	  
+	  Patch by Anssi Hannula, fixes bug #52145
+	  
+	  If package 'a' Conflicts on 'b', and user (or a dependency chain)
+	  tries to
+	  install both at the same time, perl-URPM will only detect the
+	  conflict if
+	  package 'a' gets selected first (this depends on hdlist order),
+	  as
+	  _set_rejected_from is only called in one direction from
+	  _handle_conflicts and
+	  it does not detect that a package it is about to reject_from is
+	  already
+	  selected.
+	  
+	  This bug currently causes a failure in urpmi
+	  handle-conflict-deps2 testcase.
+	  
+	  This commit checks if avoided package is already selected, and
+	  unselects
+	  current package in such a case
+
+2009-07-28 13:15  
+
+	* move part of _handle_conflicts to _handle_conflicts_with_selected
+	  
+	  Patch by Anssi Hannula, first step toward fixing bug #52145
+	  
+	  If package 'a' Conflicts on 'b', and user (or a dependency chain)
+	  tries to
+	  install both at the same time, perl-URPM will only detect the
+	  conflict if
+	  package 'a' gets selected first (this depends on hdlist order),
+	  as
+	  _set_rejected_from is only called in one direction from
+	  _handle_conflicts and
+	  it does not detect that a package it is about to reject_from is
+	  already
+	  selected.
+	  
+	  This patch moves part of _handle_conflicts to
+	  _handle_conflicts_with_selected
+	  to be called before dependencies get added, needed by next patch
+
+2009-07-28 13:14  
+
+	* _handle_conflicts: check all provides for conflicts, not just
+	  package name
+	  
+	  Patch by Anssi Hannula, fixes bug #52135
+	  
+	  If package a has "Conflicts: x" and b has "Provides: x",
+	  installing both at the
+	  same time creates a failing transaction (instead of producing the
+	  "cannot
+	  install a (or b), continue?") as perl-URPM does not detect the
+	  conflict, as it
+	  just checks the conflicts on the package name (it does the
+	  correct thing with
+	  installed packages, though).
+	  
+	  _handle_conflicts: call _set_rejected_from if any provides match
+	  the conflict,
+	  instead of just package name
+
+2009-07-28 13:13  
+
+	* keep psel/promote info and remove deadlocked pkg instead of
+	  aborting upgrade
+	  
+	  Patch from Anssi Hannula, fixes bug #52105
+	  
+	  lib64gcj9 has to be removed (conflicts), therefore so does
+	  libgcj9-src (x86_64)
+	  that depends on it. Installed java-1.5.0-gcj-src depends on
+	  libgcj9-src, so
+	  perl-URPM tries to promote the i586 libgcj9-src for it. However,
+	  strict_arch
+	  check prohibits changing the arch, so it falls back to
+	  backtracking.
+	  Backtracking finds libgcj9-src again and tries to select it;
+	  however, it drops
+	  $dep->{psel} and $dep->{promote}, so when it fails again,
+	  perl-URPM does not
+	  know java-1.5.0-gcj-src should also be removed due to the failed
+	  promotion.
+	  
+	  This patch changes the code in backtrack_selected in two ways:
+	  
+	  1) When a replacement package is found, keep {promote} and {psel}
+	  info, so that
+	  when backtrack_selected is run the second time it correctly
+	  handles the failed
+	  promotion.
+	  2) When such a replacement fails as well and the deadlock
+	  protection is
+	  triggered, do not switch to keep mode for the package that caused
+	  the promotion
+	  (it would unselect all the packages involved in the update that
+	  caused the
+	  promotion). Instead proceed to remove it as usual.
+	  
+	  The patch introduces no failures on the urpmi testsuite.
+
+2009-07-28 13:12  
+
+	* keep track of sources for obsoleted/removed levels
+	  
+	  Patch by Anssi Hannula, fixes bug #50666
+	  
+	  removed/obsoleted levels are set in set_rejected() when a package
+	  is rejected
+	  (i.e. removed) or a rejection reason is added. They keep track on
+	  whether the
+	  package is removed and/or obsoleted.
+	  
+	  When the package has both flags and one of the rejection reasons
+	  is removed by
+	  _remove_rejected_from(), appropriate flags do not get removed.
+	  
+	  The case I encountered: the package is set for removal when a
+	  package it
+	  depends on fails upgrade due to unsatisfied dependency and has to
+	  be removed
+	  (backtrack_selected => resolve_rejected, causing removed=1), and
+	  the package is
+	  then promoted (causing obsoleted=1). However, the promotion fails
+	  due to the
+	  same unsatisfied dependency and backtrack_selected =>
+	  disable_selected_and_unrequested_dependencies => disable_selected
+	  =>
+	  _remove_all_rejected_from => _remove_rejected_from gets called.
+	  This removes
+	  the latter rejection reason, but leaves flags, including the now
+	  wrong
+	  obsoleted=1. Thus the package is not explicitely removed as an
+	  obsoletion is
+	  assumed, therefore failing the transaction.
+
+2009-07-27 12:42  
+
+	* use pkg-config for rpm 4.x too
+
+2009-07-27 12:41  
+
+	* remove unused variable
+
+2009-07-26 16:07  
+
+	* rephrase wording, only support for querying %disttag & %distepoch
+	  so far, no support
+	  for using %distepoch i version comparisions yet...
+
+2009-07-26 16:06  
+
+	* add support for %disttag & %distepoch
+
+2009-07-26 08:36  
+
+	* just use (void) rather than assign rpmtsFree() since it seems to
+	  cause crashy behaviour certain places...
+
+2009-07-26 08:07  
+
+	* bumping version was forgotten for 3.30 release, might as well
+	  bump it up to
+	  3.31 now for next release…
+
+2009-07-26 08:05  
+
+	* update changelog regarding rpm5
+
+2009-07-26 07:08  
+
+	* oops, put back line that accidentally got removed in the previous
+	  commit…
+
+2009-07-26 06:50  
+
+	* enable and fix additional (-Wextra) warnings
+
+2009-07-26 06:38  
+
+	* fix gcc warnings about values not being used
+
+2009-07-26 06:23  
+
+	* * clean out compatibility code for older rpm versions that's not
+	  really
+	  supported anymore anyways and move out as much as possible
+	  rpm5.org
+	  compatibility code out of URPM into new rpm46compat.h @ rpm5.org
+
+2009-07-25 20:50  
+
+	* add support for specifying custom filter for compression with
+	  build_synthesis()
+
+2009-07-22 18:21  
+
+	* really clean up temporary files & directories properly
+
+2009-07-22 18:19  
+
+	* prevent distepoch & disttag to be added and appended to package
+	  filename
+
+2009-05-11 13:26  
+
+	* Removed forgotten debugging logs
+
+2009-05-11 13:22  
+
+	* Add bug #
+
+2009-05-11 13:17  
+
+	* Release 3.30
+
+2009-05-11 13:17  
+
+	* Use key IDs to check if a key is already known or not
+	  
+	  This has the side-effect that if we get a newer public key
+	  corresponding
+	  to an already known key id, it won't get updated, but for now RPM
+	  doesn't let us do that anyway. If a pubkey file contains multiple
+	  keys,
+	  we no longer handle this case, but I don't think this has been
+	  widely
+	  tested, if ever...
+
+2009-05-11 13:17  
+
+	* Fix comment
+
+2009-05-11 13:17  
+
+	* Introduce get_gpg_fingerprint XS function
+
+2009-03-27 14:58  
+
+	* 3.29
+
+2009-03-27 14:58  
+
+	* Fix regression introduced in fix for bug #47803
+	  
+	  This reverts the previous commit
+	  
+	  only compute diff_provides when the package is newly rejected, in
+	  set_rejected_and_compute_diff_provides
+	  
+	  Try this incremental patch. It fixes
+	  set_rejected_and_compute_diff_provides to
+	  not compute diff_provides if package was already rejected (and
+	  thus the
+	  dependencies properly handled already).
+
+2009-03-27 10:28  
+
+	* Revert part of the fix for bug #47803 since it breaks upgrades
+	  from 2008.1
+
+2009-03-25 13:41  
+
+	* 3.28:
+
+2009-03-25 13:22  
+
+	* Postpone user choices as much as possible
+	  
+	  Fixes bug #48100, patch from Anssi Hannula
+	  Package A requires D and E.
+	  Package B provides D and E.
+	  Package C provides E.
+	  
+	  If the require on E happens to be resolved first, then perl-URPM
+	  will
+	  prompt the user, even though installing B is enough.
+
+2009-03-24 16:50  
+
+	* Change format of "rpm sorted by dependencies" string
+
+2009-03-24 15:55  
+
+	* 3.27
+
+2009-03-23 10:03  
+
+	* Don't silently install Suggests:, fixes bug #47934
+	  
+	  When installing a package which suggests an uninstalled package,
+	  urpmi
+	  currently installs both packages without asking the user while it
+	  asks
+	  when installing a package which requires an uninstalled package.
+	  This is
+	  because we call resolve_requested__no_suggests to find which
+	  suggested
+	  package to install, but this mark the package as requested as
+	  well (and
+	  we don't ask for confirmation before installing a requested
+	  package).
+	  This patch calls resolve_requested__no_suggests_ (with a trailing
+	  '_')
+	  instead which is the same as resolve_requested__no_suggests but
+	  does not
+	  mark the packages as requested.
+
+2009-03-23 09:40  
+
+	* fix _handle_diff_provides in case of impossible-to-satisfy
+	  selected packages
+	  
+	  Fixes bug #48223, patch from Anssi Hannula
+	  
+	  Currently, if _handle_diff_provides finds unsatisfied requires on
+	  an already
+	  selected package, and cannot find any packages from the repo that
+	  satisfy
+	  these, it calls resolve_rejected_ (or
+	  set_rejected_and_compute_diff_provides
+	  after fix to bug #47803) (as it does when those unsatisfied
+	  requires are on an
+	  installed package, which was always the case before r242656).
+	  However, those should be called with installed packages only.
+	  
+	  Attached patch makes _handle_diff_provides call
+	  disable_selected_and_unrequested_dependencies and
+	  _set_rejected_from in case of
+	  selected packages.
+
+2009-03-20 18:32  
+
+	* check rep for another pkg providing X if the prev pkg gets
+	  removed due to a conflict
+	  
+	  Fixes bug #47803, patch from Anssi Hannula
+	  
+	  Closer look at urpmi revealed it only does this if a provide X is
+	  removed from
+	  an upgraded package, not when a package providing X has to be
+	  removed.
+	  
+	  i.e. this works:
+	  
+	  A provides foo
+	  B provides foo
+	  C requires foo
+	  
+	  Installed A,C.
+	  
+	  A is upgraded and Provides:foo is dropped, B gets installed in
+	  order to
+	  keep C.
+	  
+	  But this won't:
+	  
+	  A provides foo
+	  A requires dep
+	  B provides foo
+	  C requires foo
+	  D provides dep
+	  
+	  Installed A,C,D.
+	  
+	  D is upgraded and Provides:dep is dropped, A gets removed, C gets
+	  removed.
+
+2009-03-05 11:14  
+
+	* 3.26
+
+2009-03-05 11:13  
+
+	* (verify_signature) make checking urpmi signatures works in
+	  chrooted environments
+	  (especially important for installer where there's no rpmdb in /
+	  (really
+	  /var/lib/rpm) and thus no keys to check against)
+
+2009-01-16 14:48  
+
+	* Release 3.25
+
+2009-01-16 14:48  
+
+	* Really fix bug #46874
+
+2009-01-13 14:27  
+
+	* Version 3.24 - 13 January 2009, by Christophe Fergeau
+	  
+	  - fix sorting choices on provided version (feature introduced in
+	  3.08,
+	  but was not working if packages were coming from different
+	  repository)
+	  - when a "Requires:" can be fullfilled by several different
+	  packages and
+	  one of those packages is explicitly required by another package
+	  which
+	  is also being installed, silently choose this package instead of
+	  letting
+	  the choice up to perl-URPM user (fixes bug #46874)
+
+2009-01-12 08:04  
+
+	* add comments
+
+2009-01-12 08:03  
+
+	* - drop parse_rpms (unused, parse_rpms_build_headers or parse_rpm
+	  are used instead)
+	  - add a comment
+
+2009-01-12 07:59  
+
+	* add a comment
+
+2009-01-12 07:56  
+
+	* - drop function fuzzy_parse() (it is unused)
+	  - add some comment
+
+2009-01-09 14:40  
+
+	* add a comment
+
+2009-01-09 14:39  
+
+	* add some comment
+
+2009-01-09 14:24  
+
+	* - @unsatisfied is a better var name than @l
+	  - add some comment
+
+2009-01-08 13:46  
+
+	* make it clear the func is local
+
+2009-01-08 13:45  
+
+	* add a comment
+
+2009-01-08 09:24  
+
+	* Favour required packages when we have several choices to fulfill
+	  a "requires", fixes bug #46874
+
+2009-01-06 15:55  
+
+	* - add some comment
+	  - enhance a comment
+
+2009-01-06 14:05  
+
+	* document a "hack"
+
+2008-12-15 17:02  
+
+	* - fix sorting choices on provided version (feature introduced in
+	  3.08,
+	  but was not working if packages were coming from different
+	  repository)
+
+2008-12-15 11:08  
+
+	* 3.23
+
+2008-12-15 11:05  
+
+	* - fix bad free() (thanks to glibc for detecting it)
+
+2008-12-12 11:04  
+
+	* 3.22
+
+2008-12-12 09:19  
+
+	* - fix scriptlet failing:
+	  adapt to librpm4.6, rpmtsSetRootDir(ts, "") is forbidden
+
+2008-12-09 16:40  
+
+	* revert wrong commit
+
+2008-12-09 16:33  
+
+	* correctly clean temp directories
+
+2008-12-09 16:05  
+
+	* 3.21
+
+2008-12-09 16:04  
+
+	* - adapt to librpm4.6
+
+2008-12-09 16:03  
+
+	* - adapt to rpm 4.6 changes:
+	  - headerNextIterator -> headerNext
+	  - headerAddEntry -> headerPut
+	  - headerModifyEntry -> headerMod
+
+2008-12-09 16:02  
+
+	* - adapt to rpm 4.6 changes: headerGetEntry -> headerGet
+
+2008-12-09 16:00  
+
+	* - adapt to some easy rpm 4.6 changes:
+	  - headerSprintf -> headerFormat
+	  - headerAddEntry -> headerPutString
+	  - headerRemoveEntry -> headerDel
+	  - rpmProblemGetLong -> rpmProblemGetDiskNeed
+
+2008-12-09 15:55  
+
+	* free the iterator *after* use
+	  (otherwise it segfaults with 4.6.0-rc1, and i wonder how it
+	  worked before...)
+
+2008-12-09 15:52  
+
+	* do free the ts after user, this is especially needed since
+	  rpmVerifySignature
+	  (wrongly) called in rpmReadPackageFile can open the rpmdb which
+	  won't get
+	  closed if ts is not closed
+
+2008-12-09 15:50  
+
+	* - don't handle %_sourcedir specially, it's not needed
+	  - use an absolute filename for %_topdir, it seems to help
+	  (bug in rpm 4.6.0-rc1?)
+
+2008-12-09 15:49  
+
+	* - list_rpm_tag() is no more
+	  - remove a failing test (old)
+
+2008-12-09 15:47  
+
+	* - drop list_rpm_tag()
+
+2008-12-09 15:45  
+
+	* adapt types to rpm-4.6.x
+
+2008-12-08 17:35  
+
+	* fix rpmRelocation usage with rpm 5.2
+
+2008-10-14 17:35  
+
+	* 3.20
+
+2008-10-14 17:35  
+
+	* - $trans->run can now return both the translated errors, and some
+	  parsable
+	  errors (useful for example to detect diskspace issues)
+
+2008-10-14 08:51  
+
+	* use rpmuint64_t rather than long long, we know that it should
+	  stay compatible:)
+
+2008-10-10 09:14  
+
+	* fix build with rpm5.org HEAD
+
+2008-10-07 10:47  
+
+	* 3.19
+
+2008-10-07 10:46  
+
+	* - handle flag "replacefiles"
+
+2008-07-18 18:09  
+
+	* add filelinktos() & dirnames() to URPM::Package
+
+2008-07-17 20:03  
+
+	* ensure that initSourceHeader gets run for rpm5.org, otherwise
+	  querying of spec files won't work
+
+2008-07-14 16:49  
+
+	* fix build with rpm5.org HEAD
+
+2008-07-07 21:53  
+
+	* 3.18
+
+2008-07-07 14:08  
+
+	* - revert change introduced in 3.16 (it breaks too much, eg
+	  superuser--priority-upgrade.t test case), and introduce
+	  $state->{rejected_already_installed} instead
+
+2008-07-07 13:23  
+
+	* fix typo in description
+
+2008-07-04 13:06  
+
+	* 3.17
+
+2008-07-04 13:05  
+
+	* add removed_or_obsoleted_packages()
+
+2008-07-04 13:04  
+
+	* - handle $state->{orphans_to_remove} in selected_size() and
+	  build_transaction_set()
+
+2008-07-04 11:25  
+
+	* - add traverse_tag_find()
+
+2008-07-03 11:25  
+
+	* perl_checker compliance
+
+2008-07-03 11:23  
+
+	* remove unused vars
+
+2008-07-03 11:22  
+
+	* create packages_to_remove() and use it to factorize code
+
+2008-07-01 15:26  
+
+	* create rpmtag_from_string() out of Db_traverse_tag
+
+2008-06-26 12:47  
+
+	* 3.16
+
+2008-06-26 09:46  
+
+	* - when not selecting a package because already installed,
+	  but it in $state->{rejected} with flags {installed}
+
+2008-06-24 09:06  
+
+	* adapt tests to ->compare change
+
+2008-06-23 08:42  
+
+	* 3.15
+
+2008-06-17 09:39  
+
+	* add Anssi name in the log
+
+2008-06-17 09:38  
+
+	* - fix urpmi wrongly considering epochless conflicts to match any
+	  epoch in a
+	  case when urpmi should upgrade a conflicting package to an
+	  actually
+	  non-conflicting version (cf epochless-conflict-with-promotion
+	  urpmi test)
+	  
+	  from Anssi.
+	  
+	  i tested various upgrades from some chroot with 2008.0, 2007.1,
+	  2007.0, and it
+	  didn't change the result, so it should be quite safe :)
+
+2008-05-23 08:24  
+
+	* 3.14
+
+2008-05-23 08:23  
+
+	* - add is_package_installed() in URPM/Resolve.pm
+	  (to be used in urpmi 5.20)
+
+2008-05-20 09:54  
+
+	* 3.13
+
+2008-05-19 15:17  
+
+	* - do not ignore dropped provide from updated package
+	  (mdvbz#40842)
+
+2008-05-15 12:04  
+
+	* enhance error message
+
+2008-04-14 17:11  
+
+	* un-revert rpm5.org cosmetics now that cooker has reopened
+
+2008-04-10 08:16  
+
+	* update authors and copyright notic
+
+2008-03-25 13:15  
+
+	* revert unneeded commit for now
+
+2008-03-19 04:37  
+
+	* fix a typo in a comment </pedanticlamer>
+
+2008-03-19 04:34  
+
+	* make URPM more portable by using standard %{_target_vendor} &
+	  %{_target_cpu} macros in stead of Mandriva specific
+	  %{_real_vendor} & (now dead) %{_real_arch}
+
+2008-03-19 04:18  
+
+	* change x,y check to y,x. More intuitive, for me at least, other
+	  order frequently confuses me ;p
+
+2008-03-19 03:24  
+
+	* d'oh, argument to hexversion() must of course be passed as
+	  strings
+
+2008-03-19 03:12  
+
+	* improve rpm version detection
+	  really fix callback size for rpm5.org versions
+
+2008-03-07 16:50  
+
+	* 3.12
+
+2008-03-07 16:49  
+
+	* - do allow to promoting a pkg even if it has unsatisfied require
+	  (since the
+	  code will then fix the unsatisfied require). fixes "big
+	  transaction"
+	  (cf urpmi split-transactions--strict-require.t test_efgh())
+	  
+	  this code was introduced long ago (*), the code has
+	  changed quite a lot, and it's hard to tell for which reason it
+	  was introduced.
+	  Maybe the check "obsoletes_overlap" replaces it for good?
+	  
+	  (*) in "r11064 | fpons | 2002-06-13", search for "try if
+	  upgrading the package
+	  will be satisfying all the requires"
+
+2008-03-06 16:59  
+
+	* ouch, add back 'case RPMPROB_DISKNODES:' removed by mistake :/
+
+2008-03-06 15:25  
+
+	* revert back to long long since they're of same size anyways and
+	  we avoid warnings that way :)
+
+2008-03-06 14:24  
+
+	* simplify as pixel suggested
+	  use uint64_t in stead of unsigned long long (which is really the
+	  same, but nicer and more consistent with rpm5:)
+
+2008-03-03 12:06  
+
+	* minor cosmetics
+
+2008-03-03 00:50  
+
+	* move compatibility wrapper to rpm5.org upstream
+
+2008-03-02 23:29  
+
+	* more fixes, makes apt-get build succesfully :D
+
+2008-03-02 22:22  
+
+	* make all functions inline functions
+
+2008-03-02 22:02  
+
+	* some more functions for apt-get..
+
+2008-03-02 18:18  
+
+	* make C++ compliant
+	  add som function wrappers for apt-get
+
+2008-03-01 12:33  
+
+	* define WITH_DB in rpm5compat.h in stead of in Makefile
+	  drop useless conditionals for headers as they're already
+	  conditional in themself ;)
+
+2008-03-01 12:29  
+
+	* do better "detection" of callback size without having to define
+	  it in Makefile (inspired by apt)
+
+2008-02-29 21:26  
+
+	* try improve on freeing up memory
+
+2008-02-29 19:06  
+
+	* be sure to return NULL in case of RPMRC_NOTFOUND
+
+2008-02-29 19:00  
+
+	* provide function name in logging
+
+2008-02-29 18:45  
+
+	* be sure to always initialize in headerGetEntry
+
+2008-02-29 15:36  
+
+	* add rpm5.org support to NEWS :)
+
+2008-02-29 15:33  
+
+	* rpm 4.5 and newer uses unsigned long long ulong1 in stead of
+	  unsigned long ulong1 for rpmProblemGetLong, therefore use %lld in
+	  stead of %ld
+
+2008-02-29 15:03  
+
+	* add back copyright field manually since svn wouldn't set it..
+
+2008-02-29 14:57  
+
+	* try add svn properties to top of file
+
+2008-02-29 14:42  
+
+	* add svn keywords properties
+
+2008-02-29 14:40  
+
+	* make inclusion of headers conditional
+
+2008-02-29 14:29  
+
+	* be sure to set return value to NULL in headerGetEntry when Epoch
+	  isn't set
+
+2008-02-29 14:24  
+
+	* fix assignment from incompatible pointer type in
+	  Urpm_list_rpm_tag for rpm5
+
+2008-02-29 14:14  
+
+	* be sure to use same data type for check_flag
+
+2008-02-28 17:07  
+
+	* make sure to use same type (signess) in pack_rpm_header
+
+2008-02-28 16:45  
+
+	* do not define RPM_CALLBACK_LONGLONG for rpm 5.0
+
+2008-02-28 16:20  
+
+	* add copyright notice
+
+2008-02-28 15:30  
+
+	* fix return type and variable of headerRead()
+
+2008-02-28 13:29  
+
+	* 3.11
+
+2008-02-28 13:29  
+
+	* - restore FILENAME_TAG in generated hdlist (to be compatible with
+	  older
+	  distros where ->filename can rely on it) (thanks to Nanar)
+
+2008-02-28 11:04  
+
+	* fix double _free of msg in headerWrite() & headerRead()
+	  do rpmlog for headerWrite() & headerRead()
+	  drop unused variable in cointainer for headerNextIterator()
+
+2008-02-28 02:35  
+
+	* drop unused variable
+
+2008-02-28 02:28  
+
+	* get rid of some warnings
+
+2008-02-28 02:03  
+
+	* add wrapper function for rpmMachineScore
+
+2008-02-28 01:38  
+
+	* add wrapper function for headerRead
+
+2008-02-28 01:24  
+
+	* add wrapper function for headerModifyEntry
+
+2008-02-28 01:06  
+
+	* fix define of _RPMTAG_INTERNAL at right place and drop redundant
+	  include of rpmtag.h
+
+2008-02-28 00:56  
+
+	* add rpm5 wrapper functions, work in progress, URPM builds now at
+	  least :o)
+
+2008-02-27 21:45  
+
+	* fix building with rpm5 DEVEL version
+
+2008-02-25 23:39  
+
+	* do not mark as deprecated ->filename and
+	  URPM::Build::build_hdlist()
+
+2008-02-25 23:22  
+
+	* 3.10
+
+2008-02-25 21:57  
+
+	* adding filesize to synthesis on @info@ will break backward
+	  compatibility for
+	  no good reason, so switching to a new @filesize@ line
+
+2008-02-25 21:37  
+
+	* make ->filename work (again) on header
+
+2008-02-25 21:17  
+
+	* 3.09
+
+2008-02-25 21:13  
+
+	* do not do "uniq" on "fullname" since gpg-pubkey-xxxxxxxx-xxxxxxxx
+	  can be installed twice
+
+2008-02-25 21:05  
+
+	* since ->filename is deprecated, do not use it, esp where not
+	  needed
+
+2008-02-25 20:43  
+
+	* - add filesize to synthesis, add ->filesize to get it, and add
+	  selected_size_filesize() to compute the sum
+
+2008-02-25 20:41  
+
+	* fix previous commit (XS comments are perl-style, not C-style)
+
+2008-02-25 19:17  
+
+	* - do not add FILENAME_TAG and FILESIZE_TAG to hdlist anymore,
+	  deprecate ->filename and ->header_filename,
+	  deprecate URPM::Build build_hdlist and parse_rpms_build_headers
+
+2008-02-25 16:18  
+
+	* - allow fixing "using one big transaction" that occurs when using
+	  --keep
+	  (#30198)
+	  
+	  nb: since build_transaction_set calls resolve_requested, it must
+	  use the same
+	  options to select the same packages
+
+2008-02-25 16:16  
+
+	* - allow urpmi to know a package was not selected because a newer
+	  version is
+	  installed (#29838)
+
+2008-02-25 13:34  
+
+	* - fix sort choices changed in perl-URPM 3.08
+
+2008-02-25 13:33  
+
+	* - handle new package providing xxx which conflicts with an
+	  installed package (#17106)
+
+2008-02-25 09:20  
+
+	* 3.08
+
+2008-02-25 09:19  
+
+	* - sort choices on virtual package by provided version (#12645)
+
 2007-09-12 15:11  Pixel <pixel at mandriva.com>
 
 	* : better indicate the test case in urpmi
