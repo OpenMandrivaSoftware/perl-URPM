@@ -1699,7 +1699,7 @@ sub request_packages_to_upgrade {
 		$pkg = undef;
 	    }
 	}
-	if ($pkg && %options->{idlist} && !grep { $pkg->id == $_ } @{%options->{idlist}}) {
+	if ($pkg && $options{idlist} && !grep { $pkg->id == $_ } @{$options{idlist}}) {
 		$urpm->{debug_URPM}("not auto-selecting $pkg->fullname because it's not in search medias") if $urpm->{debug_URPM};
 		$pkg = undef;
 	} 
