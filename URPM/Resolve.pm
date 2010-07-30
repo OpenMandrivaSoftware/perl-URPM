@@ -1192,7 +1192,7 @@ sub _unselect_package_deprecated_by_property {
 	set_rejected_and_compute_diff_provides($urpm, $state, $diff_provides_h, { 
 	    rejected_pkg => $p,
 	    obsoleted => $obsoleted, removed => !$obsoleted,
-	    from => $pkg, why => $obsoleted ? () : { old_requested => 1 },
+	    from => $pkg, why => $obsoleted ? undef : { old_requested => 1 },
 	});
 	$obsoleted or ++$state->{oldpackage};
     });
