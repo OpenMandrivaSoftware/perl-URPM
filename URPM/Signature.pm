@@ -1,6 +1,7 @@
 package URPM;
 
 use strict;
+use warnings;
 
 #- parse from rpmlib db.
 #-

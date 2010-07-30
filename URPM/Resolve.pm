@@ -5,6 +5,7 @@ package URPM;
 # $Id$
 
 use strict;
+use warnings;
 use Config;
 
 
@@ -435,7 +436,8 @@ sub _choose_required {
 sub pkg2media {
    my ($mediums, $p) = @_; 
    my $id = $p->id;
-   find { $id >= $_->{start} && $id <= $_->{end} } @$mediums;
+   #- || 0 to avoid undef, but is it normal to have undef ?
+   find { $id >= ($_->{start} || 0) && $id <= ($_->{end} || 0) } @$mediums;
 }
 
 sub whatrequires {

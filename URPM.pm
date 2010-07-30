@@ -1,6 +1,7 @@
 package URPM;
 
 use strict;
+use warnings;
 use DynaLoader;
 
 # different files, but same package

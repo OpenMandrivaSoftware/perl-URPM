@@ -1,6 +1,7 @@
 package URPM;
 
 use strict;
+use warnings;
 
 # Olivier Thauvin <thauvin@aerov.jussieu.fr>
 # This package extend URPM functions to permit

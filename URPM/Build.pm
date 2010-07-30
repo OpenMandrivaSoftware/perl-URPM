@@ -3,6 +3,7 @@ package URPM;
 # $Id$
 
 use strict;
+use warnings;
 
 sub _get_tmp_dir () {
     my $t = $ENV{TMPDIR};
