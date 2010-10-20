@@ -1,3 +1,5 @@
+- fix crashing on undefined packages (#54521)
+
 Version 3.36 - 23 July 2010
 
 - Fix wrong deferencement on HASH (warning triggered by perl 5.12)

@@ -30,7 +30,7 @@ sub set_nofatal { $_[0]{nofatal} = $_[1] }
 
 sub packages_providing {
     my ($urpm, $name) = @_;
-    map { $urpm->{depslist}[$_] } keys %{$urpm->{provides}{$name} || {}};
+    grep { $_ } map { $urpm->{depslist}[$_] } keys %{$urpm->{provides}{$name} || {}};
 }
 
 sub packages_obsoleting {
