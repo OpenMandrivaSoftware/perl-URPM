@@ -1,3 +1,5 @@
+Version 3.37 - 20 September 2010
+
 - fix crashing on undefined packages (#54521)
 
 Version 3.36 - 23 July 2010
