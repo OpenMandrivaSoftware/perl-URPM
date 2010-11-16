@@ -25,25 +25,32 @@ sub parse_pubkeys_ {
 
     $db->traverse_tag('name', [ 'gpg-pubkey' ], sub {
 	    my ($p) = @_;
+            # the first blank separates the PEM headers from key data, this
+            # flags we found it:
+            my $found_blank = 0;
 	    foreach (split "\n", $p->description) {
-		$block ||= /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/;
 		if ($block) {
-		    my $inside_block = /^$/ ... /^-----END PGP PUBLIC KEY BLOCK-----$/;
-		    if ($inside_block > 1) {
-			if ($inside_block =~ /E/) {
-			    $keys{$p->version} = {
-				$p->summary =~ /^gpg\((.*)\)$/ ? (name => $1) : @{[]},
-				id => $p->version,
-				content => $content,
-				block => $p->description,
-			    };
-			    $block = undef;
-			    $content = '';
-			} else {
-			    $content .= $_;
-			}
+                    if (/^$/ and not $found_blank) {
+                        # All content until now were the encapsulated pem
+                        # headers...
+                        $content = '';
+                        $found_blank = 1;
+                    }
+                    elsif (/^-----END PGP PUBLIC KEY BLOCK-----$/) {
+                        $keys{$p->version} = {
+                            $p->summary =~ /^gpg\((.*)\)$/ ? (name => $1) : @{[]},
+                            id => $p->version,
+                            content => $content,
+                            block => $p->description,
+                        };
+                        $block = undef;
+                        $content = '';
+                    }
+                    else {
+                        $content .= $_;
 		    }
 		}
+		$block ||= /^-----BEGIN PGP PUBLIC KEY BLOCK-----$/;
 	    }
 	});
 
