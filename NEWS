@@ -1,3 +1,5 @@
+Version 3.38 - 16 November 2010
+
 - fix the key parsing to handle PEM encapsulated header portion (bug
 #61636)
 
