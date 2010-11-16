@@ -1,3 +1,6 @@
+- fix the key parsing to handle PEM encapsulated header portion (bug
+#61636)
+
 Version 3.37 - 20 September 2010
 
 - fix crashing on undefined packages (#54521)
