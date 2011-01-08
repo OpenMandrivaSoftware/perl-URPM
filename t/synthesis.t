@@ -10,9 +10,9 @@ my $file1 = 'synthesis.sample.cz';
 
 open my $f, "| gzip -9 >$file1";
 print $f <<'EOF';
-@provides@glibc-devel == 6:2.2.4-25mdk
-@requires@/sbin/install-info@glibc == 2.2.4@kernel-headers@kernel-headers >= 2.2.1@/bin/sh@/bin/sh@/bin/sh@rpmlib(PayloadFilesHavePrefix) <= 4.0-1@rpmlib(CompressedFileNames) <= 3.0.4-1
-@conflicts@texinfo < 3.11@gcc < 2.96-0.50mdk
+@provides@glibc-devel[== 6:2.2.4-25mdk]
+@requires@/sbin/install-info[*]@glibc[== 2.2.4]@kernel-headers@kernel-headers[>= 2.2.1]@/bin/sh@/bin/sh@/bin/sh@rpmlib(PayloadFilesHavePrefix)[<= 4.0-1]@rpmlib(CompressedFileNames)[<= 3.0.4-1]
+@conflicts@texinfo[< 3.11]@gcc[< 2.96-0.50mdk]
 @obsoletes@libc-debug@libc-headers@libc-devel@linuxthreads-devel@glibc-debug
 @info@glibc-devel-2.2.4-25mdk.i586@6@45692097@Development/C
 EOF
@@ -54,7 +54,7 @@ ok(!defined $pkg->changelog_name);
 ok(!defined $pkg->changelog_text);
 ok(!defined $pkg->changelog_time);
 
-my ($name, $version, $release, $arch, @l) = $pkg->fullname;
+my ($name, $version, $release, $disttag, $distepoch, $arch, @l) = $pkg->fullname;
 ok(@l == 0);
 ok($name eq 'glibc-devel');
 ok($version eq '2.2.4');
@@ -82,17 +82,17 @@ ok($obsoletes[4] eq 'glibc-debug');
 
 my @conflicts = $pkg->conflicts;
 ok(@conflicts == 2);
-ok($conflicts[0] eq 'texinfo < 3.11');
-ok($conflicts[1] eq 'gcc < 2.96-0.50mdk');
+ok($conflicts[0] eq 'texinfo[< 3.11]');
+ok($conflicts[1] eq 'gcc[< 2.96-0.50mdk]');
 
 my @requires = $pkg->requires;
 ok(@requires == 9);
-ok($requires[0] eq '/sbin/install-info');
-ok($requires[8] eq 'rpmlib(CompressedFileNames) <= 3.0.4-1');
+ok($requires[0] eq '/sbin/install-info[*]');
+ok($requires[8] eq 'rpmlib(CompressedFileNames)[<= 3.0.4-1]');
 
 my @provides = $pkg->provides;
 ok(@provides == 1);
-ok($provides[0] eq 'glibc-devel == 6:2.2.4-25mdk');
+ok($provides[0] eq 'glibc-devel[== 6:2.2.4-25mdk]');
 
 my @files = $pkg->files;
 ok(@files == 0);

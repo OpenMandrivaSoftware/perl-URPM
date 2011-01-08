@@ -11,7 +11,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '3.38';
+our $VERSION = '4.4';
 
 URPM->bootstrap($VERSION);
 
@@ -311,7 +311,7 @@ parse_synthesis()).
 
 Force the re-reading of the RPM configuration files.
 
-=item URPM::ranges_overlap($range1, $range2 [, $nopromoteepoch])
+=item URPM::ranges_overlap($range1, $range2)
 
 This utility function compares two version ranges, in order to calculate
 dependencies properly. The ranges have roughly the form
@@ -320,12 +320,13 @@ dependencies properly. The ranges have roughly the form
 
 where epoch, version and release are RPM-style version numbers.
 
-If the optional parameter $nopromoteepoch is true, and if the 2nd range has no
-epoch while the first one has one, then the 2nd range is assumed to have an
-epoch C<== 0>.
+=item URPM::rpmEVRcmp($a, $b)
 
-B<Warning>: $nopromoteepoch actually defaults to 1, so if you're going to
-pass a variable, make sure undef is treated like 1, not 0.
+Segmented string compare.
+
+=item URPM::rpmEVRcompare($a, $b)
+
+Compare EVR containers for equality.
 
 =item $urpm->parse_synthesis($file [, callback => sub {...} ])
 
@@ -517,6 +518,8 @@ Writes a line of information in a synthesis file.
 
 =item $package->epoch()
 
+=item $package->evr()
+
 =item $package->excludearchs()
 
 =item $package->exclusivearchs()
@@ -527,13 +530,13 @@ Writes a line of information in a synthesis file.
 
 List of files in this rpm.
 
+=item $package->files_digest()
+
 =item $package->files_flags()
 
 =item $package->files_gid()
 
 =item $package->files_group()
-
-=item $package->files_md5sum()
 
 =item $package->files_mode()
 
@@ -569,13 +572,13 @@ List of files in this rpm.
 
 =item $package->fullname()
 
-Returns a 4 element list: name, version, release and architecture in an array
-context. Returns a string NAME-VERSION-RELEASE.ARCH in scalar context.
+Returns a 6 element list: name, version, release, disttag, distepoch and architecture
+in an array context. Returns a string NAME-VERSION-RELEASE[-DISTTAGDISTEPOCH].ARCH
+in scalar context.
 
-=item $package->get_tag($tagid)
+=item $package->get_tag($tagname)
 
-Returns an array containing values of $tagid. $tagid is the numerical value of
-rpm tags. See rpmlib.h. 
+Returns an array containing values of $tagname. $tagname is the name of a valid rpm tag.
 
 =item $package->queryformat($format)
 
@@ -584,9 +587,9 @@ Querying the package like rpm --queryformat do.
 The function calls directly the rpmlib, then use header informations, so it 
 silently failed if you use synthesis instead of hdlist/rpm/header files or rpmdb.
 
-=item $package->get_tag_modifiers($tagid)
+=item $package->get_tag_modifiers($tagname)
 
-Return an array of human readable view of tag values. $tagid is the numerical value of rpm tags.
+Return an array of human readable view of tag values. $tagname is the name of a valid rpm tag.
 
 =item $package->group()
 
@@ -616,7 +619,7 @@ The rpm's bare name.
 
 =item $package->obsoletes_nosense()
 
-=item $package->obsoletes_overlap($s, [$nopromoteepoch, [$direction] ])
+=item $package->obsoletes_overlap($s, [$direction])
 
 =item $package->os()
 
@@ -630,7 +633,7 @@ The rpm's bare name.
 
 =item $package->provides_nosense()
 
-=item $package->provides_overlap($s, [$nopromoteepoch,] [$direction])
+=item $package->provides_overlap($s, [$direction])
 
 =item $package->rate()
 
@@ -869,9 +872,9 @@ B<transaction_state>: $state object
 
 Copyright 2002, 2003, 2004, 2005 MandrakeSoft SA
 
-Copyright 2005, 2006, 2007, 2008 Mandriva SA
+Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011 Mandriva SA
 
-FranE<ccedil>ois Pons (original author), Rafael Garcia-Suarez, Pixel <pixel@mandriva.com> (current maintainer)
+FranE<ccedil>ois Pons (original author), Rafael Garcia-Suarez, Pascal "Pixel" Rigaux, Christophe Fergeau, Per E<macr>yvind Karlsen <peroyvind@mandriva.org> (current maintainer)
 
 This library is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.

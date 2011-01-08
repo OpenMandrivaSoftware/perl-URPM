@@ -2,6 +2,7 @@ README
 MANIFEST
 Makefile.PL
 typemap
+xfile.h
 URPM.xs
 URPM.pm
 URPM/Build.pm

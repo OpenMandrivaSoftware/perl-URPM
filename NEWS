@@ -1,9 +1,54 @@
-Version 3.38 - 16 November 2010
+Version 4.4 -  6 Jan 2011, by Per Øyvind Karlsen
+
+- check URPM::Transactin::add() for errors and return them if any (#61746)
+- make URPM::Package::get_tag() & URPM::Package::get_tag_modifiers() accept
+  string name of tags
+- URPM::DB::traverse_tag() & URPM::DB::traverse_tag_find() will now accept
+  all available rpm tags
+
+Version 4.3 - 11 Dec 2010, by Per Øyvind Karlsen
+
+- fix issue with packages added to synthesis having disttag/disttag, but without
+  those added to NVRA, leading to segfault
+- fix broken support for parsing hdlists, use rpmgi iterator from rpmlib to
+  simplify code and get packages ordered as an extra benefit in the process.
+- URPM::Package::fullname will now always return six items for array in stead
+  of four to make room for disttag & distepoch, arch will still be returned as
+  last item (ie. array[5] in stead of array[3]) (#61702)
+- URPM::Package::files_md5sum() has been renamed to URPM::Package::files_digest()
+- fix NEVRA parsing of 'gpg-pubkey'
+
+Version 4.2 -  3 Dec 2010, by Per Øyvind Karlsen
+
+- fix URPM::Package::files()
+
+Version 4.1 - 19 Nov 2010, by Per Øyvind Karlsen
+
+- improve return value checking on headerGet() usage
+- fix update_provides_files with RPMTAG_OLDFILENAMES
+- ditch legacy compatibility use of headerPut() on FILENAME_TAG
+ 
+Version 4.0 - 11 Nov 2010, by Per Øyvind Karlsen
+
+- add support for uncompressed & xz/lzma compressed synthesis
+- fix URPM::DB::open() to work properly with relative paths
+- ditch legacy behaviour compatibility for packages without epoch, always promote
+  epoch
+- pick up package name format from %_build_name_fmt rather than hardcoding it
+- add URPM::Package::evr()
+- add URPM::rpmEVRcmp() & URPM::rpmEVRcompare()
+- add regression tests for resolving
+- use rpmEVRcompare() from rpmlib everywhere
+- add full support for %distepoch/%disttag
+- refactorize code
+- rewrite for native rpm5 API (ditching rpm.org compatibility)
+
+Version 3.38 - 16 November 2010, by Joao Victor Martins
 
 - fix the key parsing to handle PEM encapsulated header portion (bug
 #61636)
 
-Version 3.37 - 20 September 2010
+Version 3.37 - 20 October 2010
 
 - fix crashing on undefined packages (#54521)
 

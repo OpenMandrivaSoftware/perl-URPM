@@ -500,7 +500,7 @@ sub unsatisfied_requires {
 			if (my ($pn, $ps) = property2name_range($_)) {
 			    $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
 			    $pn eq $n or next;
-			    URPM::ranges_overlap($ps, $s, 1) and ++$satisfied;
+			    URPM::ranges_overlap($ps, $s) and ++$satisfied;
 			}
 		    }
 		});

@@ -21,13 +21,9 @@ sub hexversion {
 	return int($major<<16) + int($minor<<8) + int($micro<<0)
 }
 
-my $version = `LC_ALL=C $rpm_path --version`;
-# fix compiling with RCs:
-$version =~ s/(-.*)|(\.DEVEL)//;
-chomp $version;
-$version =~ s/(RPM version )|(rpm \(RPM\) )//;
+my $version = `pkg-config --modversion rpm`;
 my $hversion = hexversion($version);
-$hversion ge hexversion("4.2") or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
+$hversion ge hexversion("5.3") or die "Unable to build URPM with too old (or undetected) rpm version $version\n";
 
 # to generate the ChangeLog depending on the checkout layout
 my $commonusername = "../common/";
@@ -49,14 +45,12 @@ ChangeLog:
 **MM**
 }
 
-my @rpmflags;
-my $ldflags = `pkg-config --libs rpm`;
-if ($hversion ge hexversion("4.4.90") && $hversion lt hexversion("5.0")) {
-    # rpm.org version
-    push @rpmflags, "-DRPM_ORG";
-    $ldflags .= ' -lrpmbuild';
-}
-my $ccflags = join(' ', '-Wall -Wextra -fno-strict-aliasing', @rpmflags);
+my $ldflags = `pkg-config --libs rpm liblzma`;
+chomp($ldflags);
+$ldflags .= " -lmagic";
+my $includes = `pkg-config --cflags-only-I rpm liblzma`;
+my $ccflags = join(' ', '-Wall -Wextra -fno-strict-aliasing', `pkg-config --cflags-only-other rpm liblzma`);
+chomp($ccflags);
 
 print "Found RPM version $version (compiling with flags: $ccflags)\n";
 
@@ -67,8 +61,8 @@ WriteMakefile(
     },
     CCFLAGS	=> $ccflags,
     VERSION_FROM	=> 'URPM.pm',
-    LIBS	=> [ $ldflags ],
-    INC		=> '-I/usr/include/rpm',
-    dist	=> { COMPRESS => "bzip2", SUFFIX => ".bz2" },
+    dynamic_lib	=> { OTHERLDFLAGS => $ldflags },
+    INC		=> $includes,
+    dist	=> { COMPRESS => "xz -f", SUFFIX => ".xz" },
     realclean	=> { FILES => "t/RPMS/noarch/*" },
 );

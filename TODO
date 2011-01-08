@@ -1,0 +1,6 @@
+* downgrade support
+* symlink & parentdir dependencies
+
+* RPM ACID
+** enabler/disabler?
+** bdb transaction log cleaning (ie. using db_archive)

@@ -65,9 +65,7 @@ is($pkg->get_tag(1001), '1.0', 'version');
 is($pkg->get_tag(1002), '1mdk', 'release');
 is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
     q/get headers from hdlist/);
-rpm_is_jbj_version() ?
-  ok($pkg->is_platform_compat() > 0, "can evaluate platform score") :
-  pass('no platform compat');
+ok($pkg->is_platform_compat() > 0, "can evaluate platform score");
 
 my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
 						    dir => 'headers') ] };
@@ -81,11 +79,11 @@ is("$start $end", "2 2", 'parse_headers');
 
 
 # Version comparison
-ok(URPM::rpmvercmp("1-1mdk",     "1-1mdk") ==  0, "Same value = 0");
-ok(URPM::rpmvercmp("0:1-1mdk",   "1-1mdk") ==  -1, "Same value, epoch 0 on left = 1");
-ok(URPM::rpmvercmp("1-1mdk",     "1-2mdk") == -1, "Right value win = -1");
-ok(URPM::rpmvercmp("1-2mdk",     "1-1mdk") ==  1, "Left value win = 1");
-ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
+ok(URPM::rpmEVRcompare("1-1mdk",     "1-1mdk") ==  0, "Same value = 0");
+ok(URPM::rpmEVRcompare("0:1-1mdk",   "1-1mdk") ==  0, "Same value, epoch 0 on left = 0");
+ok(URPM::rpmEVRcompare("1-1mdk",     "1-2mdk") == -1, "Right value win = -1");
+ok(URPM::rpmEVRcompare("1-2mdk",     "1-1mdk") ==  1, "Left value win = 1");
+ok(URPM::rpmEVRcompare("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
 
 {
     open(my $hdfh, "zcat hdlist.cz 2>/dev/null |") or die $!;
@@ -111,9 +109,4 @@ ok(URPM::rpmvercmp("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
     $pkg = URPM::spec2srcheader("bad.spec");
     ok(!defined $pkg, "bad spec");
     END { unlink "bad.spec" }
-}
-
-sub rpm_is_jbj_version {
-    # checking for --yaml support
-    `rpm --help` =~ /yaml/;
 }
