@@ -1,3 +1,8 @@
+Version 4.5 -  9 Jan 2011, by Per Øyvind Karlsen
+
+- ensure that a db environment with config & required directories exists for
+  chroots before opening the rpmdb
+
 Version 4.4 -  6 Jan 2011, by Per Øyvind Karlsen
 
 - check URPM::Transactin::add() for errors and return them if any (#61746)
