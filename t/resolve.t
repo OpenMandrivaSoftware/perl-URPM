@@ -12,7 +12,7 @@ my $db;
 
 END {
     $db = URPM::DB::close($db);
-    system('sh -c "sleep 1; rm -rf tmp" &'); 
+    system("rm -rf tmp"); 
 }
 
 sub solve_check {
