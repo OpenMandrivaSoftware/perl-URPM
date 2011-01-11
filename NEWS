@@ -1,3 +1,7 @@
+Version 4.6 -    Jan 2011,
+
+- add URPM::DB::close()
+
 Version 4.5 -  9 Jan 2011, by Per Øyvind Karlsen
 
 - ensure that a db environment with config & required directories exists for

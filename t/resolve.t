@@ -10,13 +10,8 @@ chdir 't' if -d 't';
 my $urpm;
 my $db;
 
-# There's currently not implemented any way for closing the rpmdb, so we cannot
-# delete it from perl itself, as the rpmdb won't close before perl exists,
-# which will give us errors when trying to close the rpmdb after it's been
-# deleted. Therefore we just fork a shell in the background which deletes it
-# after a 1 sec delay, which should give perl time to exit and close the
-# rpmdb before.
 END {
+    $db = URPM::DB::close($db);
     system('sh -c "sleep 1; rm -rf tmp" &'); 
 }
 

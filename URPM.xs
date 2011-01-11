@@ -2860,6 +2860,14 @@ Db_open(prefix=NULL, write_perm=0)
   RETVAL
 
 int
+Db_close(db)
+  URPM::DB db
+  CODE:
+  RETVAL = rpmdbClose(rpmtsGetRdb(db->ts));
+  OUTPUT:
+  RETVAL
+
+int
 Db_rebuild(prefix=NULL)
   char *prefix
   PREINIT:

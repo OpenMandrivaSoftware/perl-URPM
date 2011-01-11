@@ -439,6 +439,10 @@ any. (See the B<--root> option to rpm(1)).
 $write_perm is a boolean that defaults to false, and that indicates whether
 the RPM DB should be open in read/write mode.
 
+=item close($db)
+
+Closes the C<URPM::DB> object pointing to a local RPM database.
+
 =item rebuild($prefix)
 
 Rebuilds the RPM database (like C<rpm --rebuilddb>). $prefix defaults to C<"">.
