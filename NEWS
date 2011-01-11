@@ -1,5 +1,7 @@
 Version 4.6 -    Jan 2011,
 
+- make URPM::Pkg->filename properly return the filename in synthesis, rather
+  than trying to generate it from NVRA
 - add URPM::DB::close()
 
 Version 4.5 -  9 Jan 2011, by Per Øyvind Karlsen

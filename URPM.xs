@@ -2027,12 +2027,8 @@ Pkg_filename(pkg)
   if (pkg->info) {
     char *eon;
 
-    if ((eon = strchr(pkg->info, '@')) != NULL) {
-	char savbuf[4];
-	memcpy(savbuf, eon, 4); /* there should be at least epoch and size described so (@0@0 minimum) */
-	memcpy(eon, ".rpm", 4);
-	XPUSHs(sv_2mortal(newSVpv(pkg->info, eon-pkg->info+4)));
-	memcpy(eon, savbuf, 4);
+    if ((eon = strrchr(pkg->info, '@')) != NULL) {
+      XPUSHs(sv_2mortal(newSVpv(pkg->info, 0)));
     }
   } else if (pkg->h) {
     const char *nvra = get_nvra(pkg->h);
@@ -2048,8 +2044,8 @@ Pkg_header_filename(pkg)
   if (pkg->info) {
     char *eon;
 
-    if ((eon = strchr(pkg->info, '@')) != NULL) {
-      XPUSHs(sv_2mortal(newSVpv(pkg->info, eon-pkg->info)));
+    if ((eon = strrchr(pkg->info, '@')) != NULL) {
+      XPUSHs(sv_2mortal(newSVpv(pkg->info, 0)));
     }
   } else if (pkg->h) {
     char buff[1024];
