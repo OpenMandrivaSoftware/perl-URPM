@@ -2847,6 +2847,7 @@ Db_open(prefix=NULL, write_perm=0)
 	Fclose(sysDbConf);
       }
     }
+    dbpath = _free(dbpath);
   }
   if (rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0) {
     RETVAL = db;
