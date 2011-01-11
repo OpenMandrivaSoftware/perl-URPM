@@ -2036,26 +2036,6 @@ Pkg_filename(pkg)
     _free(nvra);
   }
 
-# deprecated
-void
-Pkg_header_filename(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->info) {
-    char *eon;
-
-    if ((eon = strrchr(pkg->info, '@')) != NULL) {
-      XPUSHs(sv_2mortal(newSVpv(pkg->info, 0)));
-    }
-  } else if (pkg->h) {
-    char buff[1024];
-    char *p = buff;
-    const char *nvra = get_nvra(pkg->h);
-    p += snprintf(buff, sizeof(buff), "%s", nvra);
-    _free(nvra);
-    XPUSHs(sv_2mortal(newSVpv(buff, p-buff)));
-  }
-
 void
 Pkg_id(pkg)
   URPM::Package pkg
