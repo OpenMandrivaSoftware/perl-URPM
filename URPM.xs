@@ -2026,9 +2026,18 @@ Pkg_filename(pkg)
   PPCODE:
   if (pkg->info) {
     char *eon;
+    size_t len;
 
-    if ((eon = strrchr(pkg->info, '@')) != NULL) {
-      XPUSHs(sv_2mortal(newSVpv(pkg->info, 0)));
+    len = strlen(pkg->info);
+
+    if (len > 5 && !strcmp(&pkg->info[len-4], ".rpm") && (eon = strrchr(pkg->info, '@')) != NULL) {
+      XPUSHs(sv_2mortal(newSVpv(eon, 0)));
+    } else if((eon = strchr(pkg->info, '@')) != NULL && (len = eon - pkg->info) > 0) {
+      char *filename = alloca(len + sizeof(".rpm"));
+      memset(filename, 0, len+sizeof("rpm"));
+      strncat(filename, pkg->info, len);
+      stpcpy(&filename[len], ".rpm");
+      XPUSHs(sv_2mortal(newSVpv(filename, 0)));
     }
   } else if (pkg->h) {
     const char *nvra = get_nvra(pkg->h);

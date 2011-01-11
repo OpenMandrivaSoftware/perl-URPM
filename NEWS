@@ -1,6 +1,6 @@
 Version 4.6 - 11 Jan 2011, by Per Øyvind Karlsen
 
-- drop deprecated URPM::Pkg->header_filename.
+- drop deprecated URPM::Pkg->header_filename
 - make URPM::Pkg->filename properly return the filename in synthesis, rather
   than trying to generate it from NVRA
 - add URPM::DB::close()
