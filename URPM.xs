@@ -2031,7 +2031,7 @@ Pkg_filename(pkg)
     len = strlen(pkg->info);
 
     if (len > 5 && !strcmp(&pkg->info[len-4], ".rpm") && (eon = strrchr(pkg->info, '@')) != NULL) {
-      XPUSHs(sv_2mortal(newSVpv(eon, 0)));
+      XPUSHs(sv_2mortal(newSVpv(++eon, 0)));
     } else if((eon = strchr(pkg->info, '@')) != NULL && (len = eon - pkg->info) > 0) {
       char *filename = alloca(len + sizeof(".rpm"));
       memset(filename, 0, len+sizeof("rpm"));
