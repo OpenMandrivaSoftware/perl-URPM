@@ -1,5 +1,6 @@
 Version 4.6 - 11 Jan 2011, by Per Øyvind Karlsen
 
+- revert missing db environment hack, proper fix has been done in rpm now
 - drop deprecated URPM::Pkg->header_filename
 - make URPM::Pkg->filename properly return the filename in synthesis, rather
   than trying to generate it from NVRA

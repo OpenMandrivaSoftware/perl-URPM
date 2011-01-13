@@ -2810,30 +2810,6 @@ Db_open(prefix=NULL, write_perm=0)
   } else {
     rpmtsSetRootDir(db->ts, prefix && prefix[0] ? prefix : NULL);
   }
-  /* XXX: be sure that we have db environment in place before using it */
-  if(rpmtsRootDir(db->ts)) {
-    dbpath = rpmGenPath(rpmtsRootDir(db->ts), "%{_dbpath}", "log");
-    rpmioMkpath(dbpath, 0755, -1, -1);
-    stpcpy((char*)dbpath+strlen(dbpath)-3, "tmp");
-    rpmioMkpath(dbpath, 0755, -1, -1);
-    dbpath = _free(dbpath);
-    dbpath = rpmGenPath(rpmtsRootDir(db->ts), "%{_dbpath}", "DB_CONFIG");
-    if(Stat(dbpath, &st) < 0) {
-      tmp = dbpath + strlen(rpmtsRootDir(db->ts))-1;
-      if(Stat(tmp, &st) >= 0) {
-	FD_t chrootDbConf = Fopen(dbpath, "w");
-	FD_t sysDbConf = Fopen(tmp, "r");
-	char buf[BUFSIZ];
-	size_t r;
-
-	while((r = Fread(buf, 1, sizeof(buf), sysDbConf)) > 0)
-	  Fwrite(buf, 1, r, chrootDbConf);
-	Fclose(chrootDbConf);
-	Fclose(sysDbConf);
-      }
-    }
-    dbpath = _free(dbpath);
-  }
   if (rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0) {
     RETVAL = db;
   } else {
