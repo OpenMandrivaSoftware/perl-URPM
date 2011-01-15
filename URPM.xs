@@ -114,7 +114,7 @@ unused_variable(const void *p) {
 }
 
 static int
-fsync_nop(int fd) {
+fsync_nop(__attribute__((unused))int fd) {
     return 0;
 }
 
@@ -2798,9 +2798,6 @@ Db_open(prefix=NULL, write_perm=0)
   int write_perm
   PREINIT:
   URPM__DB db;
-  const char *dbpath = NULL;
-  const char *tmp = NULL;
-  struct stat st;
   CODE:
   read_config_files(0);
   db = malloc(sizeof(struct s_Transaction));
