@@ -2904,12 +2904,6 @@ Db_info(prefix=NULL)
   _free(dbpath);
   ts = rpmtsFree(ts);
 
-/* This should be mostly working..
- * TODO:
- * Cleanup
- * Conversion to hash tree
- * Better error checking
- */
 int
 Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   char *prefix
@@ -2922,7 +2916,13 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   const char *dbpath = NULL;
   char *tmppath = NULL;
   CODE:
-  rpmReadConfigFiles(NULL, NULL);
+   /* This should be mostly working..
+   * TODO:
+   * Cleanup
+   * Conversion to hash tree
+   * Better error checking
+   */
+ rpmReadConfigFiles(NULL, NULL);
 
   dbpath = rpmExpand("%{?_dbpath}", NULL);
   tmppath = rpmGetPath("%{?_tmppath}%{!?_tmppath:/var/tmp}/", "rpmdb_convert.XXXXXX", NULL);
@@ -3112,7 +3112,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	    }
 	    if(!Stat(fn, &sb)) {
 	      dest = rpmGetPath(dbpath, dbiTags->str, NULL);
-	      if(!Stat(dest))
+	      if(!Stat(dest, &sb))
 		xx = Unlink(dest);
 	      /* TODO: error checking & move */
 	      xx = Rename(fn, dest);
