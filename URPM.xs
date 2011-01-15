@@ -2882,7 +2882,7 @@ Db_info(prefix=NULL)
 	while ((xx = dbcp->c_get(dbcp, &key, &data, DB_NEXT)) == 0) {
 	  if(!*(uint32_t*)key.data)
 	    continue;
-	  if(*(uint32_t*)key.data > 10000000)
+	  if(htole32(*(uint32_t*)key.data) > 10000000)
 	    XPUSHs(sv_2mortal(newSVpv("bigendian", 0)));
 	  else
 	    XPUSHs(sv_2mortal(newSVpv("littleendian", 0)));
