@@ -1,5 +1,6 @@
 Version 4.7 -    Jan 2011, by Per Øyvind Karlsen
 
+- add URPM::DB::archive() for transaction log cleaning
 - add URPM::DB::convert() for database conversion
 - add URPM::DB::info() to return berkeley db type & endianness
 

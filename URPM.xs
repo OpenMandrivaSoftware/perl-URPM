@@ -3168,6 +3168,37 @@ Db_DESTROY(db)
   (void)rpmtsFree(db->ts);
   if (!--db->count) free(db);
 
+void
+Db_archive(db, remove=0, data=0, log=0, abs=1)
+  URPM::DB db
+  int remove
+  int data
+  int log
+  int abs
+  PREINIT:
+  char **list = NULL;
+  uint32_t flags = 0;
+  PPCODE:
+  if(remove)
+    flags |= DB_ARCH_REMOVE;
+  if(data)
+    flags |= DB_ARCH_DATA;
+  if(log)
+    flags |= DB_ARCH_LOG;
+  if(abs)
+    flags |= DB_ARCH_ABS;
+  if (dbenvNew->log_archive(dbenvNew, &list, flags)) {
+    /* TODO: croak() */
+    dbenvNew->err(dbenvNew, xx, "DB_ENV->log_archive");
+    }
+  else {
+    if(list) {
+      char **p;
+      for(p = list; *p != NULL; p++)
+	  XPUSHs(sv_2mortal(newSVpv(*p, 0)));
+      free(list);
+  }
+
 int
 Db_traverse(db,callback)
   URPM::DB db
