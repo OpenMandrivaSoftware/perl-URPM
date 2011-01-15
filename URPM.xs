@@ -2853,7 +2853,7 @@ Db_info(prefix=NULL)
 
       switch(bdb->type) {
 	case DB_BTREE:
-	  XPUSHs(sv_2mortal(newSVpvf("btree", 0)));
+	  XPUSHs(sv_2mortal(newSVpv("btree", 0)));
 	  break;
 	case DB_RECNO:
 	  XPUSHs(sv_2mortal(newSVpv("recno", 0)));
@@ -2898,7 +2898,6 @@ Db_info(prefix=NULL)
   _free(dbpath);
   ts = rpmtsFree(ts);
 
-  
 int
 Db_rebuild(prefix=NULL)
   char *prefix
