@@ -31,6 +31,7 @@
 #define _RPMEVR_INTERNAL
 #define _RPMPS_INTERNAL
 #define _RPMDB_INTERNAL
+#define _RPMTAG_INTERNAL
 #define WITH_DB
 
 #include <rpmio.h>
@@ -110,6 +111,11 @@ write_nocheck(int fd, const void *buf, size_t count) {
 static const void*
 unused_variable(const void *p) {
   return p;
+}
+
+static int
+fsync_nop(int fd) {
+    return 0;
 }
 
 static int rpmError_callback_data;
@@ -2897,6 +2903,239 @@ Db_info(prefix=NULL)
   }
   _free(dbpath);
   ts = rpmtsFree(ts);
+
+/* This should be mostly working..
+ * TODO:
+ * Cleanup
+ * Conversion to hash tree
+ * Better error checking
+ */
+int
+Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
+  char *prefix
+  char *dbtype
+  int swap  
+  int rebuild
+  PREINIT:
+  rpmts tsCur = NULL;
+  int nofsync = 0, xx;
+  const char *dbpath = NULL;
+  char *tmppath = NULL;
+  CODE:
+  rpmReadConfigFiles(NULL, NULL);
+
+  dbpath = rpmExpand("%{?_dbpath}", NULL);
+  tmppath = rpmGetPath("%{?_tmppath}%{!?_tmppath:/var/tmp}/", "rpmdb_convert.XXXXXX", NULL);
+
+  tsCur = rpmtsCreate();
+  rpmtsSetRootDir(tsCur, prefix && prefix[0] ? prefix : NULL);
+  if(!rpmtsOpenDB(tsCur, O_RDONLY)) {
+    rpmts tsNew = rpmtsCreate();
+    rpmdb rdbNew = NULL;
+    DB_ENV *dbenvNew = NULL;
+    struct stat sb;
+    const char *fn;
+
+    addMacro(NULL, "_dbpath", NULL, mkdtemp(tmppath), -1);
+    rpmtsSetRootDir(tsNew, prefix && prefix[0] ? prefix : NULL);
+    if(!rpmtsOpenDB(tsNew, O_RDWR)) {
+
+      DBC *dbcpCur = NULL, *dbcpNew = NULL;
+      rdbNew = rpmtsGetRdb(tsNew);
+      dbenvNew = rdbNew->db_dbenv;
+      dbiIndex dbiCur = dbiOpen(rpmtsGetRdb(tsCur), RPMDBI_PACKAGES, 0);
+      dbiIndex dbiNew = dbiOpen(rdbNew, RPMDBI_PACKAGES, 0);
+      DB_TXN *txnidNew = dbiTxnid(dbiNew);
+
+      nofsync = dbiNew->dbi_no_fsync;
+      xx = db_env_set_func_fsync(fsync_nop);
+
+      if(!(xx = dbiCopen(dbiCur, NULL, NULL, 0)) && !(xx = dbiCopen(dbiNew, txnidNew, &dbcpNew, DB_WRITECURSOR))) {
+	DBT key, data;
+	DB_TXN *txnidCur = dbiTxnid(dbiCur);
+	uint32_t nkeys = 0;
+
+	memset(&key, 0, sizeof(key));
+	memset(&data, 0, sizeof(data));
+
+	/* Acquire a cursor for the database. */
+	if ((xx = dbiCur->dbi_db->cursor(dbiCur->dbi_db, NULL, &dbcpCur, 0)) != 0) {
+	  dbiCur->dbi_db->err(dbiCur->dbi_db, xx, "DB->cursor");
+	}
+
+	if(!(xx = dbiCur->dbi_db->stat(dbiCur->dbi_db, txnidCur, &dbiCur->dbi_stats, 0))) {
+
+	  switch(dbiCur->dbi_db->type) {
+	    case DB_BTREE:
+	    case DB_RECNO: {
+		DB_BTREE_STAT *db_stat = dbiCur->dbi_stats;
+		nkeys = db_stat->bt_nkeys;
+	      }
+	      break;
+	    case DB_HASH: {
+		DB_HASH_STAT *db_stat = dbiCur->dbi_stats;
+		nkeys = db_stat->hash_nkeys;
+	      }
+	      break;
+	    case DB_QUEUE: {
+		DB_QUEUE_STAT *db_stat = dbiCur->dbi_stats;
+		nkeys = db_stat->qs_nkeys;
+	      }
+	      break;
+	    case DB_UNKNOWN:
+	    default:
+	      xx = -1;
+	      break;
+	  }
+
+
+	  if(!xx) {
+	    uint32_t i = 0;
+	    float pct = 0;
+	    uint8_t tmp;
+	    while ((xx = dbcpCur->c_get(dbcpCur, &key, &data, DB_NEXT)) == 0) {
+	      tmp = pct;
+	      pct = (100*(float)++i/nkeys) + 0.5;
+	      /* TODO: callbacks for status output? */
+	      if(tmp < (int)(pct+0.5)) {
+		fprintf(stdout, "\rconverting berkeley db: %u/%u %d%%", i, nkeys, (int)pct);
+	      }
+	      fflush(stdout);
+	      if(!*(uint32_t*)key.data)
+		continue;
+	      if(swap > 0)
+		*(uint32_t*)key.data = htobe32(*(uint32_t*)key.data);
+	      else if(swap < 0)
+		*(uint32_t*)key.data = htole32(*(uint32_t*)key.data);
+	      xx = dbiNew->dbi_db->put(dbiNew->dbi_db, NULL, &key, &data, 0);
+
+	    }
+	    printf("\n");
+	    if(!(xx = dbiCclose(dbiNew, dbcpNew, 0)) && !(xx = dbiCclose(dbiCur, dbcpCur, 0)) &&
+		rebuild) {
+	      tsCur = rpmtsFree(tsCur);
+
+	      void * lock = rpmtsAcquireLock(tsNew);
+
+	      if(!(xx = rpmtxnCheckpoint(rdbNew))) {
+		size_t dbix;
+		fprintf(stdout, "rebuilding rpmdb:\n");
+		fflush(stdout);
+		for (dbix = 0; dbix < rdbNew->db_ndbi; dbix++) {
+		  tagStore_t dbiTags = &rdbNew->db_tags[dbix];
+
+		  /* Remove configured secondary indices. */
+		  switch (dbiTags->tag) {
+		    case RPMDBI_PACKAGES:
+		    case RPMDBI_AVAILABLE:
+		    case RPMDBI_ADDED:
+		    case RPMDBI_REMOVED:
+		    case RPMDBI_DEPENDS:
+		    case RPMDBI_SEQNO:
+		    case RPMDBI_BTREE:
+		    case RPMDBI_HASH:
+		    case RPMDBI_QUEUE:
+		    case RPMDBI_RECNO:
+
+		      fprintf(stdout, "skipping %s:\t%d%%\n", (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
+			    (int)(100*((float)dbix/rdbNew->db_ndbi)));
+		      continue;
+		      break;
+		    default:
+		      fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/",
+			  (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
+			  NULL);
+		      fprintf(stdout, "%s:\t", fn);
+		      if (!Stat(fn, &sb))
+			xx = Unlink(fn);
+		      fn = _free(fn);
+		      break;
+		  }
+		  /* TODO: signal handler? */
+
+		  /* Open (and re-create) each index. */
+		  (void) dbiOpen(rdbNew, dbiTags->tag, rdbNew->db_flags);
+		  fprintf(stdout, "%d%%\n", (int)(100*((float)dbix/rdbNew->db_ndbi)));
+		  fflush(stdout);
+		}
+	      }
+
+	      /* Unreference header used by associated secondary index callbacks. */
+	      (void) headerFree(rdbNew->db_h);
+	      rdbNew->db_h = NULL;
+
+	      /* Reset the Seqno counter to the maximum primary key */
+	      rpmlog(RPMLOG_DEBUG, "rpmdb: max. primary key %u\n",
+		  (unsigned)rdbNew->db_maxkey);
+	      fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/Seqno", NULL);
+	      if (!Stat(fn, &sb))
+		xx = Unlink(fn);
+	      fprintf(stdout, "%s:\t", fn);
+	      (void) dbiOpen(rdbNew, RPMDBI_SEQNO, rdbNew->db_flags);
+	      fprintf(stdout, "100%%\n");
+
+	      fn = _free(fn);
+
+	      /* Remove no longer required transaction logs */
+	      if(!(xx = rpmtxnCheckpoint(rdbNew))) {
+		char **list = NULL;
+		if ((xx = dbenvNew->log_archive(dbenvNew, &list, DB_ARCH_REMOVE)) != 0) {
+		  dbenvNew->err(dbenvNew, xx, "DB_ENV->log_archive");
+		} else {
+		  /* Reset log sequence numbers to allow for moving to new environment */
+		  if(!(xx = dbenvNew->log_archive(dbenvNew, &list, DB_ARCH_DATA|DB_ARCH_ABS))) {
+		    char **p = list;
+		    for(; *p; p++) {
+		      dbenvNew->lsn_reset(dbenvNew, *p, 0);
+		    }
+		    free(list);
+		  }
+		}
+	      }
+	      xx = rpmtsCloseDB(tsNew);
+	      lock = rpmtsFreeLock(lock);
+	    }
+	  }
+	}
+      }
+      if(!xx && rebuild) {
+	const char *dest = NULL, *fn = NULL;
+	size_t dbix;
+
+	if(!rpmtsOpenDB(tsNew, O_RDONLY)) {
+	  rdbNew = rpmtsGetRdb(tsNew);
+	  for (dbix = 0; dbix < rdbNew->db_ndbi; dbix++) {
+	    tagStore_t dbiTags = &rdbNew->db_tags[dbix];
+	    switch (dbiTags->tag) {
+	      default:
+		fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/", dbiTags->str, NULL);
+	    }
+	    if(!Stat(fn, &sb)) {
+	      dest = rpmGetPath(dbpath, dbiTags->str, NULL);
+	      if(!Stat(dest))
+		xx = Unlink(dest);
+	      /* TODO: error checking & move */
+	      xx = Rename(fn, dest);
+	      fn = _free(fn);
+	    }
+	    dest = _free(dest);
+	  }
+	  xx = rpmtsCloseDB(tsNew);
+	  /* TODO: clean rdbNew->db_home */
+	}
+      }
+    }
+    tsNew = rpmtsFree(tsNew);
+  }
+  tsCur = rpmtsFree(tsCur);
+  addMacro(NULL, "_dbpath", NULL, dbpath, -1);
+  RETVAL = xx == 0;
+  if(!nofsync)
+    xx = db_env_set_func_fsync(fsync);
+  _free(dbpath);
+  _free(tmppath);
+  OUTPUT:
+  RETVAL
 
 int
 Db_rebuild(prefix=NULL)
