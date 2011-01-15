@@ -3178,7 +3178,11 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
   PREINIT:
   char **list = NULL;
   uint32_t flags = 0;
+  int xx;
+  DB_ENV *dbenv;
   PPCODE:
+  dbenv  = rpmtsGetRdb(db->ts)->db_dbenv;
+
   if(remove)
     flags |= DB_ARCH_REMOVE;
   if(data)
@@ -3187,17 +3191,17 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
     flags |= DB_ARCH_LOG;
   if(abs)
     flags |= DB_ARCH_ABS;
-  if (dbenvNew->log_archive(dbenvNew, &list, flags)) {
-    /* TODO: croak() */
-    dbenvNew->err(dbenvNew, xx, "DB_ENV->log_archive");
-    }
-  else {
-    if(list) {
-      char **p;
-      for(p = list; *p != NULL; p++)
+    if (!(xx = dbenv->log_archive(dbenv, &list, flags))) {
+      if(list) {
+	char **p;
+	for(p = list; *p != NULL; p++)
 	  XPUSHs(sv_2mortal(newSVpv(*p, 0)));
-      free(list);
-  }
+	free(list);
+      }
+    } else {
+      /* TODO: croak() */
+      dbenv->err(dbenv, xx, "DB_ENV->log_archive");
+    }
 
 int
 Db_traverse(db,callback)
