@@ -443,6 +443,13 @@ the RPM DB should be open in read/write mode.
 
 Closes the C<URPM::DB> object pointing to a local RPM database.
 
+=item info($prefix)
+
+Return berkeley db type and byte ordering of it in an array (@(type, ordering)).
+If type is unknown, 'array' will be undefined, if database is empty, 'ordering'
+will be undefined.
+If no rpm database is found under $prefix, 0 will be returned.
+
 =item rebuild($prefix)
 
 Rebuilds the RPM database (like C<rpm --rebuilddb>). $prefix defaults to C<"">.

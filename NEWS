@@ -1,3 +1,7 @@
+Version 4.7 -    Jan 2011, by Per Øyvind Karlsen
+
+- add URPM::DB::info() to return berkeley db type & endianness
+
 Version 4.6 - 11 Jan 2011, by Per Øyvind Karlsen
 
 - revert missing db environment hack, proper fix has been done in rpm now
