@@ -2941,7 +2941,6 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 
   dbpath = rpmExpand("%{?_dbpath}", NULL);
   __dbi_txn = rpmExpand("%{__dbi_txn}", NULL);
-  tmppath = rpmGetPath("%{?_tmppath}%{!?_tmppath:/var/tmp}/", "rpmdb_convert.XXXXXX", NULL);
 
   addMacro(NULL, "__dbi_txn", NULL, "create lock mpool txn thread thread_count=64 nofsync", -1);
 
@@ -2954,6 +2953,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
     struct stat sb;
     const char *fn;
 
+    tmppath = rpmGetPath("%{_dbpath}", "/rpmdb_convert.XXXXXX", NULL);
     addMacro(NULL, "_dbpath", NULL, mkdtemp(tmppath), -1);
     rpmtsSetRootDir(tsNew, prefix && prefix[0] ? prefix : NULL);
     if(!rpmtsOpenDB(tsNew, O_RDWR)) {
@@ -3120,7 +3120,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/", dbiTags->str, NULL);
 	    }
 	    if(!Stat(fn, &sb)) {
-	      dest = rpmGetPath(dbpath, dbiTags->str, NULL);
+	      dest = rpmGetPath(dbpath, "/", dbiTags->str, NULL);
 	      if(!Stat(dest, &sb))
 		xx = Unlink(dest);
 	      /* TODO: error checking & move */
