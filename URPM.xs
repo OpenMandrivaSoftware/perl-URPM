@@ -3028,14 +3028,13 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		    case RPMDBI_ADDED:
 		    case RPMDBI_REMOVED:
 		    case RPMDBI_DEPENDS:
-		    case RPMDBI_SEQNO:
 		    case RPMDBI_BTREE:
 		    case RPMDBI_HASH:
 		    case RPMDBI_QUEUE:
 		    case RPMDBI_RECNO:
-
 		      fprintf(stdout, "skipping %s:\t%d%%\n", (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
 			    (int)(100*((float)dbix/rdbNew->db_ndbi)));
+		    case RPMDBI_SEQNO:
 		      continue;
 		      break;
 		    default:
