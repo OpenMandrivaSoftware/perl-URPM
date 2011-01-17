@@ -1587,6 +1587,28 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
   return callback == td->callback_open ? fd : NULL;
 }
 
+static int
+bdb_log_archive(DB_ENV *dbenv, char ***list, uint32_t flags) {
+  int ret;
+  if ((ret = dbenv->log_archive(dbenv, list, flags)) != 0)
+    dbenv->err(dbenv, ret, "DB_ENV->log_archive");
+  return ret;
+}
+
+static int
+bdb_log_lsn_reset(DB_ENV *dbenv) {
+  int ret = 0;
+  char **list = NULL;
+  /* Reset log sequence numbers to allow for moving to new environment */
+  if(!(ret = dbenv->log_archive(dbenv, &list, DB_ARCH_DATA|DB_ARCH_ABS))) {
+    char **p = list;
+    for(; *p; p++)
+      ret += dbenv->lsn_reset(dbenv, *p, 0);
+    _free(list);
+  }
+  return ret;
+}
+
 MODULE = URPM            PACKAGE = URPM::Package       PREFIX = Pkg_
 
 void
@@ -3073,21 +3095,9 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      fn = _free(fn);
 
 	      /* Remove no longer required transaction logs */
-	      if(!(xx = rpmtxnCheckpoint(rdbNew))) {
-		char **list = NULL;
-		if ((xx = dbenvNew->log_archive(dbenvNew, &list, DB_ARCH_REMOVE)) != 0) {
-		  dbenvNew->err(dbenvNew, xx, "DB_ENV->log_archive");
-		} else {
-		  /* Reset log sequence numbers to allow for moving to new environment */
-		  if(!(xx = dbenvNew->log_archive(dbenvNew, &list, DB_ARCH_DATA|DB_ARCH_ABS))) {
-		    char **p = list;
-		    for(; *p; p++) {
-		      dbenvNew->lsn_reset(dbenvNew, *p, 0);
-		    }
-		    free(list);
-		  }
-		}
-	      }
+	      if(!(xx = rpmtxnCheckpoint(rdbNew)))
+		if(!(xx = bdb_log_archive(dbenvNew, NULL, DB_ARCH_REMOVE)))
+		  xx = bdb_log_lsn_reset(dbenvNew);
 	      xx = rpmtsCloseDB(tsNew);
 	      lock = rpmtsFreeLock(lock);
 	    }
@@ -3190,17 +3200,18 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
     flags |= DB_ARCH_LOG;
   if(abs)
     flags |= DB_ARCH_ABS;
-    if (!(xx = dbenv->log_archive(dbenv, &list, flags))) {
-      if(list) {
-	char **p;
-	for(p = list; *p != NULL; p++)
-	  XPUSHs(sv_2mortal(newSVpv(*p, 0)));
-	free(list);
-      }
-    } else {
-      /* TODO: croak() */
-      dbenv->err(dbenv, xx, "DB_ENV->log_archive");
+  if (!(xx = bdb_log_archive(dbenv, &list, flags))) {
+    if(list) {
+      char **p;
+      for(p = list; *p != NULL; p++)
+	XPUSHs(sv_2mortal(newSVpv(*p, 0)));
+      free(list);
     }
+  } else {
+    /* TODO: croak() */
+    //dbenv->err(dbenv, xx, "DB_ENV->log_archive");
+    croak("DB_ENV->log_archive failed");
+  }
 
 int
 Db_traverse(db,callback)
