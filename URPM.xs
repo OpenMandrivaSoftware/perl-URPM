@@ -3030,6 +3030,14 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		rebuild) {
 	      tsCur = rpmtsFree(tsCur);
 
+	      rpmVSFlags vsflags = rpmExpandNumeric("%{_vsflags_rebuilddb}");
+	      rpmVSFlags ovsflags;
+	      if (rpmcliQueryFlags & VERIFY_DIGEST)
+		vsflags |= _RPMVSF_NODIGESTS;
+	      if (rpmcliQueryFlags & VERIFY_SIGNATURE)
+		vsflags |= _RPMVSF_NOSIGNATURES;
+	      ovsflags = rpmtsSetVSFlags(tsNew, vsflags);
+
 	      void * lock = rpmtsAcquireLock(tsNew);
 
 	      if(!(xx = rpmtxnCheckpoint(rdbNew))) {
@@ -3096,6 +3104,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		  xx = bdb_log_lsn_reset(dbenvNew);
 	      xx = rpmtsCloseDB(tsNew);
 	      lock = rpmtsFreeLock(lock);
+	      vsflags = rpmtsSetVSFlags(tsNew, ovsflags);
 	    }
 	  }
 	}
