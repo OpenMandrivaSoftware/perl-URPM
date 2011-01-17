@@ -3141,7 +3141,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  }
 	}
       }
-      if(!xx && rebuild) {
+      if(!xx) {
 	const char *dest = NULL;
 	size_t dbix;
 	
