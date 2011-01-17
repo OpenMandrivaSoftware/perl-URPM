@@ -113,11 +113,6 @@ unused_variable(const void *p) {
   return p;
 }
 
-static int
-fsync_nop(__attribute__((unused))int fd) {
-    return 0;
-}
-
 static int rpmError_callback_data;
 
 static int
@@ -2931,20 +2926,24 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   int rebuild
   PREINIT:
   rpmts tsCur = NULL;
-  int nofsync = 0, xx;
+  int xx;
   const char *dbpath = NULL;
+  const char *__dbi_txn = NULL;
   char *tmppath = NULL;
   CODE:
-   /* This should be mostly working..
+  /* This should be mostly working..
    * TODO:
    * Cleanup
    * Conversion to hash tree
    * Better error checking
    */
- rpmReadConfigFiles(NULL, NULL);
+  rpmReadConfigFiles(NULL, NULL);
 
   dbpath = rpmExpand("%{?_dbpath}", NULL);
+  __dbi_txn = rpmExpand("%{__dbi_txn}", NULL);
   tmppath = rpmGetPath("%{?_tmppath}%{!?_tmppath:/var/tmp}/", "rpmdb_convert.XXXXXX", NULL);
+
+  addMacro(NULL, "__dbi_txn", NULL, "create lock mpool txn thread thread_count=64 nofsync", -1);
 
   tsCur = rpmtsCreate();
   rpmtsSetRootDir(tsCur, prefix && prefix[0] ? prefix : NULL);
@@ -2965,9 +2964,6 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
       dbiIndex dbiCur = dbiOpen(rpmtsGetRdb(tsCur), RPMDBI_PACKAGES, 0);
       dbiIndex dbiNew = dbiOpen(rdbNew, RPMDBI_PACKAGES, 0);
       DB_TXN *txnidNew = dbiTxnid(dbiNew);
-
-      nofsync = dbiNew->dbi_no_fsync;
-      xx = db_env_set_func_fsync(fsync_nop);
 
       if(!(xx = dbiCopen(dbiCur, NULL, NULL, 0)) && !(xx = dbiCopen(dbiNew, txnidNew, &dbcpNew, DB_WRITECURSOR))) {
 	DBT key, data;
@@ -3135,10 +3131,10 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   }
   tsCur = rpmtsFree(tsCur);
   addMacro(NULL, "_dbpath", NULL, dbpath, -1);
+  addMacro(NULL, "__dbi_txn", NULL, __dbi_txn, -1);
   RETVAL = xx == 0;
-  if(!nofsync)
-    xx = db_env_set_func_fsync(fsync);
   _free(dbpath);
+  _free(__dbi_txn);
   _free(tmppath);
   OUTPUT:
   RETVAL
