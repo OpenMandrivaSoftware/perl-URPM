@@ -1599,7 +1599,8 @@ bdb_log_lsn_reset(DB_ENV *dbenv) {
   if(!(ret = dbenv->log_archive(dbenv, &list, DB_ARCH_DATA|DB_ARCH_ABS))) {
     char **p = list;
     for(; *p; p++)
-      ret += dbenv->lsn_reset(dbenv, *p, 0);
+      if(!ret)
+	ret = dbenv->lsn_reset(dbenv, *p, 0);
     _free(list);
   }
   return ret;
@@ -3247,7 +3248,7 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
   PREINIT:
   char **list = NULL;
   uint32_t flags = 0;
-  int xx;
+  int ret;
   DB_ENV *dbenv;
   PPCODE:
   dbenv  = rpmtsGetRdb(db->ts)->db_dbenv;
@@ -3260,7 +3261,7 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
     flags |= DB_ARCH_LOG;
   if(abs)
     flags |= DB_ARCH_ABS;
-  if (!(xx = bdb_log_archive(dbenv, &list, flags))) {
+  if (!(ret = bdb_log_archive(dbenv, &list, flags))) {
     if(list) {
       char **p;
       for(p = list; *p != NULL; p++)
@@ -3269,8 +3270,7 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
     }
   } else {
     /* TODO: croak() */
-    //dbenv->err(dbenv, xx, "DB_ENV->log_archive");
-    croak("DB_ENV->log_archive failed");
+    croak(db_strerror(ret));
   }
 
 int
