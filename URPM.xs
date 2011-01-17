@@ -104,6 +104,12 @@ typedef struct s_Package* URPM__Package;
 #define FILTER_MODE_ALL_FILES     0
 #define FILTER_MODE_CONF_FILES    2
 
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define bswap32(x) htobe32(x)
+#elif __BYTE_ORDER == BIG_ENDIAN
+#define bswap32(x) htole32(x)
+#endif
+
 static ssize_t
 write_nocheck(int fd, const void *buf, size_t count) {
   return write(fd, buf, count);
@@ -3026,6 +3032,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 
 	  if(!xx) {
 	    uint32_t i = 0;
+	    int doswap = -1;
 	    float pct = 0;
 	    uint8_t tmp;
 	    while ((xx = dbcpCur->c_get(dbcpCur, &key, &data, DB_NEXT)) == 0) {
@@ -3038,10 +3045,17 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      fflush(stdout);
 	      if(!*(uint32_t*)key.data)
 		continue;
-	      if(swap > 0)
-		*(uint32_t*)key.data = htobe32(*(uint32_t*)key.data);
-	      else if(swap < 0)
-		*(uint32_t*)key.data = htole32(*(uint32_t*)key.data);
+	      if(__builtin_expect(doswap, 1) < 0) {
+		if((swap > 0 && htobe32(*(uint32_t*)key.data) != *(uint32_t*)key.data) ||
+		    (swap < 0 && htole32(*(uint32_t*)key.data) != *(uint32_t*)key.data))
+		  doswap = 1;
+		else
+		  doswap = 0;
+	      }
+	      if(__builtin_expect(doswap, 1)) {
+		if(swap)
+		  *(uint32_t*)key.data = bswap32(*(uint32_t*)key.data);
+	      }
 	      xx = dbiNew->dbi_db->put(dbiNew->dbi_db, NULL, &key, &data, 0);
 
 	    }
@@ -3206,7 +3220,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   tsCur = rpmtsFree(tsCur);
   addMacro(NULL, "_dbpath", NULL, dbpath, -1);
   addMacro(NULL, "__dbi_txn", NULL, __dbi_txn, -1);
-  addMacro(NULL, "_dbi_Tags", NULL, _dbi_Tags, -1);
+  addMacro(NULL, "_dbi_tags", NULL, _dbi_tags, -1);
   addMacro(NULL, "_dbi_config", NULL, _dbi_config, -1);
   addMacro(NULL, "_dbi_config_Packages", NULL, _dbi_config_Packages, -1);
 
