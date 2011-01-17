@@ -3013,7 +3013,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      pct = (100*(float)++i/nkeys) + 0.5;
 	      /* TODO: callbacks for status output? */
 	      if(tmp < (int)(pct+0.5)) {
-		fprintf(stdout, "\rconverting berkeley db: %u/%u %d%%", i, nkeys, (int)pct);
+		fprintf(stdout, "\rconverting %s%s/Packages: %u/%u %d%%", prefix && prefix[0] ? prefix : "", tmppath, i, nkeys, (int)pct);
 	      }
 	      fflush(stdout);
 	      if(!*(uint32_t*)key.data)
@@ -3041,7 +3041,6 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 
 		  /* Remove configured secondary indices. */
 		  switch (dbiTags->tag) {
-		    case RPMDBI_PACKAGES:
 		    case RPMDBI_AVAILABLE:
 		    case RPMDBI_ADDED:
 		    case RPMDBI_REMOVED:
@@ -3052,6 +3051,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		    case RPMDBI_RECNO:
 		      fprintf(stdout, "skipping %s:\t%d%%\n", (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
 			    (int)(100*((float)dbix/rdbNew->db_ndbi)));
+		    case RPMDBI_PACKAGES:
 		    case RPMDBI_SEQNO:
 		      continue;
 		      break;
