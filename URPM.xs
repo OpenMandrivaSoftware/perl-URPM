@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <libintl.h>
+#include <glob.h>
 
 #undef Fflush
 #undef Mkdir
@@ -2926,10 +2927,12 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   int rebuild
   PREINIT:
   rpmts tsCur = NULL;
-  int xx;
+  int xx, i;
   const char *dbpath = NULL;
   const char *__dbi_txn = NULL;
+  const char *fn = NULL;
   char *tmppath = NULL;
+  glob_t gl = { .gl_pathc = 0, .gl_pathv = NULL, .gl_offs = 0 };
   CODE:
   /* This should be mostly working..
    * TODO:
@@ -2944,6 +2947,15 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 
   addMacro(NULL, "__dbi_txn", NULL, "create lock mpool txn thread thread_count=64 nofsync", -1);
 
+  /* (ugly) clear any existing locks */
+  fn = rpmGetPath(prefix[0] ? prefix : "", dbpath, "/", "__db.*", NULL);
+  xx = Glob(fn, 0, NULL, &gl);
+  for (i = 0; i < (int)gl.gl_pathc; i++) {
+    xx = Unlink(gl.gl_pathv[i]);
+  }
+  fn = _free(fn);
+  Globfree(&gl);
+
   tsCur = rpmtsCreate();
   rpmtsSetRootDir(tsCur, prefix && prefix[0] ? prefix : NULL);
   if(!rpmtsOpenDB(tsCur, O_RDONLY)) {
@@ -2951,7 +2963,6 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
     rpmdb rdbNew = NULL;
     DB_ENV *dbenvNew = NULL;
     struct stat sb;
-    const char *fn;
 
     tmppath = rpmGetPath("%{_dbpath}", "/rpmdb_convert.XXXXXX", NULL);
     addMacro(NULL, "_dbpath", NULL, mkdtemp(tmppath), -1);
@@ -3028,7 +3039,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	    printf("\n");
 	    if(!(xx = dbiCclose(dbiNew, dbcpNew, 0)) && !(xx = dbiCclose(dbiCur, dbcpCur, 0)) &&
 		rebuild) {
-	      tsCur = rpmtsFree(tsCur);
+	      xx = rpmtsCloseDB(tsCur);
 
 	      rpmVSFlags vsflags = rpmExpandNumeric("%{_vsflags_rebuilddb}");
 	      if (rpmcliQueryFlags & VERIFY_DIGEST)
@@ -3107,10 +3118,10 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  }
 	}
       }
-      if(!xx && rebuild) {
-	const char *dest = NULL, *fn = NULL;
+      if(!xx) {
+	const char *dest = NULL;
 	size_t dbix;
-
+	
 	if(!rpmtsOpenDB(tsNew, O_RDONLY)) {
 	  rdbNew = rpmtsGetRdb(tsNew);
 	  for (dbix = 0; dbix < rdbNew->db_ndbi; dbix++) {
@@ -3120,17 +3131,55 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/", dbiTags->str, NULL);
 	    }
 	    if(!Stat(fn, &sb)) {
-	      dest = rpmGetPath(dbpath, "/", dbiTags->str, NULL);
+	      dest = rpmGetPath(rdbNew->db_root, dbpath, "/", dbiTags->str, NULL);
 	      if(!Stat(dest, &sb))
 		xx = Unlink(dest);
-	      /* TODO: error checking & move */
 	      xx = Rename(fn, dest);
 	      fn = _free(fn);
 	    }
 	    dest = _free(dest);
 	  }
+	  dest = rpmGetPath(rdbNew->db_root, NULL);
 	  xx = rpmtsCloseDB(tsNew);
-	  /* TODO: clean rdbNew->db_home */
+
+	  /* (ugly) cleanup */
+	  fn = rpmGetPath(dest, tmppath, "/", "*", NULL);
+	  xx = Glob(fn, 0, NULL, &gl);
+	  for (i = 0; i < (int)gl.gl_pathc; i++)
+	    xx = Unlink(gl.gl_pathv[i]);
+	  fn = _free(fn);
+	  Globfree(&gl);
+
+	  fn = rpmGetPath(dest, dbpath, "/log/", "*", NULL);
+	  xx = Glob(fn, 0, NULL, &gl);
+	  for (i = 0; i < (int)gl.gl_pathc; i++)
+	    xx = Unlink(gl.gl_pathv[i]);
+	  fn = _free(fn);
+	  Globfree(&gl);
+
+	  fn = rpmGetPath(dest, dbpath, "/tmp/", "*", NULL);
+	  xx = Glob(fn, 0, NULL, &gl);
+	  for (i = 0; i < (int)gl.gl_pathc; i++)
+	    xx = Unlink(gl.gl_pathv[i]);
+	  fn = _free(fn);
+	  Globfree(&gl);
+
+	  /* clear any existing locks */
+	  fn = rpmGetPath(prefix[0] ? prefix : "", dbpath, "/", "__db.*", NULL);
+	  xx = Glob(fn, 0, NULL, &gl);
+	  for (i = 0; i < (int)gl.gl_pathc; i++) {
+	    xx = Unlink(gl.gl_pathv[i]);
+	  }
+	  fn = _free(fn);
+	  Globfree(&gl);
+
+	  fn = rpmGetPath(dest, tmppath, NULL);
+	  xx = Rmdir(fn);
+	  fn = _free(fn);
+	  if(!Stat(tmppath, &sb))
+	    Rmdir(tmppath);
+
+	  _free(dest);
 	}
       }
     }
