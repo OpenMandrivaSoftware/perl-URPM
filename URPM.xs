@@ -3161,7 +3161,7 @@ Db_rebuild(prefix=NULL)
   if (rpmcliQueryFlags & VERIFY_SIGNATURE)
     vsflags |= _RPMVSF_NOSIGNATURES;
 
-  rpmtsSetVSFlags(tsNew, vsflags);
+  rpmtsSetVSFlags(ts, vsflags);
   rpmtsSetRootDir(ts, prefix);
   RETVAL = rpmtsRebuildDB(ts) == 0;
   (void)rpmtsFree(ts);
