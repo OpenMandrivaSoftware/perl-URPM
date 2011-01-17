@@ -3165,7 +3165,17 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  fn = _free(fn);
 	  Globfree(&gl);
 
-	  /* clear any existing locks */
+	  /* remove indices no longer used */
+	  fn = rpmGetPath(dest, dbpath, "Provideversion", NULL);
+	  if(!Stat(fn, &sb))
+	    xx = Unlink(fn);
+	  fn = _free(fn);
+ 	  fn = rpmGetPath(dest, dbpath, "Requireversion", NULL);
+	  if(!Stat(fn, &sb))
+	    xx = Unlink(fn);
+	  fn = _free(fn);
+
+	  /* clear locks */
 	  fn = rpmGetPath(prefix[0] ? prefix : "", dbpath, "/", "__db.*", NULL);
 	  xx = Glob(fn, 0, NULL, &gl);
 	  for (i = 0; i < (int)gl.gl_pathc; i++) {
