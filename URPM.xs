@@ -2931,6 +2931,9 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   int xx, i;
   const char *dbpath = NULL;
   const char *__dbi_txn = NULL;
+  const char *_dbi_tags = NULL;
+  const char *_dbi_config = NULL;
+  const char *_dbi_config_Packages = NULL;
   const char *fn = NULL;
   char *tmppath = NULL;
   glob_t gl = { .gl_pathc = 0, .gl_pathv = NULL, .gl_offs = 0 };
@@ -2938,28 +2941,34 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   /* This should be mostly working..
    * TODO:
    * Cleanup
-   * Conversion to hash tree
    * Better error checking
    */
   rpmReadConfigFiles(NULL, NULL);
 
   dbpath = rpmExpand("%{?_dbpath}", NULL);
   __dbi_txn = rpmExpand("%{__dbi_txn}", NULL);
-
-  addMacro(NULL, "__dbi_txn", NULL, "create lock mpool txn thread thread_count=64 nofsync", -1);
+  _dbi_tags = rpmExpand("%{_dbi_Tags}", NULL);
+  _dbi_config = rpmExpand("%{_dbi_config}", NULL);
+  _dbi_config_Packages = rpmExpand("%{_dbi_config_Packages}", NULL);
+  addMacro(NULL, "__dbi_txn", NULL, "create mpool txn thread thread_count=64 nofsync", -1);
 
   /* (ugly) clear any existing locks */
   fn = rpmGetPath(prefix[0] ? prefix : "", dbpath, "/", "__db.*", NULL);
   xx = Glob(fn, 0, NULL, &gl);
-  for (i = 0; i < (int)gl.gl_pathc; i++) {
+  for (i = 0; i < (int)gl.gl_pathc; i++)
     xx = Unlink(gl.gl_pathv[i]);
-  }
   fn = _free(fn);
   Globfree(&gl);
 
   tsCur = rpmtsCreate();
   rpmtsSetRootDir(tsCur, prefix && prefix[0] ? prefix : NULL);
   if(!rpmtsOpenDB(tsCur, O_RDONLY)) {
+    if(dbtype && !strcmp(dbtype, "hash")) {
+      addMacro(NULL, "_dbi_tags", NULL, "Packages:Name:Basenames:Group:Requirename:Providename:Conflictname:Triggername:Dirnames:Requireversion:Provideversion:Installtid:Sigmd5:Sha1header:Filedigests:Depends:Pubkeys", -1);
+      addMacro(NULL, "_dbi_config", NULL, "%{_dbi_htconfig}", -1);
+      addMacro(NULL, "_dbi_config_Packages", NULL, "%{_dbi_htconfig} lockdbfd", -1);
+    }
+
     rpmts tsNew = rpmtsCreate();
     rpmdb rdbNew = NULL;
     DB_ENV *dbenvNew = NULL;
@@ -2969,7 +2978,6 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
     addMacro(NULL, "_dbpath", NULL, mkdtemp(tmppath), -1);
     rpmtsSetRootDir(tsNew, prefix && prefix[0] ? prefix : NULL);
     if(!rpmtsOpenDB(tsNew, O_RDWR)) {
-
       DBC *dbcpCur = NULL, *dbcpNew = NULL;
       rdbNew = rpmtsGetRdb(tsNew);
       dbenvNew = rdbNew->db_dbenv;
@@ -3119,7 +3127,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  }
 	}
       }
-      if(!xx) {
+      if(!xx && rebuild) {
 	const char *dest = NULL;
 	size_t dbix;
 	
@@ -3178,9 +3186,8 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  /* clear locks */
 	  fn = rpmGetPath(prefix[0] ? prefix : "", dbpath, "/", "__db.*", NULL);
 	  xx = Glob(fn, 0, NULL, &gl);
-	  for (i = 0; i < (int)gl.gl_pathc; i++) {
+	  for (i = 0; i < (int)gl.gl_pathc; i++)
 	    xx = Unlink(gl.gl_pathv[i]);
-	  }
 	  fn = _free(fn);
 	  Globfree(&gl);
 
@@ -3199,6 +3206,10 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   tsCur = rpmtsFree(tsCur);
   addMacro(NULL, "_dbpath", NULL, dbpath, -1);
   addMacro(NULL, "__dbi_txn", NULL, __dbi_txn, -1);
+  addMacro(NULL, "_dbi_Tags", NULL, _dbi_Tags, -1);
+  addMacro(NULL, "_dbi_config", NULL, _dbi_config, -1);
+  addMacro(NULL, "_dbi_config_Packages", NULL, _dbi_config_Packages, -1);
+
   RETVAL = xx == 0;
   _free(dbpath);
   _free(__dbi_txn);
