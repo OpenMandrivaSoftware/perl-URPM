@@ -2862,7 +2862,7 @@ void
 Db_info(prefix=NULL)
   char *prefix
   PREINIT:
-  rpmts ts;
+  rpmts ts = NULL;
   int xx, empty = 1;
   const char *dbpath = NULL;
   struct stat sb;
@@ -2922,9 +2922,9 @@ Db_info(prefix=NULL)
 	XPUSHs(&PL_sv_undef);
       xx = dbiCclose(dbi, dbcp, 0);
     }
+    ts = rpmtsFree(ts);
   }
   _free(dbpath);
-  ts = rpmtsFree(ts);
 
 int
 Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
