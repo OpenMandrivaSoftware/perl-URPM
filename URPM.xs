@@ -2953,7 +2953,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 
   dbpath = rpmExpand("%{?_dbpath}", NULL);
   __dbi_txn = rpmExpand("%{__dbi_txn}", NULL);
-  _dbi_tags = rpmExpand("%{_dbi_Tags}", NULL);
+  _dbi_tags = rpmExpand("%{_dbi_tags}", NULL);
   _dbi_config = rpmExpand("%{_dbi_config}", NULL);
   _dbi_config_Packages = rpmExpand("%{_dbi_config_Packages}", NULL);
   addMacro(NULL, "__dbi_txn", NULL, "create mpool txn thread thread_count=64 nofsync", -1);
