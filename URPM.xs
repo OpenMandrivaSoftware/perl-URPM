@@ -3046,8 +3046,8 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      if(!*(uint32_t*)key.data)
 		continue;
 	      if(__builtin_expect(doswap, 1) < 0) {
-		if((swap > 0 && htobe32(*(uint32_t*)key.data) != *(uint32_t*)key.data) ||
-		    (swap < 0 && htole32(*(uint32_t*)key.data) != *(uint32_t*)key.data))
+		if((htole32(*(uint32_t*)key.data) > 10000000 && swap < 0) ||
+		    (htole32(*(uint32_t*)key.data) < 10000000 && swap > 0))
 		  doswap = 1;
 		else
 		  doswap = 0;
