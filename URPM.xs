@@ -2981,7 +2981,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
     struct stat sb;
 
     tmppath = rpmGetPath("%{_dbpath}", "/rpmdb_convert.XXXXXX", NULL);
-    addMacro(NULL, "_dbpath", NULL, mkdtemp(tmppath), -1);
+    addMacro(NULL, "_dbpath", NULL, tmpnam(tmppath), -1);
     rpmtsSetRootDir(tsNew, prefix && prefix[0] ? prefix : NULL);
     if(!rpmtsOpenDB(tsNew, O_RDWR)) {
       DBC *dbcpCur = NULL, *dbcpNew = NULL;
