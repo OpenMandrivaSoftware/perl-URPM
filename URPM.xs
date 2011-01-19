@@ -3042,7 +3042,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      pct = (100*(float)++i/nkeys) + 0.5;
 	      /* TODO: callbacks for status output? */
 	      if(tmp < (int)(pct+0.5)) {
-		fprintf(stdout, "\rconverting %s%s/Packages: %u/%u %d%%", prefix && prefix[0] ? prefix : "", tmppath, i, nkeys, (int)pct);
+		fprintf(stderr, "\rconverting %s%s/Packages: %u/%u %d%%", prefix && prefix[0] ? prefix : "", tmppath, i, nkeys, (int)pct);
 	      }
 	      fflush(stdout);
 	      if(!*(uint32_t*)key.data)
@@ -3077,7 +3077,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 
 	      if(!(xx = rpmtxnCheckpoint(rdbNew))) {
 		size_t dbix;
-		fprintf(stdout, "rebuilding rpmdb:\n");
+		fprintf(stderr, "rebuilding rpmdb:\n");
 		fflush(stdout);
 		for (dbix = 0; dbix < rdbNew->db_ndbi; dbix++) {
 		  tagStore_t dbiTags = &rdbNew->db_tags[dbix];
@@ -3092,7 +3092,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		    case RPMDBI_HASH:
 		    case RPMDBI_QUEUE:
 		    case RPMDBI_RECNO:
-		      fprintf(stdout, "skipping %s:\t%d%%\n", (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
+		      fprintf(stderr, "skipping %s:\t%d%%\n", (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
 			    (int)(100*((float)dbix/rdbNew->db_ndbi)));
 		    case RPMDBI_PACKAGES:
 		    case RPMDBI_SEQNO:
@@ -3102,7 +3102,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		      fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/",
 			  (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
 			  NULL);
-		      fprintf(stdout, "%s:\t", fn);
+		      fprintf(stderr, "%s:\t", fn);
 		      if (!Stat(fn, &sb))
 			xx = Unlink(fn);
 		      fn = _free(fn);
@@ -3112,7 +3112,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 
 		  /* Open (and re-create) each index. */
 		  (void) dbiOpen(rdbNew, dbiTags->tag, rdbNew->db_flags);
-		  fprintf(stdout, "%d%%\n", (int)(100*((float)dbix/rdbNew->db_ndbi)));
+		  fprintf(stderr, "%d%%\n", (int)(100*((float)dbix/rdbNew->db_ndbi)));
 		  fflush(stdout);
 		}
 	      }
@@ -3127,9 +3127,9 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/Seqno", NULL);
 	      if (!Stat(fn, &sb))
 		xx = Unlink(fn);
-	      fprintf(stdout, "%s:\t", fn);
+	      fprintf(stderr, "%s:\t", fn);
 	      (void) dbiOpen(rdbNew, RPMDBI_SEQNO, rdbNew->db_flags);
-	      fprintf(stdout, "100%%\n");
+	      fprintf(stderr, "100%%\n");
 
 	      fn = _free(fn);
 
