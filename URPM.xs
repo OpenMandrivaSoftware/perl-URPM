@@ -3306,7 +3306,7 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
     }
   } else {
     /* TODO: croak() */
-    croak(db_strerror(ret));
+    croak("%s", db_strerror(ret));
   }
 
 int
