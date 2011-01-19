@@ -2941,7 +2941,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
   const char *_dbi_config = NULL;
   const char *_dbi_config_Packages = NULL;
   const char *fn = NULL;
-  char *tmppath = NULL;
+  const char *tmppath = NULL;
   glob_t gl = { .gl_pathc = 0, .gl_pathv = NULL, .gl_offs = 0 };
   CODE:
   /* This should be mostly working..
@@ -2980,8 +2980,10 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
     DB_ENV *dbenvNew = NULL;
     struct stat sb;
 
-    tmppath = rpmGetPath("%{_dbpath}", "/rpmdb_convert.XXXXXX", NULL);
-    addMacro(NULL, "_dbpath", NULL, tmpnam(tmppath), -1);
+    fn = rpmGetPath("%{_dbpath}", NULL);
+    tmppath = tempnam(fn, "rpmdb_convert.XXXXXX");
+    fn = _free(fn);
+    addMacro(NULL, "_dbpath", NULL, tmppath, -1);
     rpmtsSetRootDir(tsNew, prefix && prefix[0] ? prefix : NULL);
     if(!rpmtsOpenDB(tsNew, O_RDWR)) {
       DBC *dbcpCur = NULL, *dbcpNew = NULL;
