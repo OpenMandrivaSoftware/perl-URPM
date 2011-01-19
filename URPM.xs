@@ -3208,8 +3208,6 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  fn = rpmGetPath(dest, tmppath, NULL);
 	  xx = Rmdir(fn);
 	  fn = _free(fn);
-	  if(!Stat(tmppath, &sb))
-	    Rmdir(tmppath);
 
 	  _free(dest);
 	}
