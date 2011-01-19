@@ -2949,6 +2949,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
    * Cleanup
    * Better error checking
    */
+  unsetenv("TMPDIR");
   rpmReadConfigFiles(NULL, NULL);
 
   dbpath = rpmExpand("%{?_dbpath}", NULL);
