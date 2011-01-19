@@ -2,8 +2,18 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 7;
+use Test::More tests => 15;
+use File::Copy qw (copy);
+use File::Path qw (make_path remove_tree);
+use Cwd qw (abs_path);
 use URPM;
+
+my $db;
+
+END {
+    $db = URPM::DB::close($db);
+    remove_tree("tmp"); 
+}
 
 my ($count, @all_pkgs_extern, @all_pkgs);
 my ($pkg_perl, $count_perl, $pkg_perl_extern);
@@ -44,3 +54,35 @@ foreach (0..$#all_pkgs_sorted) {
     ++$bad_pkgs;
 }
 is($bad_pkgs, 0, 'no mismatch between package lists');
+
+my $tmp = abs_path("t/res/tmp");
+my $tmpdbpath = $tmp . URPM::expand("%{_dbpath}");
+my $rpmdb_btreebig = abs_path("t/res/rpmdb_btreebig");
+my $rpmdb_hashlittle = abs_path("t/res/rpmdb_hashlittle");
+my @btreebig = ("btree", "bigendian");
+my @hashlittle = ("hash", "littleendian");
+
+remove_tree($tmp);
+make_path($tmpdbpath);
+copy("$rpmdb_btreebig/Packages", "$tmpdbpath/Packages");
+my @check = URPM::DB::info($tmp);
+is_deeply(\@check, \@btreebig, "checking rpmdb (btree, big endian) type & ordering ok");
+ok(URPM::DB::convert($tmp, "hash", -1, 0), "converting to hash, little endian ordering");
+@check = URPM::DB::info($tmp);
+is_deeply(\@check, \@hashlittle, "conversion to hash, little endian");
+
+remove_tree($tmp);
+make_path($tmpdbpath);
+copy("$rpmdb_hashlittle/Packages", "$tmpdbpath/Packages");
+@check = URPM::DB::info($tmp);
+is_deeply(\@check, \@hashlittle, "checking rpmdb (hash, little endian) type & ordering ok");
+ok(URPM::DB::convert($tmp, "btree", 1, 1), "converting to hash, little endian ordering");
+@check = URPM::DB::info($tmp);
+is_deeply(\@check, \@btreebig, "conversion to btree, big endian");
+
+ok($db = URPM::DB::open($tmp), 'newly converted DB opened');
+$db->traverse_tag("name", ["null-dummy"], sub {
+	my ($pkg) = @_;
+	is($pkg->name, "null-dummy", "querying newly converted DB");
+    });
+

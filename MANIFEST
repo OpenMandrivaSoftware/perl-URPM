@@ -19,5 +19,7 @@ t/rpmdb.t
 t/sort_graph.t
 t/synthesis.t
 t/test-rpm.spec
+t/res/rpmdb_btreebig/Packages
+t/res/rpmdb_hashlittle/Packages
 ChangeLog
 META.yml                                 Module meta-data (added by MakeMaker)
