@@ -1,5 +1,7 @@
-Version 4.7 -    Jan 2011, by Per Øyvind Karlsen
+Version 4.7 - 19 Jan 2011, by Per Øyvind Karlsen
 
+- work around package removal issue, resulting in "error: Invalid number of
+  transaction elements." when using urpme on packages with distepoch.
 - add URPM::DB::archive() for transaction log cleaning
 - add URPM::DB::convert() for database conversion
 - add URPM::DB::info() to return berkeley db type & endianness
