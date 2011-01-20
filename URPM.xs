@@ -3152,10 +3152,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  rdbNew = rpmtsGetRdb(tsNew);
 	  for (dbix = 0; dbix < rdbNew->db_ndbi; dbix++) {
 	    tagStore_t dbiTags = &rdbNew->db_tags[dbix];
-	    switch (dbiTags->tag) {
-	      default:
-		fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/", dbiTags->str, NULL);
-	    }
+	    fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/", dbiTags->str, NULL);
 	    dest = rpmGetPath(rdbNew->db_root, dbpath, "/", dbiTags->str, NULL);
 	    if(!Stat(dest, &sb))
 	      xx = Unlink(dest);
