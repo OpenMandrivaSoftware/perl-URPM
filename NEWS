@@ -1,3 +1,7 @@
+Version 4.8 -    Jan 2011, by Per Øyvind Karlsen
+
+- remove all indices for old rpmdb after conversion also when not doing rebuild
+
 Version 4.7 - 19 Jan 2011, by Per Øyvind Karlsen
 
 - work around package removal issue, resulting in "error: Invalid number of

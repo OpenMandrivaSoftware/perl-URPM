@@ -3156,10 +3156,10 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      default:
 		fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/", dbiTags->str, NULL);
 	    }
+	    dest = rpmGetPath(rdbNew->db_root, dbpath, "/", dbiTags->str, NULL);
+	    if(!Stat(dest, &sb))
+	      xx = Unlink(dest);
 	    if(!Stat(fn, &sb)) {
-	      dest = rpmGetPath(rdbNew->db_root, dbpath, "/", dbiTags->str, NULL);
-	      if(!Stat(dest, &sb))
-		xx = Unlink(dest);
 	      xx = Rename(fn, dest);
 	      fn = _free(fn);
 	    }
