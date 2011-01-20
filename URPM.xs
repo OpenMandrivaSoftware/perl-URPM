@@ -3161,8 +3161,8 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      xx = Unlink(dest);
 	    if(!Stat(fn, &sb)) {
 	      xx = Rename(fn, dest);
-	      fn = _free(fn);
 	    }
+	    fn = _free(fn);
 	    dest = _free(dest);
 	  }
 	  dest = rpmGetPath(rdbNew->db_root, NULL);
