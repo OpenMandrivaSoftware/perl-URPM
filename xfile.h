@@ -93,7 +93,9 @@ static xFile xOpen(const char *path) {
     cookie = magic_open(MAGIC_NONE);
     if(!magic_load(cookie, NULL)) {
 	message = magic_file(cookie, path);
-	if(strstr(message, "gzip compressed"))
+	if(message == NULL)
+	    xF.type = XF_FAIL;
+	else if(strstr(message, "gzip compressed"))
 	    xF.type = XF_GZIP;
 	else if(strstr(message, "xz compressed"))
 	    xF.type = XF_XZ;

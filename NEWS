@@ -1,4 +1,7 @@
 Version 4.8 - 21 Jan 2011, by Per Øyvind Karlsen
+
+- fix a bug causing segfault when trying open a non-existing segfault which
+  for some reaallly odd reason didn't get triggered before now
 - remove a last couple of remaining leftovers after db conversion
 - really include the workaround for removal issue that was accidentally omitted
   in the previous release
