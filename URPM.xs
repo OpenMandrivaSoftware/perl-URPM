@@ -3180,6 +3180,13 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  fn = _free(fn);
 	  Globfree(&gl);
 
+	  fn = rpmGetPath(dest, tmppath, "/log/", "*", NULL);
+	  xx = Glob(fn, 0, NULL, &gl);
+	  for (i = 0; i < (int)gl.gl_pathc; i++)
+	    xx = Unlink(gl.gl_pathv[i]);
+	  fn = _free(fn);
+	  Globfree(&gl);
+
 	  fn = rpmGetPath(dest, dbpath, "/tmp/", "*", NULL);
 	  xx = Glob(fn, 0, NULL, &gl);
 	  for (i = 0; i < (int)gl.gl_pathc; i++)
@@ -3205,6 +3212,9 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	  fn = _free(fn);
 	  Globfree(&gl);
 
+	  fn = rpmGetPath(dest, tmppath, "/log", NULL);
+	  xx = Rmdir(fn);
+	  fn = _free(fn);
 	  fn = rpmGetPath(dest, tmppath, NULL);
 	  xx = Rmdir(fn);
 	  fn = _free(fn);

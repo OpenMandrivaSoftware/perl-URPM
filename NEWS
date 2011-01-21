@@ -1,5 +1,5 @@
 Version 4.8 - 21 Jan 2011, by Per Øyvind Karlsen
-
+- remove a last couple of remaining leftovers after db conversion
 - really include the workaround for removal issue that was accidentally omitted
   in the previous release
 - remove all indices for old rpmdb after conversion also when not doing rebuild
