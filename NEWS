@@ -1,5 +1,7 @@
-Version 4.8 -    Jan 2011, by Per Øyvind Karlsen
+Version 4.8 - 21 Jan 2011, by Per Øyvind Karlsen
 
+- really include the workaround for removal issue that was accidentally omitted
+  in the previous release
 - remove all indices for old rpmdb after conversion also when not doing rebuild
 
 Version 4.7 - 19 Jan 2011, by Per Øyvind Karlsen
