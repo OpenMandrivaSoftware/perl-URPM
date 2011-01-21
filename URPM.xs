@@ -340,7 +340,7 @@ get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **versi
 	  if ((_distepoch = strchr(strrchr(pkg->provides, '-'), ':')) != NULL) {
 	    if ((tmp = strrchr(++_distepoch, ']'))) {
 	      backup_char(tmp);
-	      if ((tmp = strstr(pkg->info, _distepoch)))
+	      if ((tmp = strrchr(pkg->info, '-')) && ((tmp2 = strstr(tmp, _distepoch))))
 		backup_char(tmp);
 	      else {
 		/* If synthesis is generated with older versions, disttag & distepoch will
@@ -361,7 +361,7 @@ get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **versi
 	  if (disttag != NULL || release != NULL || version != NULL || name != NULL) {
 	    if (_disttag == NULL) {
 	      /* XXX: re-verify this logic, see comment above.. */
-	      if ((_disttag = strrchr(pkg->info, '-')) != NULL && (strstr(pkg->provides, _disttag)) == NULL) {
+	      if ((_disttag = tmp2) != NULL && (strstr(pkg->provides, _disttag)) == NULL) {
 		backup_char(_disttag++);
 	      } else _disttag = NULL;
 	    }
