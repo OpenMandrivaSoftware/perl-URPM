@@ -302,8 +302,8 @@ static const char *
 get_evr(URPM__Package pkg) {
     const char *evr = NULL;
     if(pkg->provides) {
-      evr = strrchr(pkg->provides, ' ')+1;
-      char *tmp = strrchr(evr, ']');
+      evr = strchr(pkg->provides, ' ')+1;
+      char *tmp = strchr(evr, ']');
       if(tmp)
        backup_char(tmp);
     } else if(pkg->h) {
