@@ -76,7 +76,7 @@ make_path($tmpdbpath);
 copy("$rpmdb_hashlittle/Packages", "$tmpdbpath/Packages");
 @check = URPM::DB::info($tmp);
 is_deeply(\@check, \@hashlittle, "checking rpmdb (hash, little endian) type & ordering ok");
-ok(URPM::DB::convert($tmp, "btree", 1, 1), "converting to hash, little endian ordering");
+ok(URPM::DB::convert($tmp, "btree", 1, 1), "converting to btree, big endian ordering");
 @check = URPM::DB::info($tmp);
 is_deeply(\@check, \@btreebig, "conversion to btree, big endian");
 
