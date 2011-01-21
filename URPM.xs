@@ -840,6 +840,13 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
       case RPMTAG_SUMMARY:
 	XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
 	break;
+      /* fix to match %{___NVRA} later... */
+      case RPMTAG_NVRA:
+	{
+	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  XPUSHs(sv_2mortal(newSVpvf("%s-%s-%s.%s", name, version, release, arch)));
+	}
+	break;
       default:
 	croak("unexpected tag");
 	break;

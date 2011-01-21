@@ -1,3 +1,8 @@
+Version 4.9 - 21 Jan 2011, by Per Øyvind Karlsen
+
+- make URPM::Package::get_tag() handle NVRA tag for synthesis (fixing
+  regression in previous version)
+
 Version 4.8 - 21 Jan 2011, by Per Øyvind Karlsen
 
 - fix a bug causing segfault when trying open a non-existing segfault which
