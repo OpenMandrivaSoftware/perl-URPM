@@ -1,3 +1,9 @@
+Version 4.11 - 21 Jan 2011, by Per Øyvind Karlsen
+
+- replace incorrect usage of URPM::rpmvercmp on NVRA with rpmEVRcompare in
+  URPM::Resolve::provided_version_that_overlaps() &
+  URPM::Resolve::_find_required_package__sort()
+
 Version 4.10 - 21 Jan 2011, by Per Øyvind Karlsen
 
 - fix distepoch detection breakage with proper synthesis

@@ -168,7 +168,7 @@ sub provided_version_that_overlaps {
 	$n eq $provide_name or next;
 
 	if ($version) {
-	    $version = $v if URPM::rpmvercmp($v, $version) > 0;
+	    $version = $v if URPM::rpmEVRcompare($v, $version) > 0;
 	} else {
 	    $version = $v;
 	}
@@ -309,7 +309,7 @@ sub _find_required_package__sort {
     if (%$provided_version) {
 	# highest provided version first
 	# (nb: this sort overrules the sort on media (cf ->id above))
-	@chosen = sort { URPM::rpmvercmp($provided_version->{$b} || 0, $provided_version->{$a} || 0) } @chosen;
+	@chosen = sort { URPM::rpmEVRcompare($provided_version->{$b} || 0, $provided_version->{$a} || 0) } @chosen;
     }
     \@chosen, [ map { $_->[0] } @prefered ];
 }
