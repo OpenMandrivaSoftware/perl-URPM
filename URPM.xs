@@ -1880,6 +1880,7 @@ Pkg_evr(pkg)
   PPCODE:
   evr = get_evr(pkg);
   XPUSHs(sv_2mortal(newSVpv(evr, 0)));
+  restore_chars();
 
 void
 Pkg_fullname(pkg)
