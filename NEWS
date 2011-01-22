@@ -1,3 +1,7 @@
+Version 4.12 - 22 Jan 2011, by Per Øyvind Karlsen
+
+- enable automatic Berkeley DB log removal for URPM::DB::open() by default (#62271)
+
 Version 4.11 - 22 Jan 2011, by Per Øyvind Karlsen
 
 - fix URPM::Resolve::*_overlap() for packages having disttag

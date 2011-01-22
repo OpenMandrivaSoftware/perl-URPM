@@ -2826,9 +2826,10 @@ Pkg_set_rflags(pkg, ...)
 MODULE = URPM            PACKAGE = URPM::DB            PREFIX = Db_
 
 URPM::DB
-Db_open(prefix=NULL, write_perm=0)
+Db_open(prefix=NULL, write_perm=0, log_auto_remove=1)
   char *prefix
   int write_perm
+  int log_auto_remove
   PREINIT:
   URPM__DB db;
   CODE:
@@ -2849,6 +2850,13 @@ Db_open(prefix=NULL, write_perm=0)
     rpmtsSetRootDir(db->ts, prefix && prefix[0] ? prefix : NULL);
   }
   if (rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0) {
+    if(write_perm) {
+      rpmdb rdb = rpmtsGetRdb(db->ts);
+      DB_ENV *dbenv = rdb->db_dbenv;
+      /* TODO: allow for user configuration? */
+      if(log_auto_remove)
+	dbenv->log_set_config(dbenv, DB_LOG_AUTO_REMOVE, 1);
+    }
     RETVAL = db;
   } else {
     RETVAL = NULL;
