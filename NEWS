@@ -1,4 +1,4 @@
-Version 4.11 - 21 Jan 2011, by Per Øyvind Karlsen
+Version 4.11 - 22 Jan 2011, by Per Øyvind Karlsen
 
 - fix URPM::Resolve::*_overlap() for packages having disttag
 - look for EVR of package at the first element @provides@ rather than the last
