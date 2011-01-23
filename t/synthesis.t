@@ -151,12 +151,12 @@ ok(@provides == 1);
 ok($provides[0] eq 'glibc-devel');
 
 SKIP: {
-    my $urpm = new URPM;
-
     my $synthesis = "res/synthesis.hdlist_distepoch.xz";
     if (!(-r $synthesis)) {
-    	skip "$synthesis missing, only found in svn", 6;
+    	skip "$synthesis missing, only found in svn", 1;
     }
+
+    my $urpm = new URPM;
 
     $urpm->parse_synthesis($synthesis);
 
