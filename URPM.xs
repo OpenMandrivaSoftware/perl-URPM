@@ -318,10 +318,23 @@ get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **versi
 	if (arch != NULL) *arch = pubkey ? "" : _arch;
 	if (distepoch != NULL || disttag != NULL || release != NULL || version != NULL || name != NULL) {
 	  /* TODO: implement stricter patterns and different separator for disttag/distepoch */
-	  if ((_distepoch = strchr(strrchr(pkg->provides, '-'), ':')) != NULL) {
-	    if ((tmp = strrchr(++_distepoch, ']'))) {
+	  tmp = pkg->provides;
+	  do {
+	    if((tmp2 = strchr(tmp, '@')))
+		*tmp2 = '\0';
+	    if((tmp = strrchr(tmp, ' ')) && (tmp = strrchr(tmp, '-')))
+	      _distepoch = strrchr(tmp, ':');
+	    if(tmp2)
+	      *tmp2 = '@';
+	  } while(!_distepoch && tmp2 && (tmp = ++tmp2));
+	  if (!_distepoch) {
+	    if((tmp = strrchr(pkg->provides, ' ')) && (tmp = strrchr(tmp, '-')))
+	      _distepoch = strrchr(tmp, ':');
+	    }
+	  if (_distepoch != NULL) {
+	    if ((tmp = strchr(++_distepoch, ']'))) {
 	      backup_char(tmp);
-	      if (((tmp = strrchr(_eos, '-')) || (tmp = strrchr(pkg->info, '-'))) && ((tmp2 = strstr(tmp, _distepoch)))) {
+	      if ((tmp = strrchr(pkg->info, '-')) && ((tmp2 = strstr(tmp, _distepoch)))) {
 		backup_char(tmp++);
 		_disttag = tmp;
 		backup_char(tmp2);
@@ -379,19 +392,38 @@ get_evr(URPM__Package pkg) {
     const char *evr = NULL;
     if(pkg->provides) {
       char *name = NULL;
-      char *tmp;
+      char *tmp = NULL, *tmp2 = NULL, *tmp3 = NULL;
       get_fullname_parts_info(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+      /*
+       * TODO: this function is way too awkward and complex now, need to change
+       *       pattern & separator
+       */
       if(name) {
 	size_t namelen = strlen(name);
 	char *needle = alloca(namelen+3);
-
 	snprintf(needle, namelen+3, "@%s[", name);
+	restore_chars();
+	tmp = pkg->provides;
+	if(!strncmp(pkg->provides, needle+1, namelen+1)) {
+	  tmp = evr = pkg->provides;
+	}
+	while(tmp && (tmp = strstr(tmp, needle))) {
+	  if(evr && (tmp3 = strchr(evr, '@')))
+	    backup_char(tmp3);
+	  if((tmp2 = strchr(++tmp, '@')))
+	    *tmp2 = '\0';
+	  if(evr == NULL || strlen(tmp) > strlen(evr)) {
+	    evr = tmp;
+	  }
+	  if(tmp2)
+	    *tmp2 = '@';
+	}
+	if(!evr)
+	  croak("unable to locate package name (%s) in @provides@%s", needle, pkg->provides);
+	evr = strchr(evr, ' ');
 
-	if((tmp = strstr(pkg->provides, needle)) == NULL)
-	  tmp = strstr(pkg->provides, ++needle);
-	evr = strchr(tmp, ' ');
-
-	tmp = strchr(++evr, ']');
+	if(evr)
+	  tmp = strchr(++evr, ']');
 	if(tmp)
 	  backup_char(tmp);
       }
@@ -1934,10 +1966,13 @@ Pkg_compare_pkg(lpkg, rpkg)
   char *larch;
   char *revr;
   char *rarch;
+  char *tmp;
   CODE:
   if (lpkg == rpkg) RETVAL = 0;
   else {
-    levr = (char*)get_evr(lpkg);
+    tmp = (char*)get_evr(lpkg);
+    levr = alloca(strlen(tmp));
+    stpcpy(levr, tmp);
     revr = (char*)get_evr(rpkg);
     if(levr == NULL || revr == NULL) {
       restore_chars();

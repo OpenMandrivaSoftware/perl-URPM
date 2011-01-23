@@ -1,5 +1,6 @@
 Version 4.13 - 23 Jan 2011, by Per Øyvind Karlsen
 
+- fix evr extraction which broke for some packages with i586 synthesis
 - fix parsing of disttag from synthesis
 - add regression checks for the fields extracted from synthesis
 
@@ -13,7 +14,7 @@ Version 4.12 - 23 Jan 2011, by Per Øyvind Karlsen
 Version 4.11 - 22 Jan 2011, by Per Øyvind Karlsen
 
 - fix URPM::Resolve::*_overlap() for packages having disttag
-- look for EVR of package at the first element @provides@ rather than the last
+- look for EVR of package at the first element of @provides@ rather than the last
 - replace incorrect usage of URPM::rpmvercmp on NVRA with rpmEVRcompare in
   URPM::Resolve::provided_version_that_overlaps() &
   URPM::Resolve::_find_required_package__sort()
