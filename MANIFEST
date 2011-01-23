@@ -16,6 +16,7 @@ t/fatal.t
 t/parse.t
 t/pod.t
 t/rpmdb.t
+t/resolve.t
 t/sort_graph.t
 t/synthesis.t
 t/test-rpm.spec
