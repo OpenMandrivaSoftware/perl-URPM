@@ -243,6 +243,6 @@ SKIP: {
 	    }
     });
 
-    is($errors, 0, "evr check");
+    is($errors, 0, "fields check");
 
 }
