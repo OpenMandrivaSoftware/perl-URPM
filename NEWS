@@ -1,5 +1,8 @@
-Version 4.12 - 22 Jan 2011, by Per Øyvind Karlsen
+Version 4.12 - 23 Jan 2011, by Per Øyvind Karlsen
 
+- order of %PROVIDEVERSION isn't always the same for all rpm versions synthesis
+  is generated with, so locate it based on name, rather than hardcoding
+  location assumption
 - enable automatic Berkeley DB log removal for URPM::DB::open() by default (#62271)
 
 Version 4.11 - 22 Jan 2011, by Per Øyvind Karlsen

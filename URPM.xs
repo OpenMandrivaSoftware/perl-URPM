@@ -295,26 +295,6 @@ get_int(Header header, rpmTag tag) {
   return ret;
 }
 
-/* This function might modify strings that needs to be reverted after use
- * with restore_chars()
- */
-static const char *
-get_evr(URPM__Package pkg) {
-    const char *evr = NULL;
-    if(pkg->provides) {
-      evr = strchr(pkg->provides, ' ')+1;
-      char *tmp = strchr(evr, ']');
-      if(tmp)
-       backup_char(tmp);
-    } else if(pkg->h) {
-      HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
-      val->tag = RPMTAG_PROVIDEVERSION;
-      headerGet(pkg->h, val, 0);
-      evr =  val->p.argv[val->c-1];
-    }
-    return evr;
-}
-
 /* This function might modify strings that needs to be restored after use
  * with restore_chars()
  */
@@ -404,6 +384,39 @@ get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, c
     return 1;
 
   return 0;
+}
+
+/* This function might modify strings that needs to be reverted after use
+ * with restore_chars()
+ */
+static const char *
+get_evr(URPM__Package pkg) {
+    const char *evr = NULL;
+    if(pkg->provides) {
+      char *name = NULL;
+      char *tmp;
+      get_fullname_parts_info(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+      if(name) {
+	size_t namelen = strlen(name);
+	char *needle = alloca(namelen+3);
+
+	snprintf(needle, namelen+3, "@%s[", name);
+
+	if((tmp = strstr(pkg->provides, needle)) == NULL)
+	  tmp = strstr(pkg->provides, ++needle);
+	evr = strchr(tmp, ' ');
+
+	tmp = strchr(++evr, ']');
+	if(tmp)
+	  backup_char(tmp);
+      }
+    } else if(pkg->h) {
+      HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
+      val->tag = RPMTAG_PROVIDEVERSION;
+      headerGet(pkg->h, val, 0);
+      evr =  val->p.argv[val->c-1];
+    }
+    return evr;
 }
 
 static int
@@ -1946,6 +1959,7 @@ Pkg_compare_pkg(lpkg, rpkg)
       croak("undefined package");
     }
     compare = do_rpmEVRcompare(levr, revr);
+    restore_chars();
     if (!compare) {
       int lscore, rscore;
       char *platform = NULL;
@@ -2003,6 +2017,7 @@ Pkg_compare(pkg, evr)
      * release etc.
      */
     rpmEVRparse(get_evr(pkg), lEVR);
+    restore_chars();
     rpmEVRparse(evr, rEVR);
     for(i = RPMEVR_V; i <= RPMEVR_D; i++)
       if(!*(rEVR->F[i]))
