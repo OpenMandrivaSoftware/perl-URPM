@@ -317,34 +317,19 @@ get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **versi
 	  backup_char(_arch++);
 	if (arch != NULL) *arch = pubkey ? "" : _arch;
 	if (distepoch != NULL || disttag != NULL || release != NULL || version != NULL || name != NULL) {
+	  /* TODO: implement stricter patterns and different separator for disttag/distepoch */
 	  if ((_distepoch = strchr(strrchr(pkg->provides, '-'), ':')) != NULL) {
 	    if ((tmp = strrchr(++_distepoch, ']'))) {
 	      backup_char(tmp);
-	      if ((tmp = strrchr(pkg->info, '-')) && ((tmp2 = strstr(tmp, _distepoch))))
-		backup_char(tmp);
-	      else {
-		/* If synthesis is generated with older versions, disttag & distepoch will
-		 * not be part of NVRA at beginning of line, but as it'll still be part of
-		 * filename which is located at end of line, we can live with it as long
-		 * as we're aware of it and take the necessary precautions to cope.
-		 */
-		if ((tmp = strrchr(_eos, '-'))) {
-		  if ((tmp2 = strstr(tmp++, _distepoch))) {
-		    backup_char(tmp2);
-		    _disttag = tmp;
-		  }
-		}
+	      if (((tmp = strrchr(_eos, '-')) || (tmp = strrchr(pkg->info, '-'))) && ((tmp2 = strstr(tmp, _distepoch)))) {
+		backup_char(tmp++);
+		_disttag = tmp;
+		backup_char(tmp2);
 	      }
 	    }
 	  }
 	  if (distepoch != NULL) *distepoch = _distepoch ? _distepoch : "";
 	  if (disttag != NULL || release != NULL || version != NULL || name != NULL) {
-	    if (_disttag == NULL) {
-	      /* XXX: re-verify this logic, see comment above.. */
-	      if ((_disttag = tmp2) != NULL && (strstr(pkg->provides, _disttag)) == NULL) {
-		backup_char(_disttag++);
-	      } else _disttag = NULL;
-	    }
 	    if (disttag != NULL) *disttag = _disttag ? _disttag : "";
 	    if ((release != NULL || version != NULL || name != NULL) && (_release = strrchr(pkg->info, '-')) != NULL) {
 	      backup_char(_release++);

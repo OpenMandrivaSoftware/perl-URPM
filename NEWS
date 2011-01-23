@@ -1,3 +1,8 @@
+Version 4.13 - 23 Jan 2011, by Per Øyvind Karlsen
+
+- fix parsing of disttag from synthesis
+- add regression checks for the fields extracted from synthesis
+
 Version 4.12 - 23 Jan 2011, by Per Øyvind Karlsen
 
 - order of %PROVIDEVERSION isn't always the same for all rpm versions synthesis
