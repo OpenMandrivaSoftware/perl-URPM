@@ -301,7 +301,7 @@ get_int(Header header, rpmTag tag) {
 static void
 get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
   char *_version = NULL, *_release = NULL, *_disttag = NULL, *_distepoch = NULL, *_arch = NULL, *_eos = NULL, *tmp = NULL, *tmp2 = NULL;
-  /* XXX: Could've probably be written in a more generic way, only thing we
+  /* XXX: Could probably be written in a more generic way, only thing we
    * really want to do is to check for arch field, which will be missing in
    * the case of gpg-pubkey at least..
    */
