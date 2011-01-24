@@ -11,7 +11,7 @@ use URPM;
 my $db;
 
 END {
-    $db = URPM::DB::close($db);
+    URPM::DB::close($db);
     remove_tree("tmp"); 
 }
 
@@ -86,14 +86,10 @@ $db->traverse_tag("name", ["null-dummy"], sub {
 	is($pkg->name, "null-dummy", "querying newly converted DB");
     });
 
-if($db) {
-    URPM::DB::close($db);
-}
-
-$db = URPM::DB::open();
+my $db2 = URPM::DB::open();
 
 my $errors = 0;
-$db->traverse( sub {
+$db2->traverse( sub {
 	my ($pkg) = @_;
 	my @fullname = $pkg->fullname;
 	my $epoch = $pkg->epoch;
