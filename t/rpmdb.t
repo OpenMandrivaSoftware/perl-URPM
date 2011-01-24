@@ -162,16 +162,19 @@ $db->traverse( sub {
 	    $errors++;
 	}
 
-	my $expectedevr = $pkg->version . "-" . $pkg->release . ($pkg->distepoch ? ":" . $pkg->distepoch : "");
-	if ($expectedevr ne $pkg->evr and "$epoch:$expectedevr" ne $pkg->evr and $pkg->name ne "gpg-pubkey") {
-	    print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->evr . "\n";
-	    $errors++;
-	}
+	if ($pkg->name eq "gpg-pubkey") {
 
-	my $expectedfullname = "$name-$version-$release" . ($disttag ? "-$disttag" : "") . ($distepoch ? $distepoch : "") . ($arch ? ".$arch" : "");
-	if($pkg->fullname ne $expectedfullname) {
-	    print "fullname: " . $pkg->fullname . " != $expectedfullname\n";
-	    $errors++;
+	    my $expectedevr = $pkg->version . "-" . $pkg->release . ($pkg->distepoch ? ":" . $pkg->distepoch : "");
+	    if ($expectedevr ne $pkg->evr and "$epoch:$expectedevr" ne $pkg->evr) {
+		print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->evr . "\n";
+		$errors++;
+	    }
+
+	    my $expectedfullname = "$name-$version-$release" . ($disttag ? "-$disttag" : "") . ($distepoch ? $distepoch : "") . ($arch ? ".$arch" : "");
+	    if($pkg->fullname ne $expectedfullname) {
+		print "fullname: " . $pkg->fullname . " != $expectedfullname\n";
+		$errors++;
+	    }
 	}
     });
 
