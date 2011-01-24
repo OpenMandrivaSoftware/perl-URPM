@@ -162,7 +162,7 @@ $db->traverse( sub {
 	    $errors++;
 	}
 
-	if ($pkg->name eq "gpg-pubkey") {
+	if ($pkg->name ne "gpg-pubkey") {
 
 	    my $expectedevr = $pkg->version . "-" . $pkg->release . ($pkg->distepoch ? ":" . $pkg->distepoch : "");
 	    if ($expectedevr ne $pkg->evr and "$epoch:$expectedevr" ne $pkg->evr) {
