@@ -428,10 +428,8 @@ get_evr(URPM__Package pkg) {
 	  backup_char(tmp);
       }
     } else if(pkg->h) {
-      HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
-      val->tag = RPMTAG_PROVIDEVERSION;
-      headerGet(pkg->h, val, 0);
-      evr =  (const char*)val->p.argv[val->c-1];
+      rpmds ds = rpmdsThis(pkg->h, RPMTAG_PROVIDEVERSION, 0);
+      evr = rpmdsEVR(ds);
     }
     return evr;
 }

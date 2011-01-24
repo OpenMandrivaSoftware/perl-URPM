@@ -1,8 +1,9 @@
-Version 4.13 - 23 Jan 2011, by Per Øyvind Karlsen
+Version 4.13 - 24 Jan 2011, by Per Øyvind Karlsen
 
+- fix fetching EVR from rpm headers
 - fix evr extraction which broke for some packages with i586 synthesis
 - fix parsing of disttag from synthesis
-- add regression checks for the fields extracted from synthesis
+- add regression tests for tags extracted from synthesis & rpmdb
 
 Version 4.12 - 23 Jan 2011, by Per Øyvind Karlsen
 
