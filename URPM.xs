@@ -2904,7 +2904,7 @@ int
 Db_close(db)
   URPM::DB db
   CODE:
-  RETVAL = rpmdbClose(rpmtsGetRdb(db->ts));
+  RETVAL = rpmdbClose(rpmtsGetRdb(db->ts)) == 0;
   OUTPUT:
   RETVAL
 
