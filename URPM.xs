@@ -405,7 +405,7 @@ get_evr(URPM__Package pkg) {
 	restore_chars();
 	tmp = pkg->provides;
 	if(!strncmp(pkg->provides, needle+1, namelen+1)) {
-	  evr = (const char*)pkg->provides;
+	  evr = pkg->provides;
 	}
 	while(tmp && (tmp = strstr(tmp, needle))) {
 	  if(evr && (tmp3 = strchr(evr, '@')))
@@ -426,8 +426,6 @@ get_evr(URPM__Package pkg) {
 	  tmp = strchr(++evr, ']');
 	if(tmp)
 	  backup_char(tmp);
-	evr = strdup(evr);
-	restore_chars();
       }
     } else if(pkg->h) {
       HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
@@ -1912,7 +1910,7 @@ Pkg_evr(pkg)
   PPCODE:
   evr = get_evr(pkg);
   XPUSHs(sv_2mortal(newSVpv(evr, 0)));
-  _free(evr);
+  restore_chars();
 
 void
 Pkg_fullname(pkg)
@@ -1968,19 +1966,21 @@ Pkg_compare_pkg(lpkg, rpkg)
   char *larch;
   char *revr;
   char *rarch;
+  char *tmp;
   CODE:
   if (lpkg == rpkg) RETVAL = 0;
   else {
-    levr = (char*)get_evr(lpkg);
+    tmp = (char*)get_evr(lpkg);
+    levr = alloca(strlen(tmp));
+    stpcpy(levr, tmp);
+
     revr = (char*)get_evr(rpkg);
     if(levr == NULL || revr == NULL) {
-      _free(levr);
-      _free(revr);
+      restore_chars();
       croak("undefined package");
     }
     compare = do_rpmEVRcompare(levr, revr);
-    _free(levr);
-    _free(revr);
+    restore_chars();
     if (!compare) {
       int lscore, rscore;
       char *platform = NULL;
@@ -2022,11 +2022,10 @@ Pkg_compare_pkg(lpkg, rpkg)
   RETVAL
 
 int
-Pkg_compare(pkg, revr)
+Pkg_compare(pkg, evr)
   URPM::Package pkg
-  const char *revr
+  char *evr
   PREINIT:
-  const char *levr = NULL;
   int compare = 0;
   EVR_t lEVR = rpmEVRnew(RPMSENSE_EQUAL, 0),
         rEVR = rpmEVRnew(RPMSENSE_EQUAL, 0);
@@ -2038,9 +2037,9 @@ Pkg_compare(pkg, revr)
      * so that ie. if only version is given as an argument, it won't compare
      * release etc.
      */
-    levr = get_evr(pkg);
-    rpmEVRparse(levr, lEVR);
-    rpmEVRparse(revr, rEVR);
+    rpmEVRparse(get_evr(pkg), lEVR);
+    restore_chars();
+    rpmEVRparse(evr, rEVR);
     for(i = RPMEVR_V; i <= RPMEVR_D; i++)
       if(!*(rEVR->F[i]))
 	lEVR->F[i] = "";
@@ -2048,7 +2047,6 @@ Pkg_compare(pkg, revr)
     compare = rpmEVRcompare(lEVR, rEVR);
     rpmEVRfree(lEVR);
     rpmEVRfree(rEVR);
-    _free(levr);
   }
   RETVAL = compare;
   OUTPUT:
