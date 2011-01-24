@@ -1375,8 +1375,10 @@ sub _set_flag_installed_and_upgrade_if_no_newer {
     my $upgrade = 1;
     $db->traverse_tag('name', [ $pkg->name ], sub {
 	my ($p) = @_;
+	print "P: " . $pkg->fullname . ":\t";
 	$pkg->set_flag_installed;
 	$upgrade &&= $pkg->compare_pkg($p) > 0;
+	print $p->fullname . " = " . $pkg->compare_pkg($p) . "\n\n\n\n\n";
     });
     $pkg->set_flag_upgrade($upgrade);
 }
@@ -1387,10 +1389,13 @@ sub _no_more_recent_installed_and_providing {
     my ($urpm, $db, $state, $pkg, $required) = @_;
 
     my $allow = 1;
+    print "name: " . $pkg->name . "\n";
     $db->traverse_tag('name', [ $pkg->name ], sub {
 	my ($p) = @_;
+	print "\n\n\n\t $p\n\n\n";
 	#- allow if a less recent package is installed,
 	if ($allow && $pkg->compare_pkg($p) <= 0) {
+	    print "pkg: " . $pkg->fullname . " vs $p \n";
 	    if ($required =~ /^\d+/ || $p->provides_overlap($required)) {
 		$urpm->{debug_URPM}("not selecting " . $pkg->fullname . " since the more recent " . $p->fullname . " is installed") if $urpm->{debug_URPM};
 		_set_rejected_old_package($state, $pkg, $p);
