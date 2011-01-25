@@ -3613,6 +3613,7 @@ Trans_remove(trans, name)
   }
   mi = rpmmiFree(mi);
   if (boa) *boa = '.';
+  if (bor) *bor = '-';
   RETVAL=count;
   OUTPUT:
   RETVAL

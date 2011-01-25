@@ -1,5 +1,6 @@
 Version 4.13 - 24 Jan 2011, by Per Øyvind Karlsen
 
+- move disttag/distepoch pattern matching breakage hack into rpm
 - fix fetching EVR from rpm headers
 - fix evr extraction which broke for some packages with i586 synthesis
 - fix parsing of disttag from synthesis

@@ -754,23 +754,20 @@ sub _set_rejected_old_package {
 sub set_rejected {
     my ($urpm, $state, $rdep) = @_;
 
-    #- use nvra tag expanded by rpm. it should eventually match fullname,
-    #  but proper expanding and matching again with distepoch needs to be
-    #  implemented first...
-    my $nvra = $rdep->{rejected_pkg}->get_tag("nvra");
-    my $rv = $state->{rejected}{$nvra} ||= {};
+    my $fullname = $rdep->{rejected_pkg}->fullname;
+    my $rv = $state->{rejected}{$fullname} ||= {};
 
     my $newly_rejected = !exists $rv->{size};
 
     if ($newly_rejected) {
-	$urpm->{debug_URPM}("set_rejected: $nvra") if $urpm->{debug_URPM};
+	$urpm->{debug_URPM}("set_rejected: $fullname") if $urpm->{debug_URPM};
 	#- keep track of size of package which are finally removed.
 	$rv->{size} = $rdep->{rejected_pkg}->size;
     }
 
     #- keep track of what causes closure.
     if ($rdep->{from}) {
-	my $closure = $rv->{closure}{scalar $rdep->{from}->get_tag("nvra")} ||= {};
+	my $closure = $rv->{closure}{scalar $rdep->{from}->fullname} ||= {};
 	if (my $l = delete $rdep->{why}{unsatisfied}) {
 	    my $unsatisfied = $closure->{unsatisfied} ||= [];
 	    @$unsatisfied = uniq(@$unsatisfied, @$l);
@@ -782,7 +779,7 @@ sub set_rejected {
     foreach (qw(removed obsoleted)) {
 	if ($rdep->{$_}) {
 	    if ($rdep->{from}) {
-		$rv->{$_}{scalar $rdep->{from}->get_tag("nvra")} = undef;
+		$rv->{$_}{scalar $rdep->{from}->fullname} = undef;
 	    } else {
 		$rv->{$_}{asked} = undef;
 	    }
