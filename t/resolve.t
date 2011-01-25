@@ -62,7 +62,7 @@ SKIP: {
     if (!(-r $synthesis)) {
     	skip "$synthesis missing, only found in svn", 6;
     }
-    $db = URPM::DB::open("tmp", 1);
+    $db = URPM::DB::open("tmp", 0);
     $urpm = new URPM;
     $urpm->parse_synthesis($synthesis);
 
