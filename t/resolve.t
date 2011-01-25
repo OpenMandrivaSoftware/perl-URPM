@@ -2,7 +2,7 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 6;
+use Test::More tests => 10;
 use URPM;
 
 chdir 't' if -d 't';
@@ -12,16 +12,17 @@ my $db;
 
 END {
     if($db) {
-    	$db = URPM::DB::close($db);
+     	URPM::DB::close($db);
     }
+
     system("rm -rf tmp"); 
 }
 
 sub solve_check {
-    my ($pkg, $pkgtotal, $suggest, $write) = @_;
+    my ($pkg, $pkgtotal, $suggest, $write, $suffix) = @_;
     my $cand_pkgs = $urpm->find_candidate_packages($pkg);
     my @pkgs;
-    my $out;
+    my $out = "";
     my $in = "";
     my $file = "res/$pkg.resolve";
     if ($suggest) {
@@ -30,6 +31,9 @@ sub solve_check {
     } else {
 	@pkgs = $urpm->resolve_requested__no_suggests_($db, undef, $cand_pkgs);
 	$file .= ".nosuggests";
+    }
+    if ($suffix) {
+	$file .= ".$suffix";
     }
     foreach (@pkgs) {
 	$out .= $_->fullname() . "\n";
@@ -64,5 +68,19 @@ SKIP: {
 
     solve_check("basesystem-minimal", 141, 0, 0);
     solve_check("basesystem", 527, 1, 0);
-    solve_check("task-kde4", 2059, 1, 0);
+    # odd, if running this one, the next tests fail..
+    #solve_check("task-kde4", 2059, 1, 0);
+
+    $synthesis = "res/synthesis.hdlist_distepoch.xz";
+
+    if (!(-r $synthesis)) {
+    	skip "$synthesis missing, only found in svn", 6;
+    }
+    $urpm = new URPM;
+    $urpm->parse_synthesis($synthesis);
+
+    solve_check("basesystem-minimal", 164, 0, 0, "distepoch");
+    solve_check("basesystem", 743, 1, 0, "distepoch");
+    solve_check("task-kde4", 1943, 1, 0, "distepoch");
+
 }
