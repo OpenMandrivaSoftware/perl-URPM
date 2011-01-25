@@ -1,3 +1,7 @@
+Version 4.14 -    Jan 2011, by Per Øyvind Karlsen
+
+- fix segfault when trying to open non-existing synthesis
+
 Version 4.13 - 24 Jan 2011, by Per Øyvind Karlsen
 
 - move disttag/distepoch pattern matching breakage hack into rpm

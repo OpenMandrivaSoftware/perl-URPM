@@ -117,12 +117,16 @@ static xFile xOpen(const char *path) {
     switch(xF.type) {
 	case XF_GZIP:
 	    xF.f.gz = gzopen(path, "rb");
+	    if(xF.f.gz == NULL)
+		xF.type = XF_FAIL;
 	    break;
 	case XF_ASCII:
 	case XF_LZMA:
 	case XF_XZ:
 	    xF.fp = fopen(path, "rb");
-	    if(xF.type == XF_ASCII) break;	    
+	    if(xF.fp == NULL)
+		xF.type = XF_FAIL;
+	    if(xF.type == XF_ASCII || xF.type == XF_FAIL) break;
 	    xF.f.xz = lzma_open(&ret, xF.fp, -1);
 	    if(ret != LZMA_OK)
 		xF.type = XF_FAIL;
