@@ -3112,7 +3112,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 	      xx = dbiNew->dbi_db->put(dbiNew->dbi_db, NULL, &key, &data, 0);
 
 	    }
-	    printf("\n");
+	    fprintf(stderr, "\n");
 	    if(!(xx = dbiCclose(dbiNew, dbcpNew, 0)) && !(xx = dbiCclose(dbiCur, dbcpCur, 0)) &&
 		rebuild) {
 	      xx = rpmtsCloseDB(tsCur);
@@ -3124,9 +3124,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		vsflags |= _RPMVSF_NOSIGNATURES;
 	      rpmtsSetVSFlags(tsNew, vsflags);
 
-	      void * lock = rpmtsAcquireLock(tsNew);
-
-	      if(!(xx = rpmtxnCheckpoint(rdbNew))) {
+	      {
 		size_t dbix;
 		fprintf(stderr, "rebuilding rpmdb:\n");
 		fflush(stdout);
@@ -3144,7 +3142,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		    case RPMDBI_QUEUE:
 		    case RPMDBI_RECNO:
 		      fprintf(stderr, "skipping %s:\t%d%%\n", (dbiTags->str != NULL ? dbiTags->str : tagName(dbiTags->tag)),
-			    (int)(100*((float)dbix/rdbNew->db_ndbi)));
+			  (int)(100*((float)dbix/rdbNew->db_ndbi)));
 		    case RPMDBI_PACKAGES:
 		    case RPMDBI_SEQNO:
 		      continue;
@@ -3166,30 +3164,28 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
 		  fprintf(stderr, "%d%%\n", (int)(100*((float)dbix/rdbNew->db_ndbi)));
 		  fflush(stdout);
 		}
-	      }
 
-	      /* Unreference header used by associated secondary index callbacks. */
-	      (void) headerFree(rdbNew->db_h);
-	      rdbNew->db_h = NULL;
+		/* Unreference header used by associated secondary index callbacks. */
+		(void) headerFree(rdbNew->db_h);
+		rdbNew->db_h = NULL;
 
-	      /* Reset the Seqno counter to the maximum primary key */
-	      rpmlog(RPMLOG_DEBUG, "rpmdb: max. primary key %u\n",
-		  (unsigned)rdbNew->db_maxkey);
-	      fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/Seqno", NULL);
-	      if (!Stat(fn, &sb))
-		xx = Unlink(fn);
-	      fprintf(stderr, "%s:\t", fn);
-	      (void) dbiOpen(rdbNew, RPMDBI_SEQNO, rdbNew->db_flags);
-	      fprintf(stderr, "100%%\n");
+		/* Reset the Seqno counter to the maximum primary key */
+		rpmlog(RPMLOG_DEBUG, "rpmdb: max. primary key %u\n",
+		    (unsigned)rdbNew->db_maxkey);
+		fn = rpmGetPath(rdbNew->db_root, rdbNew->db_home, "/Seqno", NULL);
+		if (!Stat(fn, &sb))
+		  xx = Unlink(fn);
+		fprintf(stderr, "%s:\t", fn);
+		(void) dbiOpen(rdbNew, RPMDBI_SEQNO, rdbNew->db_flags);
+		fprintf(stderr, "100%%\n");
 
-	      fn = _free(fn);
+		fn = _free(fn);
 
-	      /* Remove no longer required transaction logs */
-	      if(!(xx = rpmtxnCheckpoint(rdbNew)))
+		/* Remove no longer required transaction logs */
 		if(!(xx = bdb_log_archive(dbenvNew, NULL, DB_ARCH_REMOVE)))
 		  xx = bdb_log_lsn_reset(dbenvNew);
-	      xx = rpmtsCloseDB(tsNew);
-	      lock = rpmtsFreeLock(lock);
+		xx = rpmtsCloseDB(tsNew);
+	      }
 	    }
 	  }
 	}
