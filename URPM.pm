@@ -316,9 +316,9 @@ Force the re-reading of the RPM configuration files.
 This utility function compares two version ranges, in order to calculate
 dependencies properly. The ranges have roughly the form
 
-    [<|<=|==|=>|>] [epoch:]version[-release]
+    [<|<=|==|=>|>] [epoch:]version[-release][:distepoch]
 
-where epoch, version and release are RPM-style version numbers.
+where epoch, version, release and distepoch are RPM-style version numbers.
 
 =item URPM::rpmEVRcmp($a, $b)
 
