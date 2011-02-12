@@ -1,5 +1,8 @@
-Version 4.14 -    Jan 2011, by Per Øyvind Karlsen
+Version 4.14 -    Feb 2011, by Per Øyvind Karlsen
 
+- use specified arch for packages to be removed, don't strip it away and
+  remove every package if having multiple packages with same name and
+  different arch
 - fix segfault when trying to open non-existing synthesis
 
 Version 4.13 - 24 Jan 2011, by Per Øyvind Karlsen

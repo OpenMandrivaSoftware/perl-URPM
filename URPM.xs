@@ -3597,21 +3597,7 @@ Trans_remove(trans, name)
   Header h;
   rpmmi mi;
   int count = 0;
-  char *boa = NULL, *bor = NULL;
   CODE:
-  /* hide arch in name if present */
-  if ((boa = strrchr(name, '.'))) {
-    *boa = 0;
-    if ((bor = strrchr(name, '-'))) {
-      *bor = 0;
-      if (!strrchr(name, '-')) {
-	*boa = '.'; boa = NULL;
-      }
-      *bor = '-'; bor = NULL;
-    } else {
-      *boa = '.'; boa = NULL;
-    }
-  }
   mi = rpmtsInitIterator(trans->ts, RPMTAG_NVRA, name, 0);
   while ((h = rpmmiNext(mi))) {
     unsigned int recOffset = rpmmiInstance(mi);
@@ -3621,8 +3607,6 @@ Trans_remove(trans, name)
     }
   }
   mi = rpmmiFree(mi);
-  if (boa) *boa = '.';
-  if (bor) *bor = '-';
   RETVAL=count;
   OUTPUT:
   RETVAL
