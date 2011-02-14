@@ -3294,7 +3294,7 @@ Db_convert(prefix=NULL, dbtype=NULL, swap=0, rebuild=0)
     type = 0;
   else if(dbtype)
     croak("Unsupported database type: %s\n", dbtype);
-  RETVAL = rpmdb_convert(prefix, type, swap, rebuild);
+  RETVAL = rpmdb_convert(prefix, type, swap, rebuild) == 0;
   OUTPUT:
   RETVAL
 
