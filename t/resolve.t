@@ -68,7 +68,6 @@ SKIP: {
 
     solve_check("basesystem-minimal", 141, 0, 0);
     solve_check("basesystem", 527, 1, 0);
-    # odd, if running this one, the next tests fail..
     #solve_check("task-kde4", 2059, 1, 0);
 
     $synthesis = "res/synthesis.hdlist_distepoch.xz";
