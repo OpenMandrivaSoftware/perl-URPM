@@ -60,7 +60,7 @@ SKIP: {
     my $synthesis = "res/synthesis.hdlist.xz";
 
     if (!(-r $synthesis)) {
-    	skip "$synthesis missing, only found in svn", 6;
+    	skip "$synthesis missing, only found in svn", 10;
     }
     $db = URPM::DB::open("tmp", 0);
     $urpm = new URPM;
@@ -73,7 +73,7 @@ SKIP: {
     $synthesis = "res/synthesis.hdlist_distepoch.xz";
 
     if (!(-r $synthesis)) {
-    	skip "$synthesis missing, only found in svn", 6;
+    	skip "$synthesis missing, only found in svn", 10;
     }
     $urpm = new URPM;
     $urpm->parse_synthesis($synthesis);
