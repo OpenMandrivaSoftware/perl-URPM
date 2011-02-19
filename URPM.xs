@@ -318,26 +318,27 @@ get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **versi
 	if (arch != NULL) *arch = pubkey ? "" : _arch;
 	if (distepoch != NULL || disttag != NULL || release != NULL || version != NULL || name != NULL) {
 	  /* TODO: implement stricter patterns and different separator for disttag/distepoch */
-	  tmp = pkg->provides;
-	  do {
-	    if((tmp2 = strchr(tmp, '@')))
+	  if((tmp = pkg->provides)) {
+	    do {
+	      if((tmp2 = strchr(tmp, '@')))
 		*tmp2 = '\0';
-	    if((tmp = strrchr(tmp, ' ')) && (tmp = strrchr(tmp, '-')))
-	      _distepoch = strrchr(tmp, ':');
-	    if(tmp2)
-	      *tmp2 = '@';
-	  } while(!_distepoch && tmp2 && (tmp = ++tmp2));
-	  if (!_distepoch) {
-	    if((tmp = strrchr(pkg->provides, ' ')) && (tmp = strrchr(tmp, '-')))
-	      _distepoch = strrchr(tmp, ':');
+	      if((tmp = strrchr(tmp, ' ')) && (tmp = strrchr(tmp, '-')))
+		_distepoch = strrchr(tmp, ':');
+	      if(tmp2)
+		*tmp2 = '@';
+	    } while(!_distepoch && tmp2 && (tmp = ++tmp2));
+	    if (!_distepoch) {
+	      if((tmp = strrchr(pkg->provides, ' ')) && (tmp = strrchr(tmp, '-')))
+		_distepoch = strrchr(tmp, ':');
 	    }
-	  if (_distepoch != NULL) {
-	    if ((tmp = strchr(++_distepoch, ']'))) {
-	      backup_char(tmp);
-	      if ((tmp = strrchr(pkg->info, '-')) && ((tmp2 = strstr(tmp, _distepoch)))) {
-		backup_char(tmp++);
-		_disttag = tmp;
-		backup_char(tmp2);
+	    if (_distepoch != NULL) {
+	      if ((tmp = strchr(++_distepoch, ']'))) {
+		backup_char(tmp);
+		if ((tmp = strrchr(pkg->info, '-')) && ((tmp2 = strstr(tmp, _distepoch)))) {
+		  backup_char(tmp++);
+		  _disttag = tmp;
+		  backup_char(tmp2);
+		}
 	      }
 	    }
 	  }
