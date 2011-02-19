@@ -1,3 +1,4 @@
+* --stats
 * downgrade support
 * symlink & parentdir dependencies
 
