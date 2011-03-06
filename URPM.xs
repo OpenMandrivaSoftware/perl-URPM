@@ -1049,7 +1049,7 @@ pack_header(URPM__Package pkg) {
       if (has_old_suggests)
       pkg->suggests = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_old_suggests);
       else
-        pkg->suggests = pack_list(pkg->h, RPMTAG_SUGGESTSNAME, 0, 0, NULL);
+        pkg->suggests = pack_list(pkg->h, RPMTAG_SUGGESTSNAME, RPMTAG_SUGGESTSFLAGS, RPMTAG_SUGGESTSVERSION, NULL);
     if (pkg->obsoletes == NULL)
       pkg->obsoletes = pack_list(pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION, NULL);
     if (pkg->conflicts == NULL)
@@ -2466,7 +2466,7 @@ Pkg_suggests(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  int count = return_list_str(pkg->suggests, pkg->h, RPMTAG_SUGGESTSNAME, 0, 0, callback_list_str_xpush, NULL);
+  int count = return_list_str(pkg->suggests, pkg->h, RPMTAG_SUGGESTSNAME, RPMTAG_SUGGESTSFLAGS, RPMTAG_SUGGESTSVERSION, callback_list_str_xpush, NULL);
   if (count == 0)
     return_list_str(pkg->suggests, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, 0,
 		    callback_list_str_xpush_old_suggests, NULL);
