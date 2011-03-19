@@ -3647,7 +3647,7 @@ Trans_check(trans, ...)
   URPM::Transaction trans
   PREINIT:
   I32 gimme = GIMME_V;
-  int translate_message = 0;
+  int translate_message = 1, raw_message = 0;
   int i, r;
   PPCODE:
   for (i = 1; i < items-1; i+=2) {
@@ -3656,6 +3656,8 @@ Trans_check(trans, ...)
 
     if (len == 17 && !memcmp(s, "translate_message", 17)) {
       translate_message = SvIV(ST(i+1));
+    } else if (len == 11 && !memcmp(s, "raw_message", 11)) {
+      raw_message = 1;
     }
   }
   r = rpmtsCheck(trans->ts);
@@ -3666,7 +3668,7 @@ Trans_check(trans, ...)
     } else if (gimme == G_ARRAY) {
       /* now translation is handled by rpmlib, but only for version 4.2 and above */
       PUTBACK;
-      return_problems(ps, 1, 0);
+      return_problems(ps, translate_message, raw_message || !translate_message);
       SPAGAIN;
     }
   } else if (gimme == G_SCALAR) {

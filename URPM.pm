@@ -727,7 +727,8 @@ Checks that all dependencies can be resolved in this transaction.
 
 Options are:
 
-    translate_message => 0 / 1 (currently ignored.)
+    raw_message => 0 / 1
+    translate_message => 0 / 1
 
 In list context, returns an array of problems (an empty array indicates
 success).
