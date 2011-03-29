@@ -4540,6 +4540,40 @@ setVerbosity(level)
     PPCODE:
     rpmSetVerbosity(level);
 
+void
+setInternalVariable(type, value)
+    char * type
+    int value
+    CODE:
+    if (!strcmp(type, "_rpmbf_debug"))
+      _rpmbf_debug = value;
+    else if (!strcmp(type, "_rpmdb_debug"))
+      _rpmdb_debug = value;
+    else if (!strcmp(type, "_rpmfi_debug"))
+      _rpmfi_debug = value;
+    else if (!strcmp(type, "_rpmio_debug"))
+      _rpmio_debug = value;
+    else if (!strcmp(type, "_rpmps_debug"))
+      _rpmps_debug = value;
+    else if (!strcmp(type, "_rpmgi_debug"))
+      _rpmgi_debug = value;
+    else if (!strcmp(type, "_rpmte_debug"))
+      _rpmte_debug = value;
+    else if (!strcmp(type, "_rpmevr_debug"))
+      _rpmevr_debug = value;
+    else if (!strcmp(type, "_rpmds_debug"))
+      _rpmds_debug = value;
+    else if (!strcmp(type, "_rpmmi_debug"))
+      _rpmmi_debug = value;
+    else if (!strcmp(type, "_rpmns_debug"))
+      _rpmns_debug = value;
+    else if (!strcmp(type, "_fps_debug"))
+      _fps_debug = value;
+    else if (!strcmp(type, "_mire_debug"))
+      _mire_debug = value;
+    else
+      croak("unknown variable: %s", type);
+    
 const char *
 rpmErrorString()
   CODE:
