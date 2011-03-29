@@ -4567,6 +4567,8 @@ setInternalVariable(type, value)
       _rpmmi_debug = value;
     else if (!strcmp(type, "_rpmns_debug"))
       _rpmns_debug = value;
+    else if (!strcmp(type, "_rpmts_debug"))
+      _rpmts_debug = value;
     else if (!strcmp(type, "_fps_debug"))
       _fps_debug = value;
     else if (!strcmp(type, "_mire_debug"))
