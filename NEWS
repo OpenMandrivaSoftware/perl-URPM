@@ -1,4 +1,4 @@
-Version 4.16 -        2011, by Per Øyvind Karlsen
+Version 4.16 - 29 March 2011, by Per Øyvind Karlsen
 
 - add setInternalVariable() for changing various variables for debugging etc.
   within rpmlib
