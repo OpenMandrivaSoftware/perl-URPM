@@ -1963,6 +1963,12 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
   return xx;
 }
 
+static void
+urpm_perl_atexit(void)
+{
+  (void) rpmcliFini(NULL);
+}
+
 MODULE = URPM            PACKAGE = URPM::Package       PREFIX = Pkg_
 
 void
@@ -3867,6 +3873,9 @@ MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
 BOOT:
 (void) read_config_files(0);
+/* FIXME: 
+Perl_call_atexit(PERL_GET_CONTEXT, (void*)urpm_perl_atexit,0);
+*/
 
 void
 Urpm_bind_rpm_textdomain_codeset()
