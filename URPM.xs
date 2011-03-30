@@ -1761,8 +1761,7 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
 	     * rpmdb...
 	     */
 	    if (dbtype == 1){
-	      uint32_t keyNo = 0;
-	      key.data = &keyNo;
+	      key.data = &i;
 	      data.data = &nkeys;
 	      key.size = data.size = sizeof(uint32_t);
 	      xx = dbiNew->dbi_db->put(dbiNew->dbi_db, NULL, &key, &data, 0);
