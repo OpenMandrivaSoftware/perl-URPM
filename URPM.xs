@@ -318,17 +318,17 @@ get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **versi
 	if (arch != NULL) *arch = pubkey ? "" : _arch;
 	if (distepoch != NULL || disttag != NULL || release != NULL || version != NULL || name != NULL) {
 	  /* TODO: implement stricter patterns and different separator for disttag/distepoch */
-	  if((tmp = pkg->provides)) {
+	  if ((tmp = pkg->provides)) {
 	    do {
-	      if((tmp2 = strchr(tmp, '@')))
+	      if ((tmp2 = strchr(tmp, '@')))
 		*tmp2 = '\0';
-	      if((tmp = strrchr(tmp, ' ')) && (tmp = strrchr(tmp, '-')))
+	      if ((tmp = strrchr(tmp, ' ')) && (tmp = strrchr(tmp, '-')))
 		_distepoch = strrchr(tmp, ':');
-	      if(tmp2)
+	      if (tmp2)
 		*tmp2 = '@';
-	    } while(!_distepoch && tmp2 && (tmp = ++tmp2));
+	    } while (!_distepoch && tmp2 && (tmp = ++tmp2));
 	    if (!_distepoch) {
-	      if((tmp = strrchr(pkg->provides, ' ')) && (tmp = strrchr(tmp, '-')))
+	      if ((tmp = strrchr(pkg->provides, ' ')) && (tmp = strrchr(tmp, '-')))
 		_distepoch = strrchr(tmp, ':');
 	    }
 	    if (_distepoch != NULL) {
@@ -383,57 +383,6 @@ get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, c
     return 1;
 
   return 0;
-}
-
-/* This function might modify strings that needs to be reverted after use
- * with restore_chars()
- */
-static const char *
-get_evr(URPM__Package pkg) {
-    const char *evr = NULL;
-    if(pkg->provides) {
-      char *name = NULL;
-      char *tmp = NULL, *tmp2 = NULL, *tmp3 = NULL;
-      get_fullname_parts_info(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-      /*
-       * TODO: this function is way too awkward and complex now, need to change
-       *       pattern & separator
-       */
-      if(name) {
-	size_t namelen = strlen(name);
-	char *needle = alloca(namelen+3);
-	snprintf(needle, namelen+3, "@%s[", name);
-	restore_chars();
-	tmp = pkg->provides;
-	if(!strncmp(pkg->provides, needle+1, namelen+1)) {
-	  evr = pkg->provides;
-	}
-	while(tmp && (tmp = strstr(tmp, needle))) {
-	  if(evr && (tmp3 = strchr(evr, '@')))
-	    backup_char(tmp3);
-	  if((tmp2 = strchr(++tmp, '@')))
-	    *tmp2 = '\0';
-	  if(evr == NULL || strlen(tmp) > strlen(evr)) {
-	    evr = tmp;
-	  }
-	  if(tmp2)
-	    *tmp2 = '@';
-	}
-	if(!evr)
-	  croak("unable to locate package name (%s) in @provides@%s", needle, pkg->provides);
-	evr = strchr(evr, ' ');
-
-	if(evr)
-	  tmp = strchr(++evr, ']');
-	if(tmp)
-	  backup_char(tmp);
-      }
-    } else if(pkg->h) {
-      rpmds ds = rpmdsThis(pkg->h, RPMTAG_PROVIDEVERSION, 0);
-      evr = rpmdsEVR(ds);
-      ds = rpmdsFree(ds);
-    }
-    return evr;
 }
 
 static int
@@ -1026,6 +975,67 @@ pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, 
   }
 
   return p > buff ? memcpy(malloc(p-buff), buff, p-buff) : NULL;
+}
+
+/* This function might modify strings that needs to be reverted after use
+ * with restore_chars()
+ */
+static const char *
+get_evr(URPM__Package pkg) {
+    const char *evr = NULL;
+    if(pkg->provides && !pkg->h) {
+      char *name = NULL;
+      char *tmp = NULL, *tmp2 = NULL, *tmp3 = NULL;
+      get_fullname_parts_info(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+      /*
+       * TODO: this function is way too awkward and complex now, need to change
+       *       pattern & separator
+       */
+      if(name) {
+	size_t namelen = strlen(name);
+	char *needle = alloca(namelen+3);
+	snprintf(needle, namelen+3, "@%s[", name);
+	restore_chars();
+	tmp = pkg->provides;
+	if(!strncmp(pkg->provides, needle+1, namelen+1)) {
+	  evr = pkg->provides;
+	}
+	while(tmp && (tmp = strstr(tmp, needle))) {
+	  if(evr && (tmp3 = strchr(evr, '@')))
+	    backup_char(tmp3);
+	  if((tmp2 = strchr(++tmp, '@')))
+	    *tmp2 = '\0';
+	  if(evr == NULL || strlen(tmp) > strlen(evr)) {
+	    evr = tmp;
+	  }
+	  if(tmp2)
+	    *tmp2 = '@';
+	}
+	if(!evr)
+	  croak("unable to locate package name (%s) in @provides@%s", needle, pkg->provides);
+	evr = strchr(evr, ' ');
+
+	if(evr)
+	  tmp = strchr(++evr, ']');
+	if(tmp)
+	  backup_char(tmp);
+      }
+    } else if(pkg->h) {
+      rpmds ds = rpmdsThis(pkg->h, RPMTAG_PROVIDEVERSION, 0);
+      const char *needle = rpmdsEVR(ds);
+      if(needle[0] == '0' && needle[1] == ':')
+	needle += 2;
+      size_t len = strlen(needle);
+
+      if (pkg->provides == NULL)
+	pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
+
+      evr = strstr(pkg->provides, needle);
+      if(strlen(evr) != len)
+	backup_char((char*)&evr[len]);
+      ds = rpmdsFree(ds);
+    }
+    return evr;
 }
 
 static void

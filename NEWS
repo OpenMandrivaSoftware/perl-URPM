@@ -1,3 +1,7 @@
+Version 4.19 - 31 March 2011, by Per Øyvind Karlsen
+
+- fix regression caused by memleak fix in previous release
+
 Version 4.18 - 31 March 2011, by Per Øyvind Karlsen
 
 - fix memleak in URPM::Pkg->evr()
