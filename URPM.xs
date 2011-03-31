@@ -431,6 +431,7 @@ get_evr(URPM__Package pkg) {
     } else if(pkg->h) {
       rpmds ds = rpmdsThis(pkg->h, RPMTAG_PROVIDEVERSION, 0);
       evr = rpmdsEVR(ds);
+      ds = rpmdsFree(ds);
     }
     return evr;
 }

@@ -1,5 +1,6 @@
 Version 4.18 - 31 March 2011, by Per Øyvind Karlsen
 
+- fix memleak in URPM::Pkg->evr()
 - drop URPM::DB::close() and teardown properly by calling rpmcliFini() at exit
 - fix odd i586 specific bug triggering segfault with -fstack-protector (#61690)
 
