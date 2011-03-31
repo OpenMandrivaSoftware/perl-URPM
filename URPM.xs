@@ -3217,14 +3217,6 @@ Db_open(prefix=NULL, write_perm=0, log_auto_remove=1)
   OUTPUT:
   RETVAL
 
-int
-Db_close(db)
-  URPM::DB db
-  CODE:
-  RETVAL = rpmdbClose(rpmtsGetRdb(db->ts)) == 0;
-  OUTPUT:
-  RETVAL
-
 void
 Db_info(prefix=NULL)
   char *prefix
@@ -3868,9 +3860,7 @@ MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
 BOOT:
 (void) read_config_files(0);
-/* FIXME: 
 Perl_call_atexit(PERL_GET_CONTEXT, (void*)urpm_perl_atexit,0);
-*/
 
 void
 Urpm_bind_rpm_textdomain_codeset()

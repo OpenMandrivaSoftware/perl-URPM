@@ -11,7 +11,6 @@ use URPM;
 my $db;
 
 END {
-    URPM::DB::close($db);
     remove_tree("tmp"); 
 }
 

@@ -11,10 +11,6 @@ my $urpm;
 my $db;
 
 END {
-    if($db) {
-     	URPM::DB::close($db);
-    }
-
     system("rm -rf tmp"); 
 }
 
