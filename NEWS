@@ -1,3 +1,7 @@
+Version 4.18 -          2011, by Per Øyvind Karlsen
+
+- fix odd i586 specific bug triggering segfault with -fstack-protector (#61690)
+
 Version 4.17 - 30 March 2011, by Per Øyvind Karlsen
 
 - fix conversion to older hash database format resulting in "missing" package

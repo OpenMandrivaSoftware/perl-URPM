@@ -1445,11 +1445,6 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	ts = rpmtsCreate();
 	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES | vsflags);
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0 && header) {
-	  char *basename;
-	  struct stat sb;
-
-	  basename = strrchr(filename, '/');
-	  Fstat(fd, &sb);
 	  Fclose(fd);
 
 	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
