@@ -1046,12 +1046,17 @@ pack_header(URPM__Package pkg) {
       char *p = buff;
       const char *group = get_name(pkg->h, RPMTAG_GROUP);
       const char *nvra = get_nvra(pkg->h);
-      p += 1 + snprintf(buff, sizeof(buff), "%s@%d@%d@%s", nvra,
+      const char *disttag = get_name(pkg->h, RPMTAG_DISTTAG);
+      const char *distepoch = get_name(pkg->h, RPMTAG_DISTEPOCH);
+
+      p += 1 + snprintf(buff, sizeof(buff), "%s@%d@%d@%s@%s@%s", nvra,
 		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
-		    group);
+		    group, disttag, distepoch);
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
       _free(group);
       _free(nvra);
+      _free(disttag);
+      _free(distepoch);
     }
     if (pkg->filesize == 0) pkg->filesize = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
     if (pkg->requires == NULL && pkg->suggests == NULL)

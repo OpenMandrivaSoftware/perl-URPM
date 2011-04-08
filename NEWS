@@ -1,3 +1,7 @@
+Version 4.20 -    April 2011, by Per Øyvind Karlsen
+
+- add disttag & distepoch to @info@ in synthesis for easier parsing
+
 Version 4.19 - 31 March 2011, by Per Øyvind Karlsen
 
 - fix regression caused by memleak fix in previous release
