@@ -1,4 +1,4 @@
-Version 4.20 -    April 2011, by Per Øyvind Karlsen
+Version 4.20 - 22 April 2011, by Per Øyvind Karlsen
 
 - merge in some DUDF changes from Alexandre Lissy
 - add disttag & distepoch to @info@ in synthesis for easier parsing
