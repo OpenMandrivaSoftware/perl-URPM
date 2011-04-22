@@ -1049,14 +1049,24 @@ pack_header(URPM__Package pkg) {
       const char *disttag = get_name(pkg->h, RPMTAG_DISTTAG);
       const char *distepoch = get_name(pkg->h, RPMTAG_DISTEPOCH);
 
-      p += 1 + snprintf(buff, sizeof(buff), "%s@%d@%d@%s@%s@%s", nvra,
+      p += snprintf(buff, sizeof(buff), "%s@%d@%d@%s", nvra,
 		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
-		    group, disttag, distepoch);
+		    group);
+      if (*disttag || *distepoch) {
+	p = stpcpy(p, "@");
+	if (*disttag) {
+	  p = stpcpy(p, disttag);
+	  _free(disttag);
+	}
+	p = stpcpy(p, "@");
+	if (*distepoch) {
+	  p = stpcpy(p, distepoch);
+	  _free(distepoch);
+	}
+      }
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
       _free(group);
       _free(nvra);
-      _free(disttag);
-      _free(distepoch);
     }
     if (pkg->filesize == 0) pkg->filesize = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
     if (pkg->requires == NULL && pkg->suggests == NULL)
