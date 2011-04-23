@@ -90,8 +90,7 @@ static xFile xOpen(const char *path) {
     lzma_ret ret = LZMA_OK;
     const char *message, *tmp;
     magic_t cookie;
-    cookie = magic_open(MAGIC_NONE);
-    if(!magic_load(cookie, NULL)) {
+    if ((cookie = magic_open(MAGIC_NONE)) && !magic_load(cookie, NULL)) {
 	message = magic_file(cookie, path);
 	if(message == NULL)
 	    xF.type = XF_FAIL;
