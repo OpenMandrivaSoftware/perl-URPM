@@ -1,3 +1,8 @@
+Version 4.21 - 23 April 2011, by Per Øyvind Karlsen
+
+- fix a missing null terminator at end of @info@ string regression, causing
+  random data to be appended at end of line
+
 Version 4.20 - 22 April 2011, by Per Øyvind Karlsen
 
 - merge in some DUDF changes from Alexandre Lissy
