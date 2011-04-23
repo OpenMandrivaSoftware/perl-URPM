@@ -1064,7 +1064,7 @@ pack_header(URPM__Package pkg) {
 	  _free(distepoch);
 	}
       }
-	*++p = '\0';
+      *++p = '\0';
       pkg->info = memcpy(malloc(p-buff), buff, p-buff);
       _free(group);
       _free(nvra);
