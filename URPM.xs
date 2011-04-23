@@ -395,7 +395,7 @@ print_list_entry(char *buff, int sz, const char *name, rpmsenseFlags flags, cons
   int len = strlen(name);
   char *p = buff;
 
-  if (len >= sz || !strncmp(name, "rpmlib(", 7)) return -1;
+  if (flags & RPMSENSE_RPMLIB) return -1;
   memcpy(p, name, len); p += len;
 
   /* XXX: RPMSENSE_PREREQ obsolete, remove? */
