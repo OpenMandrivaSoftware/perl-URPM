@@ -1,3 +1,7 @@
+Version 4.22 - 23 April 2011, by Per Øyvind Karlsen
+
+- fix provide flags not being loaded for headers read from rpm files
+
 Version 4.21 - 23 April 2011, by Per Øyvind Karlsen
 
 - fix a missing null terminator at end of @info@ string regression, causing

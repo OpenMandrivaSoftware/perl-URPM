@@ -1148,13 +1148,11 @@ update_provides(URPM__Package pkg, HV *provides) {
       const char **list = he->p.argv;
 
       he->tag = RPMTAG_PROVIDEFLAGS;
-      if (headerGet(pkg->h, he, 0)) {
-        HE_t he_flags = memset(alloca(sizeof(*he_flags)), 0, sizeof(*he_flags));
-	flags = (rpmsenseFlags*)he_flags->p.ui32p;
-      }
+      if (headerGet(pkg->h, he, 0))
+	flags = (rpmsenseFlags*)he->p.ui32p;
       for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
 	len = strlen(list[he->ix]);
-	update_provide_entry(list[he->ix], len, 1, flags && flags[he->ix] & (RPMSENSE_PREREQ|RPMSENSE_TRIGGER),
+	update_provide_entry(list[he->ix], len, 1, flags && (flags[he->ix] & (RPMSENSE_PREREQ|RPMSENSE_TRIGGER)),
 	    pkg, provides);
       }
       flags = _free(flags);
