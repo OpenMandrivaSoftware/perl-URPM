@@ -589,35 +589,38 @@ return_list_str(char *s, Header header, rpmTag tag_name, rpmTag tag_flags, rpmTa
       if (f(s, eos ? eos-s : 0, NULL, 0, NULL, param)) return -count;
     }
   } else if (header) {
-    HE_t list = memset(alloca(sizeof(*list)), 0, sizeof(*list));
+    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
-    list->tag = tag_name;
-    if (headerGet(header, list, 0)) {
-      HE_t flags = memset(alloca(sizeof(*flags)), 0, sizeof(*flags));
-      HE_t list_evr = memset(alloca(sizeof(*list_evr)), 0, sizeof(*list_evr));
+    he->tag = tag_name;
+    if (headerGet(header, he, 0)) {
+      const char **list = he->p.argv;
+      rpmsenseFlags *flags = NULL;
+      const char **list_evr = NULL;
+      int count = he->c;
+
       if (tag_flags) {
-        flags->tag = tag_flags;
-        headerGet(header, flags, 0);
+        he->tag = tag_flags;
+        if (headerGet(header, he, 0))
+	  flags = he->p.ui32p;
       }
       if (tag_version) {
-        list_evr->tag = tag_version;
-        headerGet(header, list_evr, 0);
+        he->tag = tag_version;
+        if (headerGet(header, he, 0))
+	  list_evr = he->p.argv;
       }
-      for (list->ix = 0; list->ix < (int)list->c; list->ix++) {
-	++count;
-	rpmsenseFlags *flag = (list->ix < (int)flags->c) ? (rpmsenseFlags*)flags->p.ui32p : NULL;
-	if (f(NULL, 0, list->p.argv[list->ix], flag ? flag[list->ix] : 0, 
-	      (list_evr->ix < (int)list_evr->c) ? list_evr->p.argv[list->ix] : NULL,
+      for (he->ix = 0; he->ix < count; he->ix++) {
+	if (f(NULL, 0, list[he->ix], flags ? flags[he->ix] : 0, 
+	      list_evr ? list_evr[he->ix] : NULL,
 	      param)) {
-	  list->p.ptr = _free(list->p.ptr);
-	  if (tag_flags) flags->p.ui32p = _free(flags->p.ptr);
-	  if (tag_version) list_evr->p.argv = _free(list_evr->p.ptr);
-	  return -count;
+	  list = _free(list);
+	  if (tag_flags) flags = _free(flags);
+	  if (tag_version) list_evr = _free(list_evr);
+	  return -he->ix;
 	}
       }
-      list->p.ptr = _free(list->p.ptr);
-      if (tag_flags) flags->p.ptr = _free(flags->p.ptr);
-      if (tag_version) list_evr->p.ptr = _free(list_evr->p.ptr);
+      list = _free(list);
+      if (tag_flags) flags = _free(flags);
+      if (tag_version) list_evr = _free(list_evr);
     }
   }
   return count;
@@ -842,10 +845,10 @@ return_files(Header header, int filter_mode) {
   if (header) {
     const char *s;
     STRLEN len;
-
     const char **list = NULL;
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
     rpmsenseFlags *flags = NULL;
+
     if (filter_mode) {
       he->tag = RPMTAG_FILEFLAGS;
       if(headerGet(header, he, 0))
@@ -939,28 +942,28 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 static char *
 pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, rpmsenseFlags (*check_flag)(rpmsenseFlags)) {
   char buff[65536];
-  rpmsenseFlags *flags = NULL;
-  const char **list_evr = NULL;
   char *p = buff;
   HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
   he->tag = tag_name;
   if (headerGet(header, he, 0)) {
     const char **list = he->p.argv;
+    rpmsenseFlags *flags = NULL;
+    const char **list_evr = NULL;
+
+    int count = he->c;
    
     if (tag_flags) {
-      HE_t he_flags = memset(alloca(sizeof(*he_flags)), 0, sizeof(*he_flags));
-      he_flags->tag = tag_flags;
-      if(headerGet(header, he_flags, 0))
-	flags = (rpmsenseFlags*)he_flags->p.ui32p;
+      he->tag = tag_flags;
+      if(headerGet(header, he, 0))
+	flags = (rpmsenseFlags*)he->p.ui32p;
     }
     if (tag_version) {
-      HE_t he_list_evr = memset(alloca(sizeof(*he_list_evr)), 0, sizeof(*he_list_evr));
-      he_list_evr->tag = tag_version;
-      if(headerGet(header, he_list_evr, 0))
-	list_evr = he_list_evr->p.argv;
+      he->tag = tag_version;
+      if(headerGet(header, he, 0))
+	list_evr = he->p.argv;
     }
-    for(he->ix = 0; he->ix < (int)he->c; he->ix++) {
+    for(he->ix = 0; he->ix < count; he->ix++) {
       if (check_flag && !check_flag(flags[he->ix])) continue;
       int len = print_list_entry(p, sizeof(buff)-(p-buff)-1, list[he->ix], flags ? flags[he->ix] : 0, list_evr ? list_evr[he->ix] : NULL);
       if (len < 0) continue;
@@ -1146,11 +1149,12 @@ update_provides(URPM__Package pkg, HV *provides) {
     he->tag = RPMTAG_PROVIDENAME;
     if (headerGet(pkg->h, he, 0)) {
       const char **list = he->p.argv;
+      int count = he->c;
 
       he->tag = RPMTAG_PROVIDEFLAGS;
       if (headerGet(pkg->h, he, 0))
 	flags = (rpmsenseFlags*)he->p.ui32p;
-      for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
+      for (he->ix = 0; he->ix < count; he->ix++) {
 	len = strlen(list[he->ix]);
 	update_provide_entry(list[he->ix], len, 1, flags && (flags[he->ix] & (RPMSENSE_PREREQ|RPMSENSE_TRIGGER)),
 	    pkg, provides);
