@@ -461,9 +461,9 @@ typedef int (*callback_list_str)(char *s, int slen, const char *name, const rpms
 static int
 callback_list_str_xpush(char *s, int slen, const char *name, rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
-  if (s) {
+  if (s)
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
-  } else {
+  else {
     char buff[4096];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
@@ -476,9 +476,9 @@ callback_list_str_xpush(char *s, int slen, const char *name, rpmsenseFlags flags
 static int
 callback_list_str_xpush_requires(char *s, int slen, const char *name, const rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
-  if (s) {
+  if (s)
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
-  } else if (is_not_old_suggests(flags)) {
+  else if (is_not_old_suggests(flags)) {
     char buff[4096];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
@@ -491,9 +491,9 @@ callback_list_str_xpush_requires(char *s, int slen, const char *name, const rpms
 static int
 callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
-  if (s) {
+  if (s)
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
-  } else if (is_old_suggests(flags)) {
+  else if (is_old_suggests(flags)) {
     char buff[4096];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
@@ -630,17 +630,16 @@ static int
 xpush_simple_list_str(Header header, rpmTag tag_name) {
   dSP;
   if (header) {
-    HE_t list = memset(alloca(sizeof(*list)), 0, sizeof(*list));
+    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
-    list->tag = tag_name;
-    if (!headerGet(header, list, 0)) return 0;
+    he->tag = tag_name;
+    if (!headerGet(header, he, 0)) return 0;
 
-    for (list->ix = 0; list->ix < (int)list->c; list->ix++) {
-        XPUSHs(sv_2mortal(newSVpv(list->p.argv[list->ix], 0)));
-    }
-    list->p.ptr = _free(list->p.ptr);
+    for (he->ix = 0; he->ix < (int)he->c; he->ix++)
+      XPUSHs(sv_2mortal(newSVpv(he->p.argv[he->ix], 0)));
+    he->p.ptr = _free(he->p.ptr);
     PUTBACK;
-    return list->c;
+    return he->c;
   } else return 0;
 }
 
@@ -648,14 +647,13 @@ static void
 return_list_int32_t(Header header, rpmTag tag_name) {
   dSP;
   if (header) {
-    HE_t list = memset(alloca(sizeof(*list)), 0, sizeof(*list));
+    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
-    list->tag = tag_name;
-    if (headerGet(header, list, 0)) {
-      for (list->ix = 0; list->ix < (int)list->c; list->ix++) {
-	XPUSHs(sv_2mortal(newSViv(list->p.ui32p[list->ix])));
-      }
-      list->p.ptr = _free(list->p.ptr);
+    he->tag = tag_name;
+    if (headerGet(header, he, 0)) {
+      for (he->ix = 0; he->ix < (int)he->c; he->ix++)
+	XPUSHs(sv_2mortal(newSViv(he->p.ui32p[he->ix])));
+      he->p.ptr = _free(he->p.ptr);
     }
   }
   PUTBACK;
@@ -665,14 +663,13 @@ static void
 return_list_uint_16(Header header, rpmTag tag_name) {
   dSP;
   if (header) {
-    HE_t list = memset(alloca(sizeof(*list)), 0, sizeof(*list));
+    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
-    list->tag = tag_name;
-    if (headerGet(header, list, 0)) {
-      for(list->ix = 0; list->ix < (int)list->c; list->ix++) {
-	XPUSHs(sv_2mortal(newSViv(list->p.ui16p[list->ix])));
-      }
-      list->p.ptr = _free(list->p.ptr);
+    he->tag = tag_name;
+    if (headerGet(header, he, 0)) {
+      for(he->ix = 0; he->ix < (int)he->c; he->ix++)
+	XPUSHs(sv_2mortal(newSViv(he->p.ui16p[he->ix])));
+      he->p.ptr = _free(he->p.ptr);
     }
   }
   PUTBACK;
@@ -731,40 +728,31 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
       XPUSHs(sv_2mortal(newSVpv(nvra, 0)));
       _free(nvra);
     } else if (headerGet(pkg->h, he, 0)) {
-      void *list = he->p.ptr;
-      if (tag == RPMTAG_ARCH) {
-	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? (char *) list : "src", 0)));
-      } else
+      if (tag == RPMTAG_ARCH)
+	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? he->p.str : "src", 0)));
+      else
 	switch (he->t) {
 	  case RPM_UINT8_TYPE:
 	  case RPM_UINT16_TYPE:
 	  case RPM_UINT32_TYPE:
-	    {
-	      int *r = (int *)list;
-	      for (he->ix=0; he->ix < (int)he->c; he->ix++) {
-		XPUSHs(sv_2mortal(newSViv(r[he->ix])));
-	      }
-	    }
+	      for (he->ix=0; he->ix < (int)he->c; he->ix++)
+		XPUSHs(sv_2mortal(newSViv(he->p.ui32p[he->ix])));
 	    break;
 	  case RPM_STRING_TYPE:
-	    XPUSHs(sv_2mortal(newSVpv((char *) list, 0)));
+	    XPUSHs(sv_2mortal(newSVpv(he->p.str, 0)));
 	    break;
 	  case RPM_BIN_TYPE:
 	    break;
 	  case RPM_STRING_ARRAY_TYPE:
-	    {
-	      const char **s = (const char **)list;
-	      for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
-		XPUSHs(sv_2mortal(newSVpv(s[he->ix], 0)));
-	      }
-	    }
+	      for (he->ix = 0; he->ix < (int)he->c; he->ix++)
+		XPUSHs(sv_2mortal(newSVpv(he->p.argv[he->ix], 0)));
 	    break;
 	  case RPM_I18NSTRING_TYPE:
 	    break;
 	  case RPM_UINT64_TYPE:
 	    break;
 	}
-      list = _free(list);
+      he->p.ptr = _free(he->p.ptr);
     }
   } else {
     char *name;
@@ -774,54 +762,40 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
     char *disttag;
     char *distepoch;
     char *arch;
-    char *eos;
 
     switch (tag) {
       case RPMTAG_NAME:
-	{
-	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-	  if(!strlen(name))
-	    croak("invalid fullname");
-	  XPUSHs(sv_2mortal(newSVpv(name, 0)));
-	}
+	get_fullname_parts_info(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	if(!strlen(name))
+	  croak("invalid fullname");
+	XPUSHs(sv_2mortal(newSVpv(name, 0)));
 	break;
-      case RPMTAG_EPOCH: {
-	  get_fullname_parts_info(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
-	  XPUSHs(sv_2mortal(newSViv(epoch)));
-	}
+      case RPMTAG_EPOCH:
+	get_fullname_parts_info(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
+	XPUSHs(sv_2mortal(newSViv(epoch)));
       case RPMTAG_VERSION:
-	{
-	  get_fullname_parts_info(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
-	  if(!strlen(version))
-	    croak("invalid fullname");
-	  XPUSHs(sv_2mortal(newSVpv(version, 0)));
-	}
+	get_fullname_parts_info(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
+	if(!strlen(version))
+	  croak("invalid fullname");
+	XPUSHs(sv_2mortal(newSVpv(version, 0)));
 	break;
       case RPMTAG_RELEASE:
-	{
-	  get_fullname_parts_info(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
-	  if(!strlen(release))
-	    croak("invalid fullname");
-	  XPUSHs(sv_2mortal(newSVpv(release, 0)));
-	}
+	get_fullname_parts_info(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
+	if(!strlen(release))
+	  croak("invalid fullname");
+	XPUSHs(sv_2mortal(newSVpv(release, 0)));
 	break;
       case RPMTAG_DISTTAG:
-	{
-	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, &disttag, NULL, NULL);
-	  XPUSHs(sv_2mortal(newSVpv(disttag, 0)));
-	}
+	get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, &disttag, NULL, NULL);
+	XPUSHs(sv_2mortal(newSVpv(disttag, 0)));
 	break;
       case RPMTAG_DISTEPOCH:
-	{
-	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL);
-	  XPUSHs(sv_2mortal(newSVpv(distepoch, 0)));
-	}
+	get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL);
+	XPUSHs(sv_2mortal(newSVpv(distepoch, 0)));
 	break;
       case RPMTAG_ARCH:
-	{
-	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, &arch, NULL, NULL, NULL);
-	  XPUSHs(sv_2mortal(newSVpv(arch, 0)));
-	}
+	get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, &arch, NULL, NULL, NULL);
+	XPUSHs(sv_2mortal(newSVpv(arch, 0)));
 	break;
       case RPMTAG_SUMMARY:
 	XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
@@ -857,7 +831,6 @@ return_files(Header header, int filter_mode) {
       he->tag = RPMTAG_FILEFLAGS;
       if(headerGet(header, he, 0))
 	flags = (rpmsenseFlags*)he->p.ui32p;
-
     }
 
     he->tag = RPMTAG_FILEPATHS;
@@ -868,9 +841,9 @@ return_files(Header header, int filter_mode) {
       s = list[he->ix];
       len = strlen(list[he->ix]);
 
-      if (filter_mode) {
-	if ((filter_mode & FILTER_MODE_CONF_FILES) && flags && (flags[he->ix] & RPMFILE_CONFIG) == 0) continue;
-      }
+      if (filter_mode && (filter_mode & FILTER_MODE_CONF_FILES) &&
+	  flags && (flags[he->ix] & RPMFILE_CONFIG) == 0)
+	continue;
 
       XPUSHs(sv_2mortal(newSVpv(s, len)));
     }
@@ -905,33 +878,25 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 	switch (rpmProblemGetType(p)) {
 	case RPMPROB_BADARCH:
 	  sv = newSVpvf("badarch@%s", pkgNEVR); break;
-
 	case RPMPROB_BADOS:
 	  sv = newSVpvf("bados@%s", pkgNEVR); break;
-
 	case RPMPROB_PKG_INSTALLED:
 	  sv = newSVpvf("installed@%s", pkgNEVR); break;
-
 	case RPMPROB_BADRELOCATE:
 	  sv = newSVpvf("badrelocate@%s@%s", pkgNEVR, s); break;
-
 	case RPMPROB_NEW_FILE_CONFLICT:
 	case RPMPROB_FILE_CONFLICT:
 	  sv = newSVpvf("conflicts@%s@%s@%s", pkgNEVR, altNEVR, s); break;
-
 	case RPMPROB_OLDPACKAGE:
 	  sv = newSVpvf("installed@%s@%s", pkgNEVR, altNEVR); break;
-
 	case RPMPROB_DISKSPACE:
 	  sv = newSVpvf("diskspace@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetDiskNeed(p)); break;
 	case RPMPROB_DISKNODES:
 	  sv = newSVpvf("disknodes@%s@%s@%lld", pkgNEVR, s, (long long)rpmProblemGetDiskNeed(p)); break;
 	case RPMPROB_REQUIRES:
 	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
-
 	case RPMPROB_CONFLICT:
 	  sv = newSVpvf("conflicts@%s@%s", pkgNEVR, altNEVR+2); break;
-
 	default:
 	  sv = newSVpvf("unknown@%s", pkgNEVR); break;
 	}
@@ -954,7 +919,6 @@ pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, 
     const char **list = he->p.argv;
     rpmsenseFlags *flags = NULL;
     const char **list_evr = NULL;
-
     int count = he->c;
    
     if (tag_flags) {
@@ -1012,9 +976,8 @@ get_evr(URPM__Package pkg) {
 	    backup_char(tmp3);
 	  if((tmp2 = strchr(++tmp, '@')))
 	    *tmp2 = '\0';
-	  if(evr == NULL || strlen(tmp) > strlen(evr)) {
+	  if(evr == NULL || strlen(tmp) > strlen(evr))
 	    evr = tmp;
-	  }
 	  if(tmp2)
 	    *tmp2 = '@';
 	}
@@ -1141,12 +1104,11 @@ update_provides(URPM__Package pkg, HV *provides) {
     /* examine requires for files which need to be marked in provides */
     he->tag = RPMTAG_REQUIRENAME;
     if (headerGet(pkg->h, he, 0)) {
-      const char **list = he->p.argv;
       for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
-	len = strlen(list[he->ix]);
-	if (list[he->ix][0] == '/') (void)hv_fetch(provides, list[he->ix], len, 1);
+	len = strlen(he->p.argv[he->ix]);
+	if (he->p.argv[he->ix][0] == '/') (void)hv_fetch(provides, he->p.argv[he->ix], len, 1);
       }
-      list = _free(list);
+      he->p.ptr = _free(he->p.ptr);
     }
 
     /* update all provides */
@@ -1233,19 +1195,16 @@ static void
 update_provides_files(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     STRLEN len;
-    const char **list = NULL;
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
     he->tag = RPMTAG_FILEPATHS;
     if(headerGet(pkg->h, he, 0)) {
-      list = he->p.argv;
       for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
-	len = strlen(list[he->ix]);
-
-	update_provide_entry(list[he->ix], len, 0, 0, pkg, provides);
+	len = strlen(he->p.argv[he->ix]);
+	update_provide_entry(he->p.argv[he->ix], len, 0, 0, pkg, provides);
       }
 
-      list = _free(list);
+      he->p.ptr= _free(he->p.ptr);
     }
   }
 }
@@ -1266,10 +1225,10 @@ open_archive(char *filename, pid_t *pid, int *empty_archive) {
   fd = open(filename, O_RDONLY);
   if (fd >= 0) {
     int pos = lseek(fd, -(int)sizeof(buf), SEEK_END);
-    if (read(fd, &buf, sizeof(buf)) != sizeof(buf) || strncmp(buf.header, "cz[0", 4) || strncmp(buf.trailer, "0]cz", 4)) {
+    if (read(fd, &buf, sizeof(buf)) != sizeof(buf) || strncmp(buf.header, "cz[0", 4) || strncmp(buf.trailer, "0]cz", 4))
       /* this is not an archive, open it without magic, but first rewind at begin of file */
       lseek(fd, 0, SEEK_SET);
-    } else if (pos == 0) {
+    else if (pos == 0) {
       *empty_archive = 1;
       fd = -1;
     } else {
@@ -1296,9 +1255,8 @@ open_archive(char *filename, pid_t *pid, int *empty_archive) {
 	  int ip = 0;
 	  char *ld_loader = getenv("LD_LOADER");
 
-	  if (ld_loader && *ld_loader) {
+	  if (ld_loader && *ld_loader)
 	    unpacker[ip++] = ld_loader;
-	  }
 
 	  buf.trailer[0] = 0; /* make sure end-of-string is right */
 	  while (*p) {
@@ -1361,9 +1319,9 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
   char *tag, *data;
   int data_len;
 
-  if (buff[0] == 0) {
+  if (buff[0] == 0)
     return 1;
-  } else if ((tag = buff)[0] == '@' && (data = strchr(tag+1, '@')) != NULL) {
+  else if ((tag = buff)[0] == '@' && (data = strchr(tag+1, '@')) != NULL) {
     *tag++ = *data++ = 0;
     data_len = 1+strlen(data);
     if (!strcmp(tag, "info")) {
@@ -1378,26 +1336,25 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
 	av_push(depslist, sv_pkg);
       }
       memset(pkg, 0, sizeof(struct s_Package));
-    } else if (!strcmp(tag, "filesize")) {
+    } else if (!strcmp(tag, "filesize"))
       pkg->filesize = atoi(data);
-    } else if (!strcmp(tag, "requires")) {
-      free(pkg->requires); pkg->requires = memcpy(malloc(data_len), data, data_len);
-    } else if (!strcmp(tag, "suggests")) {
-      free(pkg->suggests); pkg->suggests = memcpy(malloc(data_len), data, data_len);
-    } else if (!strcmp(tag, "obsoletes")) {
-      free(pkg->obsoletes); pkg->obsoletes = memcpy(malloc(data_len), data, data_len);
-    } else if (!strcmp(tag, "conflicts")) {
-      free(pkg->conflicts); pkg->conflicts = memcpy(malloc(data_len), data, data_len);
-    } else if (!strcmp(tag, "provides")) {
-      free(pkg->provides); pkg->provides = memcpy(malloc(data_len), data, data_len);
-    } else if (!strcmp(tag, "summary")) {
-      free(pkg->summary); pkg->summary = memcpy(malloc(data_len), data, data_len);
-    }
+    else if (!strcmp(tag, "requires"))
+      free(pkg->requires), pkg->requires = memcpy(malloc(data_len), data, data_len);
+    else if (!strcmp(tag, "suggests"))
+      free(pkg->suggests), pkg->suggests = memcpy(malloc(data_len), data, data_len);
+    else if (!strcmp(tag, "obsoletes"))
+      free(pkg->obsoletes), pkg->obsoletes = memcpy(malloc(data_len), data, data_len);
+    else if (!strcmp(tag, "conflicts"))
+      free(pkg->conflicts), pkg->conflicts = memcpy(malloc(data_len), data, data_len);
+    else if (!strcmp(tag, "provides"))
+      free(pkg->provides), pkg->provides = memcpy(malloc(data_len), data, data_len);
+    else if (!strcmp(tag, "summary"))
+      free(pkg->summary), pkg->summary = memcpy(malloc(data_len), data, data_len);
     return 1;
-  } else {
+  } else
     fprintf(stderr, "bad line <%s>\n", buff);
-    return 0;
-  }
+
+  return 0;
 }
 
 #if 0
@@ -2099,9 +2056,8 @@ Pkg_is_arch_compat__XS(pkg)
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(arch);
     _free(platform);
-  } else {
+  } else
     RETVAL = 0;
-  }
   OUTPUT:
   RETVAL
 
@@ -2140,53 +2096,47 @@ void
 Pkg_summary(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->summary) {
+  if (pkg->summary)
     XPUSHs(sv_2mortal(newSVpv_utf8(pkg->summary, 0)));
-  } else if (pkg->h) {
+  else if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_SUMMARY), 0)));
-  }
 
 void
 Pkg_description(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_DESCRIPTION), 0)));
-  }
 
 void
 Pkg_sourcerpm(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_SOURCERPM), 0)));
-  }
 
 void
 Pkg_packager(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_PACKAGER), 0)));
-  }
 
 void
 Pkg_buildhost(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_BUILDHOST), 0)));
-  }
 
 int
 Pkg_buildtime(pkg)
   URPM::Package pkg
   CODE:
-  if (pkg->h) {
+  if (pkg->h)
     RETVAL = get_int(pkg->h, RPMTAG_BUILDTIME);
-  } else {
+  else
     RETVAL = 0;
-  }
   OUTPUT:
   RETVAL
 
@@ -2194,11 +2144,10 @@ int
 Pkg_installtid(pkg)
   URPM::Package pkg
   CODE:
-  if (pkg->h) {
+  if (pkg->h)
     RETVAL = get_int(pkg->h, RPMTAG_INSTALLTID);
-  } else {
+  else
     RETVAL = 0;
-  }
   OUTPUT:
   RETVAL
 
@@ -2206,49 +2155,43 @@ void
 Pkg_url(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_URL), 0)));
-  }
 
 void
 Pkg_license(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_LICENSE), 0)));
-  }
 
 void
 Pkg_distribution(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_DISTRIBUTION), 0)));
-  }
 
 void
 Pkg_vendor(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_VENDOR), 0)));
-  }
 
 void
 Pkg_os(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_OS), 0)));
-  }
 
 void
 Pkg_payload_format(pkg)
   URPM::Package pkg
   PPCODE:
-  if (pkg->h) {
+  if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_PAYLOADFORMAT), 0)));
-  }
 
 void
 Pkg_evr(pkg)
@@ -2407,14 +2350,14 @@ Pkg_size(pkg)
   if (pkg->info) {
     char *s;
 
-    if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
+    if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL)
       RETVAL = atoi(s+1);
-    } else {
+    else
       RETVAL = 0;
-    }
-  } else if (pkg->h) {
+  } else if (pkg->h)
     RETVAL = get_int(pkg->h, RPMTAG_SIZE);
-  } else RETVAL = 0;
+    else
+    RETVAL = 0;
   OUTPUT:
   RETVAL
 
@@ -2422,11 +2365,11 @@ int
 Pkg_filesize(pkg)
   URPM::Package pkg
   CODE:
-  if (pkg->filesize) {
+  if (pkg->filesize)
     RETVAL = pkg->filesize;
-  } else if (pkg->h) {
+  else if (pkg->h)
     RETVAL = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
-  } else RETVAL = 0;
+  else RETVAL = 0;
   OUTPUT:
   RETVAL
 
@@ -2441,9 +2384,8 @@ Pkg_group(pkg)
       char *eos = strchr(s+1, '@');
       XPUSHs(sv_2mortal(newSVpv_utf8(s+1, eos != NULL ? eos-s-1 : 0)));
     }
-  } else if (pkg->h) {
+  } else if (pkg->h)
     XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_GROUP), 0)));
-  }
 
 void
 Pkg_filename(pkg)
@@ -2455,9 +2397,9 @@ Pkg_filename(pkg)
 
     len = strlen(pkg->info);
 
-    if (len > 5 && !strcmp(&pkg->info[len-4], ".rpm") && (eon = strrchr(pkg->info, '@')) != NULL) {
+    if (len > 5 && !strcmp(&pkg->info[len-4], ".rpm") && (eon = strrchr(pkg->info, '@')) != NULL)
       XPUSHs(sv_2mortal(newSVpv(++eon, 0)));
-    } else if((eon = strchr(pkg->info, '@')) != NULL && (len = eon - pkg->info) > 0) {
+    else if((eon = strchr(pkg->info, '@')) != NULL && (len = eon - pkg->info) > 0) {
       char *filename = alloca(len + sizeof(".rpm"));
       memset(filename, 0, len+sizeof("rpm"));
       strncat(filename, pkg->info, len);
@@ -2474,18 +2416,16 @@ void
 Pkg_id(pkg)
   URPM::Package pkg
   PPCODE:
-  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX) {
+  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX)
     XPUSHs(sv_2mortal(newSViv(pkg->flag & FLAG_ID)));
-  }
 
 void
 Pkg_set_id(pkg, id=-1)
   URPM::Package pkg
   int id
   PPCODE:
-  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX) {
+  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX)
     XPUSHs(sv_2mortal(newSViv(pkg->flag & FLAG_ID)));
-  }
   pkg->flag &= ~FLAG_ID;
   pkg->flag |= id >= 0 && id <= FLAG_ID_MAX ? id : FLAG_ID_INVALID;
 
@@ -2847,19 +2787,18 @@ Pkg_update_header(pkg, filename, ...)
   int keep_all_tags = 0;
   CODE:
   /* compability mode with older interface of parse_hdlist */
-  if (items == 3) {
+  if (items == 3)
     packing = SvIV(ST(2));
-  } else if (items > 3) {
+  else if (items > 3) {
     int i;
     for (i = 2; i < items-1; i+=2) {
       STRLEN len;
       char *s = SvPV(ST(i), len);
 
-      if (len == 7 && !memcmp(s, "packing", 7)) {
+      if (len == 7 && !memcmp(s, "packing", 7))
 	packing = SvTRUE(ST(i + 1));
-      } else if (len == 13 && !memcmp(s, "keep_all_tags", 13)) {
+      else if (len == 13 && !memcmp(s, "keep_all_tags", 13))
 	keep_all_tags = SvTRUE(ST(i+1));
-      }
     }
   }
   RETVAL = update_header(filename, pkg, !packing && keep_all_tags, RPMVSF_DEFAULT);
@@ -3164,7 +3103,7 @@ Pkg_rflags(pkg)
     char *eos;
     while ((eos = strchr(s, '\t')) != NULL) {
       XPUSHs(sv_2mortal(newSVpv(s, eos-s)));
-      s = eos + 1;
+      s = ++eos;
     }
     XPUSHs(sv_2mortal(newSVpv(s, 0)));
   }
@@ -3230,9 +3169,8 @@ Db_open(prefix=NULL, write_perm=0, log_auto_remove=1)
     len = strlen(relpath);
     snprintf(&(relpath[len]), sizeof(relpath)-len, "/%s", prefix);
     rpmtsSetRootDir(db->ts, relpath);
-  } else {
+  } else
     rpmtsSetRootDir(db->ts, prefix && prefix[0] ? prefix : NULL);
-  }
   if (rpmtsOpenDB(db->ts, write_perm ? O_RDWR | O_CREAT : O_RDONLY) == 0) {
     if(write_perm) {
       rpmdb rdb = rpmtsGetRdb(db->ts);
@@ -3261,10 +3199,10 @@ Db_info(prefix=NULL)
   PPCODE:
   read_config_files(0);
   dbpath = rpmGetPath(prefix ? prefix : "", "%{?_dbpath}", NULL);
-  if(Stat(dbpath, &sb) >= 0) {
+  if (Stat(dbpath, &sb) >= 0) {
     ts = rpmtsCreate();
     rpmtsSetRootDir(ts, prefix);
-    if((rpmtsOpenDB(ts, O_RDONLY)) == 0) {
+    if ((rpmtsOpenDB(ts, O_RDONLY)) == 0) {
       rpmdb db = rpmtsGetRdb(ts);
       dbiIndex dbi = dbiOpen(db, RPMDBI_PACKAGES, 0);
       DB *bdb = dbi->dbi_db;
@@ -3294,15 +3232,15 @@ Db_info(prefix=NULL)
 	bdb->err(bdb, xx, "DB->cursor");
 	empty = 2;
       }
-      if(empty != 2) {
+      if (empty != 2) {
 	/* Re-initialize the key/data pair. */
 	memset(&key, 0, sizeof(key));
 	memset(&data, 0, sizeof(data));
 
 	while ((xx = dbcp->c_get(dbcp, &key, &data, DB_NEXT)) == 0) {
-	  if(!*(uint32_t*)key.data)
+	  if (!*(uint32_t*)key.data)
 	    continue;
-	  if(htole32(*(uint32_t*)key.data) > 10000000)
+	  if (htole32(*(uint32_t*)key.data) > 10000000)
 	    XPUSHs(sv_2mortal(newSVpv("bigendian", 0)));
 	  else
 	    XPUSHs(sv_2mortal(newSVpv("littleendian", 0)));
@@ -3310,7 +3248,7 @@ Db_info(prefix=NULL)
 	  break;
 	}
       }
-      if(empty)
+      if (empty)
 	XPUSHs(&PL_sv_undef);
       xx = dbiCclose(dbi, dbcp, 0);
     }
@@ -3409,10 +3347,8 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
 	XPUSHs(sv_2mortal(newSVpv(*p, 0)));
       free(list);
     }
-  } else {
-    /* TODO: croak() */
+  } else
     croak("%s", db_strerror(ret));
-  }
 
 int
 Db_traverse(db,callback)
@@ -3441,7 +3377,7 @@ Db_traverse(db,callback)
       call_sv(callback, G_DISCARD | G_SCALAR);
 
       SPAGAIN;
-      pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
+      pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
     }
     ++count;
   }
@@ -3534,7 +3470,7 @@ Db_traverse_tag_find(db,tag,name,callback)
       int count = call_sv(callback, G_SCALAR);
 
       SPAGAIN;
-      pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
+      pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
 
       if (count == 1 && POPi) {
 	found = 1;
@@ -3587,17 +3523,17 @@ Trans_add(trans, pkg, ...)
     int rc;
     rpmRelocation  relocations = NULL;
     /* compability mode with older interface of add */
-    if (items == 3) {
+    if (items == 3)
       update = SvIV(ST(2));
-    } else if (items > 3) {
+    else if (items > 3) {
       int i;
       for (i = 2; i < items-1; i+=2) {
 	STRLEN len;
 	char *s = SvPV(ST(i), len);
 
-	if (len == 6 && !memcmp(s, "update", 6)) {
+	if (len == 6 && !memcmp(s, "update", 6))
 	  update = SvIV(ST(i+1));
-	} else if (len == 11 && !memcmp(s, "excludepath", 11)) {
+	else if (len == 11 && !memcmp(s, "excludepath", 11)) {
 	  if (SvROK(ST(i+1)) && SvTYPE(SvRV(ST(i+1))) == SVt_PVAV) {
 	    AV *excludepath = (AV*)SvRV(ST(i+1));
 	    I32 j = 1 + av_len(excludepath);
@@ -3605,9 +3541,8 @@ Trans_add(trans, pkg, ...)
 	    relocations = malloc(sizeof(rpmRelocation));
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
-	      if (e != NULL && *e != NULL) {
+	      if (e != NULL && *e != NULL)
 		rpmfiAddRelocation(&relocations, &relno, SvPV_nolen(*e), NULL);
-	      }
 	    }
 	  }
 	}
@@ -3692,26 +3627,24 @@ Trans_check(trans, ...)
     STRLEN len;
     char *s = SvPV(ST(i), len);
 
-    if (len == 17 && !memcmp(s, "translate_message", 17)) {
+    if (len == 17 && !memcmp(s, "translate_message", 17))
       translate_message = SvIV(ST(i+1));
-    } else if (len == 11 && !memcmp(s, "raw_message", 11)) {
+    else if (len == 11 && !memcmp(s, "raw_message", 11))
       raw_message = 1;
-    }
   }
   r = rpmtsCheck(trans->ts);
   rpmps ps = rpmtsProblems(trans->ts);
   if (rpmpsNumProblems(ps) > 0) {
-    if (gimme == G_SCALAR) {
+    if (gimme == G_SCALAR)
       XPUSHs(sv_2mortal(newSViv(0)));
-    } else if (gimme == G_ARRAY) {
+    else if (gimme == G_ARRAY) {
       /* now translation is handled by rpmlib, but only for version 4.2 and above */
       PUTBACK;
       return_problems(ps, translate_message, raw_message || !translate_message);
       SPAGAIN;
     }
-  } else if (gimme == G_SCALAR) {
+  } else if (gimme == G_SCALAR)
     XPUSHs(sv_2mortal(newSViv(1)));
-  }
   if(r == 1)
     XPUSHs(sv_2mortal(newSVpv("error while checking dependencies", 0)));
 
@@ -3724,15 +3657,13 @@ Trans_order(trans)
   I32 gimme = GIMME_V;
   PPCODE:
   if (rpmtsOrder(trans->ts) == 0) {
-    if (gimme == G_SCALAR) {
+    if (gimme == G_SCALAR)
       XPUSHs(sv_2mortal(newSViv(1)));
-    }
   } else {
-    if (gimme == G_SCALAR) {
+    if (gimme == G_SCALAR)
       XPUSHs(sv_2mortal(newSViv(0)));
-    } else if (gimme == G_ARRAY) {
+    else if (gimme == G_ARRAY)
       XPUSHs(sv_2mortal(newSVpv("error while ordering dependencies", 0)));
-    }
   }
 
 int
@@ -3819,53 +3750,53 @@ Trans_run(trans, data, ...)
     STRLEN len;
     char *s = SvPV(ST(i), len);
 
-    if (len == 4 && !memcmp(s, "test", 4)) {
-      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_TEST;
-    } else if (len == 11 && !memcmp(s, "excludedocs", 11)) {
-      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_NODOCS;
-    } else if (len == 5) {
-      if (!memcmp(s, "force", 5)) {
-	if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_REPLACEPKG |
-					  RPMPROB_FILTER_REPLACEOLDFILES |
-					  RPMPROB_FILTER_REPLACENEWFILES |
-					  RPMPROB_FILTER_OLDPACKAGE);
-      } else if (!memcmp(s, "delta", 5))
+    if (len == 4 && !memcmp(s, "test", 4) && SvIV(ST(i+1)))
+      transFlags |= RPMTRANS_FLAG_TEST;
+    else if (len == 11 && !memcmp(s, "excludedocs", 11) && SvIV(ST(i+1)))
+      transFlags |= RPMTRANS_FLAG_NODOCS;
+    else if (len == 5) {
+      if (!memcmp(s, "force", 5) && SvIV(ST(i+1)))
+	probFilter |= (RPMPROB_FILTER_REPLACEPKG |
+	    RPMPROB_FILTER_REPLACEOLDFILES |
+	    RPMPROB_FILTER_REPLACENEWFILES |
+	    RPMPROB_FILTER_OLDPACKAGE);
+      else if (!memcmp(s, "delta", 5))
 	td.min_delta = SvIV(ST(i+1));
-    } else if (len == 6 && !memcmp(s, "nosize", 6)) {
-      if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_DISKSPACE|RPMPROB_FILTER_DISKNODES);
-    } else if (len == 9 && !memcmp(s, "noscripts", 9)) {
-      if (SvIV(ST(i+1))) transFlags |= (RPMTRANS_FLAG_NOSCRIPTS |
-				        RPMTRANS_FLAG_NOPRE |
-				        RPMTRANS_FLAG_NOPREUN |
-				        RPMTRANS_FLAG_NOPOST |
-				        RPMTRANS_FLAG_NOPOSTUN );
-    } else if (len == 10 && !memcmp(s, "oldpackage", 10)) {
-      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_OLDPACKAGE;
-    } else if (len == 11 && !memcmp(s, "replacepkgs", 11)) {
-      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEPKG;
-    } else if (len == 11 && !memcmp(s, "raw_message", 11)) {
+    else if (len == 6 && !memcmp(s, "nosize", 6) && SvIV(ST(i+1)))
+      probFilter |= (RPMPROB_FILTER_DISKSPACE|RPMPROB_FILTER_DISKNODES);
+    else if (len == 9 && !memcmp(s, "noscripts", 9) && SvIV(ST(i+1)))
+      transFlags |= (RPMTRANS_FLAG_NOSCRIPTS |
+	  RPMTRANS_FLAG_NOPRE |
+	  RPMTRANS_FLAG_NOPREUN |
+	  RPMTRANS_FLAG_NOPOST |
+	  RPMTRANS_FLAG_NOPOSTUN );
+    else if (len == 10 && !memcmp(s, "oldpackage", 10) && SvIV(ST(i+1)))
+      probFilter |= RPMPROB_FILTER_OLDPACKAGE;
+    else if (len == 11 && !memcmp(s, "replacepkgs", 11) && SvIV(ST(i+1)))
+      probFilter |= RPMPROB_FILTER_REPLACEPKG;
+    else if (len == 11 && !memcmp(s, "raw_message", 11))
       raw_message = 1;
-    } else if (len == 12 && !memcmp(s, "replacefiles", 12)) {
-      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEOLDFILES | RPMPROB_FILTER_REPLACENEWFILES;
-    } else if (len == 9 && !memcmp(s, "repackage", 9)) {
-      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_REPACKAGE;
-    } else if (len == 6 && !memcmp(s, "justdb", 6)) {
-      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_JUSTDB;
-    } else if (len == 10 && !memcmp(s, "ignorearch", 10)) {
-      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_IGNOREARCH;
-    } else if (len == 17 && !memcmp(s, "translate_message", 17))
+    else if (len == 12 && !memcmp(s, "replacefiles", 12) && SvIV(ST(i+1)))
+      probFilter |= RPMPROB_FILTER_REPLACEOLDFILES | RPMPROB_FILTER_REPLACENEWFILES;
+    else if (len == 9 && !memcmp(s, "repackage", 9) && SvIV(ST(i+1)))
+      transFlags |= RPMTRANS_FLAG_REPACKAGE;
+    else if (len == 6 && !memcmp(s, "justdb", 6) && SvIV(ST(i+1)))
+      transFlags |= RPMTRANS_FLAG_JUSTDB;
+    else if (len == 10 && !memcmp(s, "ignorearch", 10) && SvIV(ST(i+1)))
+      probFilter |= RPMPROB_FILTER_IGNOREARCH;
+    else if (len == 17 && !memcmp(s, "translate_message", 17))
       translate_message = 1;
-    else if (len >= 9 && !memcmp(s, "callback_", 9)) {
-      if (len == 9+4 && !memcmp(s+9, "open", 4)) {
-	if (SvROK(ST(i+1))) td.callback_open = ST(i+1);
-      } else if (len == 9+5 && !memcmp(s+9, "close", 5)) {
-	if (SvROK(ST(i+1))) td.callback_close = ST(i+1);
-      } else if (len == 9+5 && !memcmp(s+9, "trans", 5)) {
-	if (SvROK(ST(i+1))) td.callback_trans = ST(i+1);
-      } else if (len == 9+6 && !memcmp(s+9, "uninst", 6)) {
-	if (SvROK(ST(i+1))) td.callback_uninst = ST(i+1);
-      } else if (len == 9+4 && !memcmp(s+9, "inst", 4)) {
-	if (SvROK(ST(i+1))) td.callback_inst = ST(i+1);
+    else if (len >= 9 && !memcmp(s, "callback_", 9) && SvROK(ST(i+1))) {
+      if (len == 9+4 && !memcmp(s+9, "open", 4))
+	td.callback_open = ST(i+1);
+      else if (len == 9+5 && !memcmp(s+9, "close", 5))
+	td.callback_close = ST(i+1);
+      else if (len == 9+5 && !memcmp(s+9, "trans", 5))
+	td.callback_trans = ST(i+1);
+      else if (len == 9+6 && !memcmp(s+9, "uninst", 6))
+	td.callback_uninst = ST(i+1);
+      else if (len == 9+4 && !memcmp(s+9, "inst", 4))
+	td.callback_inst = ST(i+1);
       }
     }
   }
@@ -4004,9 +3935,8 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	  STRLEN len;
 	  char *s = SvPV(ST(i), len);
 
-	  if (len == 8 && !memcmp(s, "callback", 8)) {
-	    if (SvROK(ST(i+1))) callback = ST(i+1);
-	  }
+	  if (len == 8 && !memcmp(s, "callback", 8) && SvROK(ST(i+1)))
+	    callback = ST(i+1);
 	}
       }
 
@@ -4103,11 +4033,10 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	    STRLEN len;
 	    char *s = SvPV(ST(i), len);
 
-	    if (len == 7 && !memcmp(s, "packing", 7)) {
+	    if (len == 7 && !memcmp(s, "packing", 7))
 	      packing = SvTRUE(ST(i+1));
-	    } else if (len == 8 && !memcmp(s, "callback", 8)) {
-	      if (SvROK(ST(i+1))) callback = ST(i+1);
-	    }
+	    else if (len == 8 && !memcmp(s, "callback", 8) && SvROK(ST(i+1)))
+	      callback = ST(i+1);
 	  }
 	}
 
@@ -4152,9 +4081,8 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	  int rc = waitpid(pid, &status, 0);
 	  ok = rc != -1 && WEXITSTATUS(status) != 1; /* in our standard case, gzip will exit with status code 2, meaning "decompression OK, trailing garbage ignored" */
 	  pid = 0;
-	} else if (!empty_archive) {
+	} else if (!empty_archive)
 	  ok = av_len(depslist) >= start_id;
-	}
 	SPAGAIN;
 	if (ok) {
 	  XPUSHs(sv_2mortal(newSViv(start_id)));
@@ -4179,7 +4107,7 @@ Urpm_parse_rpm(urpm, filename, ...)
     SV **fprovides = hv_fetch((HV*)SvRV(urpm), "provides", 8, 0);
     HV *provides = fprovides && SvROK(*fprovides) && SvTYPE(SvRV(*fprovides)) == SVt_PVHV ? (HV*)SvRV(*fprovides) : NULL;
     SV **fobsoletes = hv_fetch((HV*)SvRV(urpm), "obsoletes", 8, 0);
-    HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
+     HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
 
     if (depslist != NULL) {
       struct s_Package pkg, *_pkg;
@@ -4190,44 +4118,39 @@ Urpm_parse_rpm(urpm, filename, ...)
       rpmVSFlags vsflags = RPMVSF_DEFAULT;
 
       /* compability mode with older interface of parse_hdlist */
-      if (items == 3) {
+      if (items == 3)
 	packing = SvTRUE(ST(2));
-      } else if (items > 3) {
+      else if (items > 3) {
 	int i;
 	for (i = 2; i < items-1; i+=2) {
 	  STRLEN len;
 	  char *s = SvPV(ST(i), len);
 
-	  if (len == 7 && !memcmp(s, "packing", 7)) {
+	  if (len == 7 && !memcmp(s, "packing", 7))
 	    packing = SvTRUE(ST(i + 1));
-	  } else if (len == 13 && !memcmp(s, "keep_all_tags", 13)) {
+	  else if (len == 13 && !memcmp(s, "keep_all_tags", 13))
 	    keep_all_tags = SvTRUE(ST(i+1));
-	  } else if (len == 8 && !memcmp(s, "callback", 8)) {
-	    if (SvROK(ST(i+1))) callback = ST(i+1);
-	  } else if (len == 5) {
-            if (!memcmp(s, "nopgp", 5)) {
-              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
-            }
-            else if (!memcmp(s, "nogpg", 5)) {
-              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
-            }
-            else if (!memcmp(s, "nomd5", 5)) {
-              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NOMD5 |  RPMVSF_NOMD5HEADER);
-            }
-            else if (!memcmp(s, "norsa", 5)) {
-              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NORSA | RPMVSF_NORSAHEADER);
-            }
-            else if (!memcmp(s, "nodsa", 5)) {
-              if (SvIV(ST(i+1))) vsflags |= (RPMVSF_NODSA | RPMVSF_NODSAHEADER);
-            }
-          } else if (len == 9) {
-            if (!memcmp(s, "nodigests", 9)) {
-              if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NODIGESTS;
-            } else
-            if (!memcmp(s, "nopayload", 9)) {
-              if (SvIV(ST(i+1))) vsflags |= _RPMVSF_NOPAYLOAD;
-            }
-          } 
+	  else if (len == 8 && !memcmp(s, "callback", 8) && SvROK(ST(i+1)))
+	    callback = ST(i+1);
+	  else if SvIV(ST(i+1)) {
+	    if (len == 5) {
+	      if (!memcmp(s, "nopgp", 5))
+		vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
+	      else if (!memcmp(s, "nogpg", 5))
+		vsflags |= (RPMVSF_NOSHA1 | RPMVSF_NOSHA1HEADER);
+	      else if (!memcmp(s, "nomd5", 5))
+		vsflags |= (RPMVSF_NOMD5 |  RPMVSF_NOMD5HEADER);
+	      else if (!memcmp(s, "norsa", 5))
+		vsflags |= (RPMVSF_NORSA | RPMVSF_NORSAHEADER);
+	      else if (!memcmp(s, "nodsa", 5))
+		vsflags |= (RPMVSF_NODSA | RPMVSF_NODSAHEADER);
+	    } else if (len == 9) {
+	      if (!memcmp(s, "nodigests", 9))
+		vsflags |= _RPMVSF_NODIGESTS;
+	      else if (!memcmp(s, "nopayload", 9))
+		vsflags |= _RPMVSF_NOPAYLOAD;
+	    }
+	  }
 	}
       }
       PUTBACK;
@@ -4271,25 +4194,23 @@ Urpm_verify_rpm(filename, ...)
   for (i = 1 ; i < items - 1 ; i += 2) {
     STRLEN len;
     char *s = SvPV(ST(i), len);
-    if (len == 9 && !strncmp(s, "nodigests", 9)) {
-      if (SvIV(ST(i+1))) qva.qva_flags &= ~VERIFY_DIGEST;
-    } else if (len == 12 && !strncmp(s, "nosignatures", 12)) {
-      if (SvIV(ST(i+1))) qva.qva_flags &= ~VERIFY_SIGNATURE;
-    }
+    if (len == 9 && !strncmp(s, "nodigests", 9) && SvIV(ST(i+1)))
+      qva.qva_flags &= ~VERIFY_DIGEST;
+    else if (len == 12 && !strncmp(s, "nosignatures", 12) && SvIV(ST(i+1)))
+      qva.qva_flags &= ~VERIFY_SIGNATURE;
   }
   fd = Fopen(filename, "r");
-  if (fd == NULL) {
+  if (fd == NULL)
     RETVAL = 0;
-  } else {
+  else {
     read_config_files(0);
     ts = rpmtsCreate();
     rpmtsSetRootDir(ts, NULL);
     rpmtsOpenDB(ts, O_RDONLY);
-    if (rpmVerifySignatures(&qva, ts, fd, filename)) {
+    if (rpmVerifySignatures(&qva, ts, fd, filename))
       RETVAL = 0;
-    } else {
+    else
       RETVAL = 1;
-    }
     Fclose(fd);
     (void)rpmtsFree(ts);
   }
@@ -4311,16 +4232,15 @@ Urpm_get_gpg_fingerprint(filename)
 
     CODE:
     memset (fingerprint, 0, sizeof (fingerprint));
-    if ((rc = pgpReadPkts(filename, (uint8_t ** ) &pkt, &pktlen)) <= 0) {
+    if ((rc = pgpReadPkts(filename, (uint8_t ** ) &pkt, &pktlen)) <= 0)
 	pktlen = 0;
-    } else if (rc != PGPARMOR_PUBKEY) {
+    else if (rc != PGPARMOR_PUBKEY)
 	pktlen = 0;
-    } else {
+    else {
 	unsigned int i;
         pgpPubkeyFingerprint (pkt, pktlen, fingerprint);
-   	for (i = 0; i < sizeof (pgpKeyID_t); i++) {
+   	for (i = 0; i < sizeof (pgpKeyID_t); i++)
 	    sprintf(&fingerprint_str[i*2], "%02x", fingerprint[i]);
-	}
     }
     _free(pkt);
     RETVAL = fingerprint_str;
@@ -4340,9 +4260,9 @@ Urpm_verify_signature(filename, prefix=NULL)
   Header h;
   CODE:
   fd = Fopen(filename, "r");
-  if (fd == NULL) {
+  if (fd == NULL)
     RETVAL = "NOT OK (could not read file)";
-  } else {
+  else {
     read_config_files(0);
     ts = rpmtsCreate();
     rpmtsSetRootDir(ts, prefix);
@@ -4400,15 +4320,14 @@ Urpm_import_pubkey_file(db, filename)
     rpmts ts = rpmtsLink(db->ts, "URPM::import_pubkey_file");
     rpmtsClean(ts);
     
-    if ((rc = pgpReadPkts(filename, (uint8_t ** ) &pkt, &pktlen)) <= 0) {
+    if ((rc = pgpReadPkts(filename, (uint8_t ** ) &pkt, &pktlen)) <= 0)
         RETVAL = 0;
-    } else if (rc != PGPARMOR_PUBKEY) {
+    else if (rc != PGPARMOR_PUBKEY)
         RETVAL = 0;
-    } else if (rpmcliImportPubkey(ts, pkt, pktlen) != RPMRC_OK) {
+    else if (rpmcliImportPubkey(ts, pkt, pktlen) != RPMRC_OK)
         RETVAL = 0;
-    } else {
+    else
         RETVAL = 1;
-    }
     pkt = _free(pkt);
     (void)rpmtsFree(ts);
     OUTPUT:
