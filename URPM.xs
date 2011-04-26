@@ -779,19 +779,19 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
     switch (tag) {
       case RPMTAG_NAME:
 	{
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 	  if(!strlen(name))
 	    croak("invalid fullname");
 	  XPUSHs(sv_2mortal(newSVpv(name, 0)));
 	}
 	break;
       case RPMTAG_EPOCH: {
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  get_fullname_parts_info(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
 	  XPUSHs(sv_2mortal(newSViv(epoch)));
 	}
       case RPMTAG_VERSION:
 	{
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  get_fullname_parts_info(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
 	  if(!strlen(version))
 	    croak("invalid fullname");
 	  XPUSHs(sv_2mortal(newSVpv(version, 0)));
@@ -799,7 +799,7 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 	break;
       case RPMTAG_RELEASE:
 	{
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  get_fullname_parts_info(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
 	  if(!strlen(release))
 	    croak("invalid fullname");
 	  XPUSHs(sv_2mortal(newSVpv(release, 0)));
@@ -807,19 +807,19 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 	break;
       case RPMTAG_DISTTAG:
 	{
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, &disttag, NULL, NULL);
 	  XPUSHs(sv_2mortal(newSVpv(disttag, 0)));
 	}
 	break;
       case RPMTAG_DISTEPOCH:
 	{
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL);
 	  XPUSHs(sv_2mortal(newSVpv(distepoch, 0)));
 	}
 	break;
       case RPMTAG_ARCH:
 	{
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
+	  get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, &arch, NULL, NULL, NULL);
 	  XPUSHs(sv_2mortal(newSVpv(arch, 0)));
 	}
 	break;
