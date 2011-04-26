@@ -3767,21 +3767,15 @@ Trans_run(trans, data, ...)
       else if (len == 6 && !memcmp(s, "nosize", 6))
 	probFilter |= (RPMPROB_FILTER_DISKSPACE|RPMPROB_FILTER_DISKNODES);
       else if (len == 9 && !memcmp(s, "noscripts", 9))
-	transFlags |= (RPMTRANS_FLAG_NOSCRIPTS |
-	    RPMTRANS_FLAG_NOPRE |
-	    RPMTRANS_FLAG_NOPREUN |
-	    RPMTRANS_FLAG_NOPOST |
-	    RPMTRANS_FLAG_NOPOSTUN );
-      else if (len == 10 && !memcmp(s, "notriggers", 10))
-	transFlags |= RPMTRANS_FLAG_NOTRIGGERS |
-	  RPMTRANS_FLAG_NOTRIGGERPREIN |
-	  RPMTRANS_FLAG_NOTRIGGERIN |
-	  RPMTRANS_FLAG_NOTRIGGERUN |
-	  RPMTRANS_FLAG_NOTRIGGERPOSTUN;
-      else if (len == 10 && !memcmp(s, "nofdigests", 10))
-	transFlags |= RPMTRANS_FLAG_NOFDIGESTS;
-      else if (len == 10 && !memcmp(s, "oldpackage", 10))
-	probFilter |= RPMPROB_FILTER_OLDPACKAGE;
+	transFlags |= (RPMTRANS_FLAG_NOSCRIPTS|_noTransScripts);
+      else if (len == 10) {
+	if (!memcmp(s, "notriggers", 10))
+	  transFlags |= (RPMTRANS_FLAG_NOTRIGGERS|_noTransTriggers);
+	else if (!memcmp(s, "nofdigests", 10))
+	  transFlags |= RPMTRANS_FLAG_NOFDIGESTS;
+	else if (!memcmp(s, "oldpackage", 10))
+	  probFilter |= RPMPROB_FILTER_OLDPACKAGE;
+      }
       else if (len == 11 && !memcmp(s, "replacepkgs", 11))
 	probFilter |= RPMPROB_FILTER_REPLACEPKG;
       else if (len == 12 && !memcmp(s, "replacefiles", 12))
