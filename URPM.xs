@@ -726,7 +726,11 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
     he->tag = tag;
-    if (headerGet(pkg->h, he, 0)) {
+    if (!strcasecmp(tag_name, "nvra")) {
+      const char *nvra = get_nvra(pkg->h);
+      XPUSHs(sv_2mortal(newSVpv(nvra, 0)));
+      _free(nvra);
+    } else if (headerGet(pkg->h, he, 0)) {
       void *list = he->p.ptr;
       if (tag == RPMTAG_ARCH) {
 	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? (char *) list : "src", 0)));
@@ -769,9 +773,9 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
     char *release;
     char *disttag;
     char *distepoch;
-
     char *arch;
     char *eos;
+
     switch (tag) {
       case RPMTAG_NAME:
 	{
@@ -825,8 +829,8 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
       /* fix to match %{___NVRA} later... */
       case RPMTAG_NVRA:
 	{
-	  get_fullname_parts_info(pkg, &name, &epoch, &version, &release, &arch, &disttag, &distepoch, &eos);
-	  XPUSHs(sv_2mortal(newSVpvf("%s-%s-%s.%s", name, version, release, arch)));
+	  const char *eon = strchr(pkg->info, '@');
+	  XPUSHs(sv_2mortal(newSVpv(pkg->info, eon ? eon-pkg->info : 0)));
 	}
 	break;
       default:
@@ -1092,7 +1096,7 @@ pack_header(URPM__Package pkg) {
     }
 
     if (!(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h =headerFree(pkg->h);
-    pkg->h = 0;
+    pkg->h = NULL;
   }
 }
 
