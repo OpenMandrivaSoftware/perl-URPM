@@ -601,7 +601,7 @@ return_list_str(char *s, Header header, rpmTag tag_name, rpmTag tag_flags, rpmTa
       if (tag_flags) {
         he->tag = tag_flags;
         if (headerGet(header, he, 0))
-	  flags = he->p.ui32p;
+	  flags = (rpmsenseFlags*)he->p.ui32p;
       }
       if (tag_version) {
         he->tag = tag_version;
