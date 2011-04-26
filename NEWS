@@ -1,3 +1,8 @@
+Verison 4.23 -          2011, by Per Øyvind Karlsen
+
+- check that rpmdb was properly opened in read/write mode to prevent segfault
+  if no write permissions
+
 Version 4.22 - 26 April 2011, by Per Øyvind Karlsen
 
 - add support for notriggers

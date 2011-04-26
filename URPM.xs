@@ -3175,6 +3175,12 @@ Db_open(prefix=NULL, write_perm=0, log_auto_remove=1)
     if(write_perm) {
       rpmdb rdb = rpmtsGetRdb(db->ts);
       DB_ENV *dbenv = rdb->db_dbenv;
+
+      if (dbenv == NULL) {
+	(void)rpmtsFree(db->ts);
+	croak("unable to open rpmdb in read/write mode, write permissions missing?");
+      }
+
       /* TODO: allow for user configuration? */
       if(log_auto_remove)
 	dbenv->log_set_config(dbenv, DB_LOG_AUTO_REMOVE, 1);
