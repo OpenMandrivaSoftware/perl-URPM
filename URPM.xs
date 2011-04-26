@@ -4194,10 +4194,14 @@ Urpm_verify_rpm(filename, ...)
   for (i = 1 ; i < items - 1 ; i += 2) {
     STRLEN len;
     char *s = SvPV(ST(i), len);
-    if (len == 9 && !strncmp(s, "nodigests", 9) && SvIV(ST(i+1)))
-      qva.qva_flags &= ~VERIFY_DIGEST;
-    else if (len == 12 && !strncmp(s, "nosignatures", 12) && SvIV(ST(i+1)))
-      qva.qva_flags &= ~VERIFY_SIGNATURE;
+    if (SvIV(ST(i+1))) {
+      if (len == 9 && !strncmp(s, "nodigests", 9))
+	qva.qva_flags &= ~VERIFY_DIGEST;
+      else if (len == 10 && !strncmp(s, "nofdigests", 10))
+	qva.qva_flags &= ~VERIFY_FDIGEST;
+      else if (len == 12 && !strncmp(s, "nosignatures", 12))
+	qva.qva_flags &= ~VERIFY_SIGNATURE;
+    }
   }
   fd = Fopen(filename, "r");
   if (fd == NULL)
