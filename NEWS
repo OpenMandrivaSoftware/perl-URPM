@@ -1,5 +1,6 @@
 Version 4.22 - 26 April 2011, by Per Øyvind Karlsen
 
+- add support for notriggers
 - add support for nofdigests
 - fix getting expected NVRA tag
 - fix possible breakage when trying to load non-existant dependency flags
