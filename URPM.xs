@@ -464,7 +464,7 @@ callback_list_str_xpush(char *s, int slen, const char *name, rpmsenseFlags flags
   if (s)
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
   else {
-    char buff[4096];
+    char buff[BUFSIZ];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
       XPUSHs(sv_2mortal(newSVpv(buff, len)));
@@ -479,7 +479,7 @@ callback_list_str_xpush_requires(char *s, int slen, const char *name, const rpms
   if (s)
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
   else if (is_not_old_suggests(flags)) {
-    char buff[4096];
+    char buff[BUFSIZ];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
       XPUSHs(sv_2mortal(newSVpv(buff, len)));
@@ -494,7 +494,7 @@ callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, rpmsen
   if (s)
     XPUSHs(sv_2mortal(newSVpv(s, slen)));
   else if (is_old_suggests(flags)) {
-    char buff[4096];
+    char buff[BUFSIZ];
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
       XPUSHs(sv_2mortal(newSVpv(buff, len)));
@@ -2820,7 +2820,7 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
   char *provides_files
   CODE:
   if (pkg->info) {
-    char buff[65536];
+    char buff[8*BUFSIZ];
     size_t size;
 
     /* info line should be the last to be written */
@@ -3920,7 +3920,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
     HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
 
     if (depslist != NULL) {
-      char buff[65536];
+      char buff[8*BUFSIZ];
       char *p, *eol;
       int buff_len;
       struct s_Package pkg;
@@ -4025,9 +4025,9 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	SV *callback = NULL;
 
 	/* compability mode with older interface of parse_hdlist */
-	if (items == 3) {
+	if (items == 3)
 	  packing = SvTRUE(ST(2));
-	} else if (items > 3) {
+	else if (items > 3) {
 	  int i;
 	  for (i = 2; i < items-1; i+=2) {
 	    STRLEN len;
