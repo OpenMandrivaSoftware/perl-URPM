@@ -3249,16 +3249,16 @@ Db_info(prefix=NULL)
 
       switch(bdb->type) {
 	case DB_BTREE:
-	  XPUSHs(sv_2mortal(newSVpv("btree", 0)));
+	  XPUSHs(sv_2mortal(newSVpvs("btree")));
 	  break;
 	case DB_RECNO:
-	  XPUSHs(sv_2mortal(newSVpv("recno", 0)));
+	  XPUSHs(sv_2mortal(newSVpvs("recno")));
 	  break;
 	case DB_HASH:
-	  XPUSHs(sv_2mortal(newSVpv("hash", 0)));
+	  XPUSHs(sv_2mortal(newSVpvs("hash")));
 	  break;
 	case DB_QUEUE:
-	  XPUSHs(sv_2mortal(newSVpv("queue", 0)));
+	  XPUSHs(sv_2mortal(newSVpvs("queue")));
 	  break;
 	case DB_UNKNOWN:
 	default:
@@ -3279,9 +3279,9 @@ Db_info(prefix=NULL)
 	  if (!*(uint32_t*)key.data)
 	    continue;
 	  if (htole32(*(uint32_t*)key.data) > 10000000)
-	    XPUSHs(sv_2mortal(newSVpv("bigendian", 0)));
+	    XPUSHs(sv_2mortal(newSVpvs("bigendian")));
 	  else
-	    XPUSHs(sv_2mortal(newSVpv("littleendian", 0)));
+	    XPUSHs(sv_2mortal(newSVpvs("littleendian")));
 	  empty = 0;
 	  break;
 	}
@@ -3684,7 +3684,7 @@ Trans_check(trans, ...)
   } else if (gimme == G_SCALAR)
     XPUSHs(sv_2mortal(newSViv(1)));
   if(r == 1)
-    XPUSHs(sv_2mortal(newSVpv("error while checking dependencies", 0)));
+    XPUSHs(sv_2mortal(newSVpvs("error while checking dependencies")));
 
   ps = rpmpsFree(ps);
 
@@ -3701,7 +3701,7 @@ Trans_order(trans)
     if (gimme == G_SCALAR)
       XPUSHs(sv_2mortal(newSViv(0)));
     else if (gimme == G_ARRAY)
-      XPUSHs(sv_2mortal(newSVpv("error while ordering dependencies", 0)));
+      XPUSHs(sv_2mortal(newSVpvs("error while ordering dependencies")));
   }
 
 int
