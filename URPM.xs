@@ -2249,7 +2249,7 @@ Pkg_fullname(pkg)
 	XPUSHs(sv_2mortal(newSVpv(pkg->info, eos-pkg->info)));
     } else if (pkg->h) {
       const char *nvra = get_nvra(pkg->h);
-      XPUSHs(sv_2mortal(newSVpvf("%s", nvra)));
+      XPUSHs(sv_2mortal(newSVpv(nvra, 0)));
       _free(nvra);
     }
   }
@@ -4510,6 +4510,7 @@ expand(name)
     PPCODE:
     const char * value = rpmExpand(name, NULL);
     XPUSHs(sv_2mortal(newSVpv(value, 0)));
+    _free(value)
 
 void
 add_macro_noexpand(macro)
