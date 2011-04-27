@@ -279,7 +279,7 @@ get_name(Header header, rpmTag tag) {
     else if(val->t == RPM_STRING_ARRAY_TYPE || val->t == RPM_I18NSTRING_TYPE)
       return val->p.argv[val->ix];
   }
-  return "";
+  return NULL;
 }
 
 static int
@@ -295,11 +295,23 @@ get_int(Header header, rpmTag tag) {
   return ret;
 }
 
+#define push_utf8_name(pkg, tag) { \
+    const char *str = get_name(pkg->h, tag); \
+    XPUSHs(sv_2mortal(newSVpv_utf8(str ? str : "", 0))); \
+    _free(str);\
+}
+
+#define push_name(pkg, tag) {\
+  const char *str = get_name(pkg->h, tag); \
+  XPUSHs(sv_2mortal(newSVpv(str ? str : "", 0))); \
+  _free(str); \
+}
+
 /* This function might modify strings that needs to be restored after use
  * with restore_chars()
  */
 static void
-get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
+get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
   char *_version = NULL, *_release = NULL, *_disttag = NULL, *_distepoch = NULL, *_arch = NULL, *_eos = NULL, *tmp = NULL, *tmp2 = NULL;
   /* XXX: Could probably be written in a more generic way, only thing we
    * really want to do is to check for arch field, which will be missing in
@@ -359,30 +371,6 @@ get_fullname_parts_info(URPM__Package pkg, char **name, int *epoch, char **versi
       }
     }
   }
-}
-
-static void
-get_fullname_parts_header(Header h, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
-    if (name != NULL) *name = (char*)get_name(h, RPMTAG_NAME);
-    if (epoch != NULL) *epoch = get_int(h, RPMTAG_EPOCH);
-    if (version != NULL) *version = (char*)get_name(h, RPMTAG_VERSION);
-    if (release != NULL) *release = (char*)get_name(h, RPMTAG_RELEASE);
-    if (disttag != NULL) *disttag = (char*)get_name(h, RPMTAG_DISTTAG);
-    if (distepoch != NULL) *distepoch = (char*)get_name(h, RPMTAG_DISTEPOCH);
-    if (arch != NULL) *arch = headerIsEntry(h, RPMTAG_SOURCERPM) ? (char*)get_name(h, RPMTAG_ARCH) : "src";
-    if (eos != NULL) *eos = NULL;
-}
-
-static int
-get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
-  if(pkg->info)
-    get_fullname_parts_info(pkg, name, epoch, version, release, disttag, distepoch, arch, eos);
-  else if(pkg->h)
-    get_fullname_parts_header(pkg->h, name, epoch, version, release, disttag, distepoch, arch, eos);
-  else
-    return 1;
-
-  return 0;
 }
 
 static int
@@ -765,36 +753,36 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 
     switch (tag) {
       case RPMTAG_NAME:
-	get_fullname_parts_info(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 	if(!strlen(name))
 	  croak("invalid fullname");
 	XPUSHs(sv_2mortal(newSVpv(name, 0)));
 	break;
       case RPMTAG_EPOCH:
-	get_fullname_parts_info(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
+	get_fullname_parts(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
 	XPUSHs(sv_2mortal(newSViv(epoch)));
       case RPMTAG_VERSION:
-	get_fullname_parts_info(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
+	get_fullname_parts(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
 	if(!strlen(version))
 	  croak("invalid fullname");
 	XPUSHs(sv_2mortal(newSVpv(version, 0)));
 	break;
       case RPMTAG_RELEASE:
-	get_fullname_parts_info(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
+	get_fullname_parts(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
 	if(!strlen(release))
 	  croak("invalid fullname");
 	XPUSHs(sv_2mortal(newSVpv(release, 0)));
 	break;
       case RPMTAG_DISTTAG:
-	get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, &disttag, NULL, NULL);
+	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &disttag, NULL, NULL);
 	XPUSHs(sv_2mortal(newSVpv(disttag, 0)));
 	break;
       case RPMTAG_DISTEPOCH:
-	get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL);
+	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL);
 	XPUSHs(sv_2mortal(newSVpv(distepoch, 0)));
 	break;
       case RPMTAG_ARCH:
-	get_fullname_parts_info(pkg, NULL, NULL, NULL, NULL, &arch, NULL, NULL, NULL);
+	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &arch, NULL, NULL, NULL);
 	XPUSHs(sv_2mortal(newSVpv(arch, 0)));
 	break;
       case RPMTAG_SUMMARY:
@@ -957,7 +945,7 @@ get_evr(URPM__Package pkg) {
     if(pkg->provides && !pkg->h) {
       char *name = NULL;
       char *tmp = NULL, *tmp2 = NULL, *tmp3 = NULL;
-      get_fullname_parts_info(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+      get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
       /*
        * TODO: this function is way too awkward and complex now, need to change
        *       pattern & separator
@@ -1022,14 +1010,14 @@ pack_header(URPM__Package pkg) {
       p += snprintf(buff, sizeof(buff), "%s@%d@%d@%s", nvra,
 		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
 		    group);
-      if (*disttag || *distepoch) {
+      if (disttag || distepoch) {
 	p = stpcpy(p, "@");
-	if (*disttag) {
+	if (disttag) {
 	  p = stpcpy(p, disttag);
 	  _free(disttag);
 	}
 	p = stpcpy(p, "@");
-	if (*distepoch) {
+	if (distepoch) {
 	  p = stpcpy(p, distepoch);
 	  _free(distepoch);
 	}
@@ -1055,7 +1043,7 @@ pack_header(URPM__Package pkg) {
       pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
     if (pkg->summary == NULL) {
       const char *summary = get_name(pkg->h, RPMTAG_SUMMARY);
-      pkg->summary = (char*)summary;
+      pkg->summary = summary ? (char*)summary : "";
     }
 
     if (!(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h =headerFree(pkg->h);
@@ -1977,10 +1965,12 @@ Pkg_name(pkg)
   INIT:
   char *name;
   PPCODE:
-  if(get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL))
-    croak("invalid fullname");
-  XPUSHs(sv_2mortal(newSVpv(name, 0)));
-  restore_chars();
+  if (pkg->info) {
+    get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    XPUSHs(sv_2mortal(newSVpv(name, 0)));
+    restore_chars();
+  } else if (pkg->h)
+    push_name(pkg, RPMTAG_NAME);
 
 void
 Pkg_version(pkg)
@@ -1988,10 +1978,12 @@ Pkg_version(pkg)
   INIT:
   char *version;
   PPCODE:
-  if(get_fullname_parts(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL))
-    croak("invalid fullname");
-  XPUSHs(sv_2mortal(newSVpv(version, 0)));
-  restore_chars();
+  if (pkg->info) {
+    get_fullname_parts(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
+    XPUSHs(sv_2mortal(newSVpv(version, 0)));
+    restore_chars();
+  } else if (pkg->h)
+    push_name(pkg, RPMTAG_VERSION);
 
 void
 Pkg_release(pkg)
@@ -1999,30 +1991,38 @@ Pkg_release(pkg)
   INIT:
   char *release;
   PPCODE:
-  if(get_fullname_parts(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL))
-    croak("invalid fullname");
-  XPUSHs(sv_2mortal(newSVpv(release, 0)));
-  restore_chars();
+  if (pkg->info) {
+    get_fullname_parts(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
+    XPUSHs(sv_2mortal(newSVpv(release, 0)));
+    restore_chars();
+  } else if (pkg->h)
+    push_name(pkg, RPMTAG_RELEASE);
 
-void Pkg_disttag(pkg)
+void
+Pkg_disttag(pkg)
   URPM::Package pkg
   INIT:
   char *disttag;
   PPCODE:
-  if(get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &disttag, NULL, NULL, NULL))
-    croak("invalid fullname");
-  XPUSHs(sv_2mortal(newSVpv(disttag, 0)));
-  restore_chars();
+  if (pkg->info) {
+    get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &disttag, NULL, NULL, NULL);
+    XPUSHs(sv_2mortal(newSVpv(disttag ? disttag : "", 0)));
+    restore_chars();
+  } else if (pkg->h)
+    push_name(pkg, RPMTAG_DISTTAG);
 
-void Pkg_distepoch(pkg)
+void
+Pkg_distepoch(pkg)
   URPM::Package pkg
   INIT:
   char *distepoch;
   PPCODE:
-  if(get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL, NULL))
-    croak("invalid fullname");
-  XPUSHs(sv_2mortal(newSVpv(distepoch, 0)));
-  restore_chars();
+  if (pkg->info) {
+    get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL, NULL);
+    XPUSHs(sv_2mortal(newSVpv(distepoch ? distepoch : "", 0)));
+    restore_chars();
+  } else if (pkg->h)
+    push_name(pkg, RPMTAG_DISTEPOCH);
 
 void
 Pkg_arch(pkg)
@@ -2030,10 +2030,12 @@ Pkg_arch(pkg)
   INIT:
   char *arch;
   PPCODE:
-
-  get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
-  XPUSHs(sv_2mortal(newSVpv(arch, 0)));
-  restore_chars();
+  if (pkg->info) {
+    get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
+    XPUSHs(sv_2mortal(newSVpv(arch ? arch : "", 0)));
+    restore_chars();
+  } else if (pkg->h)
+    push_name(pkg, RPMTAG_ARCH);
 
 int
 Pkg_is_arch_compat__XS(pkg)
@@ -2052,7 +2054,7 @@ Pkg_is_arch_compat__XS(pkg)
     restore_chars();
   } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     const char *arch = get_name(pkg->h, RPMTAG_ARCH);
-    platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+    platform = rpmExpand(arch ? arch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(arch);
     _free(platform);
@@ -2099,35 +2101,35 @@ Pkg_summary(pkg)
   if (pkg->summary)
     XPUSHs(sv_2mortal(newSVpv_utf8(pkg->summary, 0)));
   else if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_SUMMARY), 0)));
+   push_utf8_name(pkg, RPMTAG_SUMMARY);
 
 void
 Pkg_description(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_DESCRIPTION), 0)));
+   push_utf8_name(pkg, RPMTAG_DESCRIPTION);
 
 void
 Pkg_sourcerpm(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_SOURCERPM), 0)));
+   push_name(pkg, RPMTAG_DESCRIPTION);
 
 void
 Pkg_packager(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_PACKAGER), 0)));
+   push_utf8_name(pkg, RPMTAG_PACKAGER);
 
 void
 Pkg_buildhost(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_BUILDHOST), 0)));
+   push_name(pkg, RPMTAG_BUILDHOST);
 
 int
 Pkg_buildtime(pkg)
@@ -2156,42 +2158,42 @@ Pkg_url(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_URL), 0)));
+   push_name(pkg, RPMTAG_URL);
 
 void
 Pkg_license(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_LICENSE), 0)));
+   push_name(pkg, RPMTAG_LICENSE);
 
 void
 Pkg_distribution(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_DISTRIBUTION), 0)));
+   push_name(pkg, RPMTAG_DISTRIBUTION);
 
 void
 Pkg_vendor(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_VENDOR), 0)));
+   push_name(pkg, RPMTAG_VENDOR);
 
 void
 Pkg_os(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_OS), 0)));
+   push_name(pkg, RPMTAG_OS);
 
 void
 Pkg_payload_format(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv(get_name(pkg->h, RPMTAG_PAYLOADFORMAT), 0)));
+   push_name(pkg, RPMTAG_PAYLOADFORMAT);
 
 void
 Pkg_evr(pkg)
@@ -2213,17 +2215,33 @@ Pkg_fullname(pkg)
     char *name, *version, *release, *disttag, *distepoch, *arch, *eos;
     int items = 6;
 
-    if(get_fullname_parts(pkg, &name, NULL, &version, &release, &disttag, &distepoch, &arch, &eos))
-      croak("invalid fullname");
-
+    if (pkg->info)
+      get_fullname_parts(pkg, &name, NULL, &version, &release, &disttag, &distepoch, &arch, &eos);
+    else if (pkg->h) {
+      name = (char*)get_name(pkg->h, RPMTAG_NAME);
+      version = (char*)get_name(pkg->h, RPMTAG_VERSION);
+      release = (char*)get_name(pkg->h, RPMTAG_RELEASE);
+      disttag = (char*)get_name(pkg->h, RPMTAG_DISTTAG);
+      distepoch = (char*)get_name(pkg->h, RPMTAG_DISTEPOCH);
+      arch = (char*)get_name(pkg->h, RPMTAG_ARCH);
+    }
     EXTEND(SP, items);
-    PUSHs(sv_2mortal(newSVpv(name, 0)));
-    PUSHs(sv_2mortal(newSVpv(version, 0)));
-    PUSHs(sv_2mortal(newSVpv(release, 0)));
-    PUSHs(sv_2mortal(newSVpv(disttag, 0)));
-    PUSHs(sv_2mortal(newSVpv(distepoch, 0)));
-    PUSHs(sv_2mortal(newSVpv(arch, 0)));
-    restore_chars();
+    PUSHs(sv_2mortal(newSVpv(name ? name : "", 0)));
+    PUSHs(sv_2mortal(newSVpv(version ? version : "", 0)));
+    PUSHs(sv_2mortal(newSVpv(release ? release : "", 0)));
+    PUSHs(sv_2mortal(newSVpv(disttag ? disttag : "", 0)));
+    PUSHs(sv_2mortal(newSVpv(distepoch ? distepoch : "", 0)));
+    PUSHs(sv_2mortal(newSVpv(arch ? arch : "", 0)));
+    if (pkg->info)
+      restore_chars();
+    else {
+      _free(name);
+      _free(version);
+      _free(release);
+      _free(disttag);
+      _free(distepoch);
+      _free(arch);
+    }
   } else if (gimme == G_SCALAR) {
     if (pkg->info) {
       char *eos;
@@ -2242,7 +2260,10 @@ Pkg_epoch(pkg)
   PREINIT:
   int epoch;
   CODE:
-  get_fullname_parts(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
+  if (pkg->info)
+    get_fullname_parts(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
+  else
+    epoch = get_int(pkg->h, RPMTAG_EPOCH);
   RETVAL = epoch;
   OUTPUT:
   RETVAL
@@ -2275,17 +2296,22 @@ Pkg_compare_pkg(lpkg, rpkg)
     if (!compare) {
       int lscore, rscore;
       char *platform = NULL;
-      if(get_fullname_parts(lpkg, NULL, NULL, NULL, NULL, NULL, NULL, &larch, NULL) ||
-	  get_fullname_parts(rpkg, NULL, NULL, NULL, NULL, NULL, NULL, &rarch, NULL))
-	croak("undefined package");
+      if (lpkg->info)
+	get_fullname_parts(lpkg, NULL, NULL, NULL, NULL, NULL, NULL, &larch, NULL);
+      else
+	larch = (char*)get_name(lpkg->h, RPMTAG_ARCH);
+      if (lpkg->info)
+	get_fullname_parts(rpkg, NULL, NULL, NULL, NULL, NULL, NULL, &rarch, NULL);
+      else
+	rarch = (char*)get_name(rpkg->h, RPMTAG_ARCH);
 
       read_config_files(0);
 
-      platform = rpmExpand(larch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+      platform = rpmExpand(larch ? larch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
       lscore = rpmPlatformScore(platform, NULL, 0);
       platform = _free(platform);
 
-      platform = rpmExpand(rarch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+      platform = rpmExpand(rarch ? rarch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
       rscore = rpmPlatformScore(platform, NULL, 0);
       platform = _free(platform);
 
@@ -2306,6 +2332,8 @@ Pkg_compare_pkg(lpkg, rpkg)
 	  compare = rscore - lscore; /* score are lower for better */
       }
     }
+    if (!lpkg->info) _free(larch);
+    if (!rpkg->info) _free(rarch);
     restore_chars();
     RETVAL = compare;
   }
@@ -2385,7 +2413,7 @@ Pkg_group(pkg)
       XPUSHs(sv_2mortal(newSVpv_utf8(s+1, eos != NULL ? eos-s-1 : 0)));
     }
   } else if (pkg->h)
-    XPUSHs(sv_2mortal(newSVpv_utf8(get_name(pkg->h, RPMTAG_GROUP), 0)));
+    push_utf8_name(pkg, RPMTAG_GROUP);
 
 void
 Pkg_filename(pkg)
@@ -2749,9 +2777,10 @@ Pkg_queryformat(pkg, fmt)
   PPCODE:
   if (pkg->h) {
     s = headerSprintf(pkg->h, fmt, NULL, NULL, NULL);
-      if (s) {
-        XPUSHs(sv_2mortal(newSVpv_utf8(s,0)));
-      }
+    if (s) {
+      XPUSHs(sv_2mortal(newSVpv_utf8(s,0)));
+    }
+    _free(s);
   }
   
 void
@@ -4068,7 +4097,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	  /* prevent rpmgiNext() from freeing header */
 	  gi->h = NULL;
 	  sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
-	      _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package)));
+	      (_pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
 	  if (call_package_callback(urpm, sv_pkg, callback)) {
 	    if (provides) {
 	      update_provides(_pkg, provides);
