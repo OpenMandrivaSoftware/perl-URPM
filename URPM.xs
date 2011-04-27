@@ -244,11 +244,11 @@ rpmtag_from_string(const char *tag)
   static const char tag_context[] = "rpmtag",
 		    qv_context[] = "rpmqvsources";
   /* XXX: rpmcli.h: @todo Reassign to tag values. */
-  if (!strcmp(tag, "whatprovides"))
+  if (!strcasecmp(tag, "whatprovides"))
     return RPMTAG_PROVIDENAME;
-  else if (!strcmp(tag, "whatrequires"))
+  else if (!strcasecmp(tag, "whatrequires"))
     return RPMTAG_REQUIRENAME;
-  else if (!strcmp(tag, "path"))
+  else if (!strcasecmp(tag, "path"))
     return RPMTAG_BASENAMES;
 
   if(tag_c == NULL) {
