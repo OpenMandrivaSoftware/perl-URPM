@@ -898,7 +898,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 
 static char *
 pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, rpmsenseFlags (*check_flag)(rpmsenseFlags)) {
-  char buff[65536];
+  char buff[8*BUFSIZ];
   char *p = buff;
   HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
