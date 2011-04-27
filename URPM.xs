@@ -4510,7 +4510,7 @@ expand(name)
     PPCODE:
     const char * value = rpmExpand(name, NULL);
     XPUSHs(sv_2mortal(newSVpv(value, 0)));
-    _free(value)
+    _free(value);
 
 void
 add_macro_noexpand(macro)
