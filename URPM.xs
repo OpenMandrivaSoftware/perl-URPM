@@ -1316,7 +1316,7 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
       pkg->info = memcpy(malloc(data_len), data, data_len);
       pkg->flag &= ~FLAG_ID;
       pkg->flag |= 1 + av_len(depslist);
-      sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
+      sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package",
 			    _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package)));
       if (call_package_callback(urpm, sv_pkg, callback)) {
 	if (provides) update_provides(_pkg, provides);
@@ -1932,6 +1932,9 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
 
   _free(dbpath);
   _free(__dbi_txn);
+  _free(_dbi_tags);
+  _free(_dbi_config);
+  _free(_dbi_config_Packages);
   _free(tmppath);
   return xx;
 }
@@ -3406,7 +3409,7 @@ Db_traverse(db,callback)
       pkg->h = header;
 
       PUSHMARK(SP);
-      XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
+      XPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
       PUTBACK;
 
       call_sv(callback, G_DISCARD | G_SCALAR);
@@ -3457,7 +3460,7 @@ Db_traverse_tag(db,tag,names,callback)
 	  pkg->h = header;
 
 	  PUSHMARK(SP);
-	  XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
+	  XPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
 	  PUTBACK;
 
 	  call_sv(callback, G_DISCARD | G_SCALAR);
@@ -3499,7 +3502,7 @@ Db_traverse_tag_find(db,tag,name,callback)
       pkg->h = header;
 
       PUSHMARK(SP);
-      XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
+      XPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
       PUTBACK;
 
       int count = call_sv(callback, G_SCALAR);
@@ -3637,7 +3640,7 @@ Trans_traverse(trans, callback)
       pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
       pkg->h = h;
       PUSHMARK(SP);
-      XPUSHs(sv_2mortal(sv_setref_pv(newSVpv("", 0), "URPM::Package", pkg)));
+      XPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
       PUTBACK;
       call_sv(callback, G_DISCARD | G_SCALAR);
       SPAGAIN;
@@ -4096,7 +4099,7 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	  pkg.h = rpmgiHeader(gi);
 	  /* prevent rpmgiNext() from freeing header */
 	  gi->h = NULL;
-	  sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package",
+	  sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package",
 	      (_pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package))));
 	  if (call_package_callback(urpm, sv_pkg, callback)) {
 	    if (provides) {
@@ -4197,7 +4200,7 @@ Urpm_parse_rpm(urpm, filename, ...)
       _pkg = memcpy(malloc(sizeof(struct s_Package)), &pkg, sizeof(struct s_Package));
 
       if (update_header(filename, _pkg, keep_all_tags, vsflags)) {
-	sv_pkg = sv_setref_pv(newSVpv("", 0), "URPM::Package", _pkg);
+	sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package", _pkg);
 	if (call_package_callback(urpm, sv_pkg, callback)) {
 	  if (provides) {
 	    update_provides(_pkg, provides);
