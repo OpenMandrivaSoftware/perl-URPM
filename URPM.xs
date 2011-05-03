@@ -4475,12 +4475,11 @@ Urpm_spec2srcheader(specfile)
 #define SPEC_FORCE 1
   if (!parseSpec(ts, specfile, "/", 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE, 0)) {
     SV *sv_pkg;
-    HE_t he;
+    HE_t he = (HE_t)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
     spec = rpmtsSetSpec(ts, NULL);
     initSourceHeader(spec, NULL);
     pkg = (URPM__Package)calloc(1, sizeof(struct s_Package));
-    he = (HE_t)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
     he->tag = RPMTAG_SOURCERPM;
     he->p.str = "";
@@ -4488,7 +4487,6 @@ Urpm_spec2srcheader(specfile)
     headerPut(spec->sourceHeader, he, 0);
 
     {
-      HE_t he = (HE_t)memset(alloca(sizeof(*he)), 0, sizeof(*he));
       he->tag = RPMTAG_ARCH;
       he->t = RPM_STRING_TYPE;
       he->p.str = "src";
