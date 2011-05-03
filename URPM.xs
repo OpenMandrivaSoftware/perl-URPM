@@ -718,7 +718,7 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
       _free(nvra);
     } else if (headerGet(pkg->h, he, 0)) {
       if (tag == RPMTAG_ARCH)
-	XPUSHs(sv_2mortal(newSVpv((headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) ? he->p.str : "src", 0)));
+	XPUSHs(sv_2mortal(newSVpv((headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE)) ? he->p.str : "src", 0)));
       else
 	switch (he->t) {
 	  case RPM_UINT8_TYPE:
@@ -986,12 +986,15 @@ get_evr(URPM__Package pkg) {
 	needle += 2;
       size_t len = strlen(needle);
 
-      if (pkg->provides == NULL)
-	pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
-
-      evr = strstr(pkg->provides, needle);
-      if(strlen(evr) != len)
-	backup_char((char*)&evr[len]);
+      if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE))
+	evr = needle;
+      else {
+	if (pkg->provides == NULL)
+	    pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
+	  evr = strstr(pkg->provides, needle);
+	}
+	if(strlen(evr) != len)
+	  backup_char((char*)&evr[len]);
       ds = rpmdsFree(ds);
     }
     return evr;
