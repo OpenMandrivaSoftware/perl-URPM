@@ -1,7 +1,7 @@
-Verison 4.23 -          2011, by Per Øyvind Karlsen
+Version 4.23 -  3 May 2011, by Per Øyvind Karlsen
 
 - check for termination signals so ie. that installs can be aborted with ^C
-- fix some memleaks
+- fix remaining memleaks
 - check that rpmdb was properly opened in read/write mode to prevent segfault
   if no write permissions
 
