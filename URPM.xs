@@ -718,7 +718,7 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
       _free(nvra);
     } else if (headerGet(pkg->h, he, 0)) {
       if (tag == RPMTAG_ARCH)
-	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? he->p.str : "src", 0)));
+	XPUSHs(sv_2mortal(newSVpv((headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) ? he->p.str : "src", 0)));
       else
 	switch (he->t) {
 	  case RPM_UINT8_TYPE:
@@ -2058,7 +2058,7 @@ Pkg_is_arch_compat__XS(pkg)
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(platform);
     restore_chars();
-  } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
+  } else if (pkg->h && (headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE))) {
     const char *arch = get_name(pkg->h, RPMTAG_ARCH);
     platform = rpmExpand(arch ? arch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);
