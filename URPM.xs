@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <libintl.h>
 #include <glob.h>
+#include <stdbool.h>
 
 #undef Fflush
 #undef Mkdir
@@ -128,7 +129,7 @@ rpmError_callback() {
   return RPMLOG_DEFAULT;
 }
 
-static int rpm_codeset_is_utf8 = 0;
+static bool rpm_codeset_is_utf8 = false;
 
 static struct s_backup {
     char *ptr;
@@ -952,7 +953,7 @@ get_evr(URPM__Package pkg) {
        */
       if(name) {
 	size_t namelen = strlen(name);
-	char *needle = alloca(namelen+3);
+	char needle[namelen+3];
 	snprintf(needle, namelen+3, "@%s[", name);
 	restore_chars();
 	tmp = pkg->provides;
@@ -2433,7 +2434,7 @@ Pkg_filename(pkg)
     if (len > 5 && !strcmp(&pkg->info[len-4], ".rpm") && (eon = strrchr(pkg->info, '@')) != NULL)
       XPUSHs(sv_2mortal(newSVpv(++eon, 0)));
     else if((eon = strchr(pkg->info, '@')) != NULL && (len = eon - pkg->info) > 0) {
-      char *filename = alloca(len + sizeof(".rpm"));
+      char filename[len + sizeof(".rpm")];
       memset(filename, 0, len+sizeof("rpm"));
       strncat(filename, pkg->info, len);
       stpcpy(&filename[len], ".rpm");
