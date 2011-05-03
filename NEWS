@@ -1,3 +1,7 @@
+Version 4.24 -  3 May 2011, by Per Øyvind Karlsen
+
+- fix segfault caused by attempting to assign arch of wrong package
+
 Version 4.23 -  3 May 2011, by Per Øyvind Karlsen
 
 - check for termination signals so ie. that installs can be aborted with ^C
