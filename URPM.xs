@@ -2305,9 +2305,8 @@ Pkg_compare_pkg(lpkg, rpkg)
 	get_fullname_parts(lpkg, NULL, NULL, NULL, NULL, NULL, NULL, &larch, NULL);
       else
 	larch = (char*)get_name(lpkg->h, RPMTAG_ARCH);
-      if (rpkg->info) {
+      if (rpkg->info)
 	get_fullname_parts(rpkg, NULL, NULL, NULL, NULL, NULL, NULL, &rarch, NULL);
-      }
       else
 	rarch = (char*)get_name(rpkg->h, RPMTAG_ARCH);
 
