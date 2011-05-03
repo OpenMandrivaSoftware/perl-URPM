@@ -2279,11 +2279,11 @@ Pkg_compare_pkg(lpkg, rpkg)
   URPM::Package rpkg
   PREINIT:
   int compare = 0;
-  char *levr;
-  char *larch;
-  char *revr;
-  char *rarch;
-  char *tmp;
+  char *levr = NULL;
+  char *larch = NULL;
+  char *revr = NULL;
+  char *rarch = NULL;
+  char *tmp = NULL;
   CODE:
   if (lpkg == rpkg) RETVAL = 0;
   else {
@@ -2337,8 +2337,8 @@ Pkg_compare_pkg(lpkg, rpkg)
 	  compare = rscore - lscore; /* score are lower for better */
       }
     }
-    if (!lpkg->info) _free(larch);
-    if (!rpkg->info) _free(rarch);
+    if (!lpkg->info) larch = _free(larch);
+    if (!rpkg->info) rarch = _free(rarch);
     restore_chars();
     RETVAL = compare;
   }

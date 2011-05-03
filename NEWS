@@ -1,3 +1,7 @@
+Version 4.25 -    May 2011, by Per Øyvind Karlsen
+
+- fix some invalid free()'s
+
 Version 4.24 -  3 May 2011, by Per Øyvind Karlsen
 
 - fix segfault caused by attempting to assign arch of wrong package
