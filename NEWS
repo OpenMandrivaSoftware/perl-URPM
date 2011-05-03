@@ -1,7 +1,7 @@
-Version 4.25 -    May 2011, by Per Øyvind Karlsen
+Version 4.25 -  3 May 2011, by Per Øyvind Karlsen
 
-- use gnu99
-- fix some invalid free()'s
+- start using gnu99
+- fix some invalid free()s
 
 Version 4.24 -  3 May 2011, by Per Øyvind Karlsen
 
