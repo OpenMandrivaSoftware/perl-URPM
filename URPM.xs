@@ -1497,6 +1497,8 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
   SV *callback = NULL;
   char *callback_type = NULL;
   char *callback_subtype = NULL;
+  
+  rpmdbCheckTerminate(0);
 
   if (!td)
     return NULL;
@@ -3866,6 +3868,7 @@ MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 BOOT:
 (void) read_config_files(0);
 Perl_call_atexit(PERL_GET_CONTEXT, (void*)urpm_perl_atexit,0);
+rpmdbCheckSignals();
 
 void
 Urpm_bind_rpm_textdomain_codeset()
