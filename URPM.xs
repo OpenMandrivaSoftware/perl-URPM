@@ -298,16 +298,18 @@ get_int(Header header, rpmTag tag) {
 
 #define push_utf8_name(pkg, tag) { \
     const char *str = get_name(pkg->h, tag); \
-    XPUSHs(sv_2mortal(newSVpv_utf8(str ? str : "", 0))); \
+    XPUSHs(sv_2mortal((str && *str) ? newSVpv_utf8(str, 0) : newSVpvs(""))); \
     _free(str);\
 }
 
 #define push_name(pkg, tag) {\
   const char *str = get_name(pkg->h, tag); \
-  XPUSHs(sv_2mortal(newSVpv(str ? str : "", 0))); \
+  XPUSHs(sv_2mortal((str && *str) ? newSVpv(str, 0) : newSVpvs(""))); \
   _free(str); \
 }
 
+#define push_utf8_name_only(str, len) XPUSHs(sv_2mortal((str && *str) ? newSVpv_utf8(str, len) : newSVpvs("")))
+#define push_name_only(str, len) XPUSHs(sv_2mortal((str && *str) ? newSVpv(str, len) : newSVpvs("")))
 /* This function might modify strings that needs to be restored after use
  * with restore_chars()
  */
@@ -452,12 +454,14 @@ static int
 callback_list_str_xpush(char *s, int slen, const char *name, rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
   if (s)
-    XPUSHs(sv_2mortal(newSVpv(s, slen)));
+    push_name_only(s, slen);
   else {
     char buff[BUFSIZ];
-    int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
+    /* to silence warnings about never being NULL */
+    char *buf = buff;
+    int len = print_list_entry(buf, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
-      XPUSHs(sv_2mortal(newSVpv(buff, len)));
+      push_name_only(buf, len);
   }
   PUTBACK;
   /* returning zero indicates to continue processing */
@@ -467,12 +471,13 @@ static int
 callback_list_str_xpush_requires(char *s, int slen, const char *name, const rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
   if (s)
-    XPUSHs(sv_2mortal(newSVpv(s, slen)));
+    push_name_only(s, slen);
   else if (is_not_old_suggests(flags)) {
     char buff[BUFSIZ];
-    int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
+    char *buf = buff;
+    int len = print_list_entry(buf, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
-      XPUSHs(sv_2mortal(newSVpv(buff, len)));
+      push_name_only(buf, len);
   }
   PUTBACK;
   /* returning zero indicates to continue processing */
@@ -482,12 +487,13 @@ static int
 callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
   if (s)
-    XPUSHs(sv_2mortal(newSVpv(s, slen)));
+    push_name_only(s, slen);
   else if (is_old_suggests(flags)) {
     char buff[BUFSIZ];
+    char *buf = buff;
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
     if (len >= 0)
-      XPUSHs(sv_2mortal(newSVpv(buff, len)));
+      push_name_only(buf, len);
   }
   PUTBACK;
   /* returning zero indicates to continue processing */
@@ -626,7 +632,7 @@ xpush_simple_list_str(Header header, rpmTag tag_name) {
     if (!headerGet(header, he, 0)) return 0;
 
     for (he->ix = 0; he->ix < (int)he->c; he->ix++)
-      XPUSHs(sv_2mortal(newSVpv(he->p.argv[he->ix], 0)));
+      push_name_only(he->p.argv[he->ix], 0);
     he->p.ptr = _free(he->p.ptr);
     PUTBACK;
     return he->c;
@@ -677,6 +683,7 @@ return_list_tag_modifier(Header header, const char *tag_name) {
   for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
     char buff[15];
     char *s = buff;
+    char *buf = buff;
     rpmTagType tags = he->p.ui32p[he->ix];
     switch (tag) {
     case RPMTAG_FILEFLAGS:
@@ -698,7 +705,7 @@ return_list_tag_modifier(Header header, const char *tag_name) {
       return;  
     }
     *s = '\0';
-    XPUSHs(sv_2mortal(newSVpv(buff, strlen(buff))));
+    push_name_only(buf, strlen(buff));
   }
   he->p.ptr = _free(he->p.ptr);
   PUTBACK;
@@ -715,11 +722,11 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
     he->tag = tag;
     if (!strcasecmp(tag_name, "nvra")) {
       const char *nvra = get_nvra(pkg->h);
-      XPUSHs(sv_2mortal(newSVpv(nvra, 0)));
+      push_name_only(nvra, 0);
       _free(nvra);
     } else if (headerGet(pkg->h, he, 0)) {
       if (tag == RPMTAG_ARCH)
-	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? he->p.str : "src", 0)));
+	push_name_only((headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? he->p.str : "src"), 0);
       else
 	switch (he->t) {
 	  case RPM_UINT8_TYPE:
@@ -729,13 +736,13 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 		XPUSHs(sv_2mortal(newSViv(he->p.ui32p[he->ix])));
 	    break;
 	  case RPM_STRING_TYPE:
-	    XPUSHs(sv_2mortal(newSVpv(he->p.str, 0)));
+	    push_name_only(he->p.str, 0);
 	    break;
 	  case RPM_BIN_TYPE:
 	    break;
 	  case RPM_STRING_ARRAY_TYPE:
 	      for (he->ix = 0; he->ix < (int)he->c; he->ix++)
-		XPUSHs(sv_2mortal(newSVpv(he->p.argv[he->ix], 0)));
+		push_name_only(he->p.argv[he->ix], 0);
 	    break;
 	  case RPM_I18NSTRING_TYPE:
 	    break;
@@ -758,7 +765,7 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 	get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 	if(!strlen(name))
 	  croak("invalid fullname");
-	XPUSHs(sv_2mortal(newSVpv(name, 0)));
+	push_name_only(name, 0);
 	break;
       case RPMTAG_EPOCH:
 	get_fullname_parts(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -767,34 +774,34 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 	get_fullname_parts(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
 	if(!strlen(version))
 	  croak("invalid fullname");
-	XPUSHs(sv_2mortal(newSVpv(version, 0)));
+	push_name_only(version, 0);
 	break;
       case RPMTAG_RELEASE:
 	get_fullname_parts(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
 	if(!strlen(release))
 	  croak("invalid fullname");
-	XPUSHs(sv_2mortal(newSVpv(release, 0)));
+	push_name_only(release, 0);
 	break;
       case RPMTAG_DISTTAG:
 	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &disttag, NULL, NULL);
-	XPUSHs(sv_2mortal(newSVpv(disttag, 0)));
+	push_name_only(disttag, 0);
 	break;
       case RPMTAG_DISTEPOCH:
 	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL);
-	XPUSHs(sv_2mortal(newSVpv(distepoch, 0)));
+	push_name_only(distepoch, 0);
 	break;
       case RPMTAG_ARCH:
 	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &arch, NULL, NULL, NULL);
-	XPUSHs(sv_2mortal(newSVpv(arch, 0)));
+	push_name_only(arch, 0);
 	break;
       case RPMTAG_SUMMARY:
-	XPUSHs(sv_2mortal(newSVpv(pkg->summary, 0)));
+	push_name_only(pkg->summary, 0);
 	break;
       /* fix to match %{___NVRA} later... */
       case RPMTAG_NVRA:
 	{
 	  const char *eon = strchr(pkg->info, '@');
-	  XPUSHs(sv_2mortal(newSVpv(pkg->info, eon ? eon-pkg->info : 0)));
+	  push_name_only(pkg->info, eon ? eon-pkg->info : 0);
 	}
 	break;
       default:
@@ -835,7 +842,7 @@ return_files(Header header, int filter_mode) {
 	  flags && (flags[he->ix] & RPMFILE_CONFIG) == 0)
 	continue;
 
-      XPUSHs(sv_2mortal(newSVpv(s, len)));
+      push_name_only(s, len);
     }
     flags = _free(flags);
     list = _free(list);
@@ -1572,10 +1579,10 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
       SAVETMPS;
       PUSHMARK(SP);
       XPUSHs(td->data);
-      XPUSHs(sv_2mortal(newSVpv(callback_type, 0)));
+      push_name_only(callback_type, 0);
       XPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((long)pkgKey - 1)) : &PL_sv_undef);
       if (callback_subtype != NULL) {
-	XPUSHs(sv_2mortal(newSVpv(callback_subtype, 0)));
+	push_name_only(callback_subtype, 0);
 	XPUSHs(sv_2mortal(newSViv(amount)));
 	XPUSHs(sv_2mortal(newSViv(total)));
       }
@@ -1977,7 +1984,7 @@ Pkg_name(pkg)
   PPCODE:
   if (pkg->info) {
     get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-    XPUSHs(sv_2mortal(newSVpv(name, 0)));
+    push_name_only(name, 0);
     restore_chars();
   } else if (pkg->h)
     push_name(pkg, RPMTAG_NAME);
@@ -1990,7 +1997,7 @@ Pkg_version(pkg)
   PPCODE:
   if (pkg->info) {
     get_fullname_parts(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
-    XPUSHs(sv_2mortal(newSVpv(version, 0)));
+    push_name_only(version, 0);
     restore_chars();
   } else if (pkg->h)
     push_name(pkg, RPMTAG_VERSION);
@@ -2003,7 +2010,7 @@ Pkg_release(pkg)
   PPCODE:
   if (pkg->info) {
     get_fullname_parts(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
-    XPUSHs(sv_2mortal(newSVpv(release, 0)));
+    push_name_only(release, 0);
     restore_chars();
   } else if (pkg->h)
     push_name(pkg, RPMTAG_RELEASE);
@@ -2016,7 +2023,7 @@ Pkg_disttag(pkg)
   PPCODE:
   if (pkg->info) {
     get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &disttag, NULL, NULL, NULL);
-    XPUSHs(sv_2mortal(newSVpv(disttag ? disttag : "", 0)));
+    push_name_only(disttag, 0);
     restore_chars();
   } else if (pkg->h)
     push_name(pkg, RPMTAG_DISTTAG);
@@ -2029,7 +2036,7 @@ Pkg_distepoch(pkg)
   PPCODE:
   if (pkg->info) {
     get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL, NULL);
-    XPUSHs(sv_2mortal(newSVpv(distepoch ? distepoch : "", 0)));
+    push_name_only(distepoch, 0);
     restore_chars();
   } else if (pkg->h)
     push_name(pkg, RPMTAG_DISTEPOCH);
@@ -2042,7 +2049,7 @@ Pkg_arch(pkg)
   PPCODE:
   if (pkg->info) {
     get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
-    XPUSHs(sv_2mortal(newSVpv(arch ? arch : "", 0)));
+    push_name_only(arch, 0);
     restore_chars();
   } else if (pkg->h) {
     if (headerIsEntry(pkg->h, RPMTAG_ARCH)) {
@@ -2125,7 +2132,7 @@ Pkg_summary(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->summary)
-    XPUSHs(sv_2mortal(newSVpv_utf8(pkg->summary, 0)));
+    push_utf8_name_only(pkg->summary, 0);
   else if (pkg->h)
    push_utf8_name(pkg, RPMTAG_SUMMARY);
 
@@ -2228,7 +2235,7 @@ Pkg_evr(pkg)
   const char *evr;
   PPCODE:
   evr = get_evr(pkg);
-  XPUSHs(sv_2mortal(newSVpv(evr, 0)));
+  push_name_only(evr, 0);
   restore_chars();
 
 void
@@ -2252,12 +2259,12 @@ Pkg_fullname(pkg)
       arch = (char*)get_name(pkg->h, RPMTAG_ARCH);
     }
     EXTEND(SP, items);
-    PUSHs(sv_2mortal(newSVpv(name ? name : "", 0)));
-    PUSHs(sv_2mortal(newSVpv(version ? version : "", 0)));
-    PUSHs(sv_2mortal(newSVpv(release ? release : "", 0)));
-    PUSHs(sv_2mortal(newSVpv(disttag ? disttag : "", 0)));
-    PUSHs(sv_2mortal(newSVpv(distepoch ? distepoch : "", 0)));
-    PUSHs(sv_2mortal(newSVpv(arch ? arch : "", 0)));
+    PUSHs(sv_2mortal(name ? newSVpv(name, 0) : newSVpvs("")));
+    PUSHs(sv_2mortal(version ? newSVpv(version, 0) : newSVpvs("")));
+    PUSHs(sv_2mortal(release ? newSVpv(release, 0) : newSVpvs("")));
+    PUSHs(sv_2mortal(disttag ? newSVpv(disttag, 0) : newSVpvs("")));
+    PUSHs(sv_2mortal(distepoch ? newSVpv(distepoch, 0) : newSVpvs("")));
+    PUSHs(sv_2mortal(arch ? newSVpv(arch, 0) : newSVpvs("")));
     if (pkg->info)
       restore_chars();
     else {
@@ -2272,10 +2279,10 @@ Pkg_fullname(pkg)
     if (pkg->info) {
       char *eos;
       if ((eos = strchr(pkg->info, '@')) != NULL)
-	XPUSHs(sv_2mortal(newSVpv(pkg->info, eos-pkg->info)));
+	push_name_only(pkg->info, eos-pkg->info);
     } else if (pkg->h) {
       const char *nvra = get_nvra(pkg->h);
-      XPUSHs(sv_2mortal(newSVpv(nvra, 0)));
+      push_name_only(nvra, 0);
       _free(nvra);
     }
   }
@@ -2436,7 +2443,7 @@ Pkg_group(pkg)
 
     if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
       char *eos = strchr(s+1, '@');
-      XPUSHs(sv_2mortal(newSVpv_utf8(s+1, eos != NULL ? eos-s-1 : 0)));
+      push_utf8_name_only(s+1, eos != NULL ? eos-s-1 : 0);
     }
   } else if (pkg->h)
     push_utf8_name(pkg, RPMTAG_GROUP);
@@ -2452,13 +2459,14 @@ Pkg_filename(pkg)
     len = strlen(pkg->info);
 
     if (len > 5 && !strcmp(&pkg->info[len-4], ".rpm") && (eon = strrchr(pkg->info, '@')) != NULL)
-      XPUSHs(sv_2mortal(newSVpv(++eon, 0)));
+      push_name_only(++eon, 0);
     else if((eon = strchr(pkg->info, '@')) != NULL && (len = eon - pkg->info) > 0) {
       char filename[len + sizeof(".rpm")];
+      char *buf = filename;
       memset(filename, 0, len+sizeof("rpm"));
       strncat(filename, pkg->info, len);
       stpcpy(&filename[len], ".rpm");
-      XPUSHs(sv_2mortal(newSVpv(filename, 0)));
+      push_name_only(buf, 0);
     }
   } else if (pkg->h) {
     const char *nvra = get_nvra(pkg->h);
@@ -2803,9 +2811,8 @@ Pkg_queryformat(pkg, fmt)
   PPCODE:
   if (pkg->h) {
     s = headerSprintf(pkg->h, fmt, NULL, NULL, NULL);
-    if (s) {
-      XPUSHs(sv_2mortal(newSVpv_utf8(s,0)));
-    }
+    if (s)
+      push_utf8_name_only(s, 0);
     _free(s);
   }
   
@@ -3157,10 +3164,10 @@ Pkg_rflags(pkg)
     char *s = pkg->rflags;
     char *eos;
     while ((eos = strchr(s, '\t')) != NULL) {
-      XPUSHs(sv_2mortal(newSVpv(s, eos-s)));
+      push_name_only(s, eos-s);
       s = ++eos;
     }
-    XPUSHs(sv_2mortal(newSVpv(s, 0)));
+    push_name_only(s, 0);
   }
 
 void
@@ -3191,10 +3198,10 @@ Pkg_set_rflags(pkg, ...)
     char *s = pkg->rflags;
     char *eos;
     while ((eos = strchr(s, '\t')) != NULL) {
-      XPUSHs(sv_2mortal(newSVpv(s, eos-s)));
+      push_name_only(s, eos-s);
       s = eos + 1;
     }
-    XPUSHs(sv_2mortal(newSVpv(s, 0)));
+    push_name_only(s, 0);
   }
 
   free(pkg->rflags);
@@ -3405,7 +3412,7 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
     if(list) {
       char **p;
       for(p = list; *p != NULL; p++)
-	XPUSHs(sv_2mortal(newSVpv(*p, 0)));
+	push_name_only(*p, 0);
       free(list);
     }
   } else
@@ -4534,7 +4541,7 @@ expand(name)
     char * name
     PPCODE:
     const char * value = rpmExpand(name, NULL);
-    XPUSHs(sv_2mortal(newSVpv(value, 0)));
+    push_name_only(value, 0);
     _free(value);
 
 void
