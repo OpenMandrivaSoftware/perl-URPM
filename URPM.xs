@@ -718,7 +718,7 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
       _free(nvra);
     } else if (headerGet(pkg->h, he, 0)) {
       if (tag == RPMTAG_ARCH)
-	XPUSHs(sv_2mortal(newSVpv((headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE)) ? he->p.str : "src", 0)));
+	XPUSHs(sv_2mortal(newSVpv(headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? he->p.str : "src", 0)));
       else
 	switch (he->t) {
 	  case RPM_UINT8_TYPE:
@@ -942,62 +942,62 @@ pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, 
  */
 static const char *
 get_evr(URPM__Package pkg) {
-    const char *evr = NULL;
-    if(pkg->provides && !pkg->h) {
-      char *name = NULL;
-      char *tmp = NULL, *tmp2 = NULL, *tmp3 = NULL;
-      get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-      /*
-       * TODO: this function is way too awkward and complex now, need to change
-       *       pattern & separator
-       */
-      if(name) {
-	size_t namelen = strlen(name);
-	char needle[namelen+3];
-	snprintf(needle, namelen+3, "@%s[", name);
-	restore_chars();
-	tmp = pkg->provides;
-	if(!strncmp(pkg->provides, needle+1, namelen+1)) {
-	  evr = pkg->provides;
-	}
-	while(tmp && (tmp = strstr(tmp, needle))) {
-	  if(evr && (tmp3 = strchr(evr, '@')))
-	    backup_char(tmp3);
-	  if((tmp2 = strchr(++tmp, '@')))
-	    *tmp2 = '\0';
-	  if(evr == NULL || strlen(tmp) > strlen(evr))
-	    evr = tmp;
-	  if(tmp2)
-	    *tmp2 = '@';
-	}
-	if(!evr)
-	  croak("unable to locate package name (%s) in @provides@%s", needle, pkg->provides);
-	evr = strchr(evr, ' ');
-
-	if(evr)
-	  tmp = strchr(++evr, ']');
-	if(tmp)
-	  backup_char(tmp);
+  const char *evr = NULL;
+  if(pkg->provides && !pkg->h) {
+    char *name = NULL;
+    char *tmp = NULL, *tmp2 = NULL, *tmp3 = NULL;
+    get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    /*
+     * TODO: this function is way too awkward and complex now, need to change
+     *       pattern & separator
+     */
+    if(name) {
+      size_t namelen = strlen(name);
+      char needle[namelen+3];
+      snprintf(needle, namelen+3, "@%s[", name);
+      restore_chars();
+      tmp = pkg->provides;
+      if(!strncmp(pkg->provides, needle+1, namelen+1)) {
+	evr = pkg->provides;
       }
-    } else if(pkg->h) {
-      rpmds ds = rpmdsThis(pkg->h, RPMTAG_PROVIDEVERSION, 0);
-      const char *needle = rpmdsEVR(ds);
-      if(needle[0] == '0' && needle[1] == ':')
-	needle += 2;
-      size_t len = strlen(needle);
+      while(tmp && (tmp = strstr(tmp, needle))) {
+	if(evr && (tmp3 = strchr(evr, '@')))
+	  backup_char(tmp3);
+	if((tmp2 = strchr(++tmp, '@')))
+	  *tmp2 = '\0';
+	if(evr == NULL || strlen(tmp) > strlen(evr))
+	  evr = tmp;
+	if(tmp2)
+	  *tmp2 = '@';
+      }
+      if(!evr)
+	croak("unable to locate package name (%s) in @provides@%s", needle, pkg->provides);
+      evr = strchr(evr, ' ');
 
-      if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE))
-	evr = needle;
-      else {
-	if (pkg->provides == NULL)
-	    pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
-	  evr = strstr(pkg->provides, needle);
-	}
-	if(strlen(evr) != len)
-	  backup_char((char*)&evr[len]);
-      ds = rpmdsFree(ds);
+      if(evr)
+	tmp = strchr(++evr, ']');
+      if(tmp)
+	backup_char(tmp);
     }
-    return evr;
+  } else if(pkg->h) {
+    rpmds ds = rpmdsThis(pkg->h, RPMTAG_PROVIDEVERSION, 0);
+    const char *needle = rpmdsEVR(ds);
+    if(needle[0] == '0' && needle[1] == ':')
+      needle += 2;
+    size_t len = strlen(needle);
+    if (!headerIsEntry(pkg->h, RPMTAG_SOURCERPM))
+      evr = needle;
+    else {
+      if (pkg->provides == NULL)
+	pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
+
+      evr = strstr(pkg->provides, needle);
+    }
+    if(strlen(evr) != len)
+      backup_char((char*)&evr[len]);
+    ds = rpmdsFree(ds);
+  }
+  return evr;
 }
 
 static void
@@ -2061,7 +2061,7 @@ Pkg_is_arch_compat__XS(pkg)
     RETVAL = rpmPlatformScore(platform, NULL, 0);
     _free(platform);
     restore_chars();
-  } else if (pkg->h && (headerIsEntry(pkg->h, RPMTAG_SOURCERPM) || headerIsEntry(pkg->h, RPMTAG_SOURCEPACKAGE))) {
+  } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
     const char *arch = get_name(pkg->h, RPMTAG_ARCH);
     platform = rpmExpand(arch ? arch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
     RETVAL = rpmPlatformScore(platform, NULL, 0);

@@ -1,3 +1,7 @@
+Version 4.27 -  4 May 2011, by Per Øyvind Karlsen
+
+- fix confusion between %{sourcerpm} & %{sourcepackage} tags
+
 Version 4.26 -  3 May 2011, by Per Øyvind Karlsen
 
 - fix really odd issue with recognizing src.rpms
