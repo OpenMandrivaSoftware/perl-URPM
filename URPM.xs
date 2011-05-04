@@ -374,9 +374,10 @@ get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, c
   }
 }
 
-static int
-sigsize_to_filesize(int sigsize) {
-  return sigsize + 440; /* 440 is the rpm header size (?) empirical, but works */
+static size_t
+get_filesize(Header h) {
+  /* XXX: 24 is padding..? */
+  return rpmpkgSizeof("Lead", NULL) + 24 + headerSizeof(h) + get_int(h, RPMTAG_ARCHIVESIZE);
 }
 
 static int
@@ -1031,7 +1032,7 @@ pack_header(URPM__Package pkg) {
       _free(group);
       _free(nvra);
     }
-    if (pkg->filesize == 0) pkg->filesize = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
+    if (pkg->filesize == 0) pkg->filesize = get_filesize(pkg->h);
     if (pkg->requires == NULL && pkg->suggests == NULL)
       has_old_suggests = 0;
       pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_old_suggests);
@@ -2416,7 +2417,7 @@ Pkg_filesize(pkg)
   if (pkg->filesize)
     RETVAL = pkg->filesize;
   else if (pkg->h)
-    RETVAL = sigsize_to_filesize(get_int(pkg->h, RPMTAG_SIGSIZE));
+    RETVAL = get_filesize(pkg->h);
   else RETVAL = 0;
   OUTPUT:
   RETVAL

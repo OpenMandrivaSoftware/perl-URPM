@@ -1,5 +1,6 @@
 Version 4.27 -  4 May 2011, by Per Øyvind Karlsen
 
+- get the correct package filesize from header
 - fix proper return of 'src' as arch for src.rpms
 - fix confusion between %{sourcerpm} & %{sourcepackage} tags
 
