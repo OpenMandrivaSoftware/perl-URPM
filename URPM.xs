@@ -2045,10 +2045,15 @@ Pkg_arch(pkg)
     XPUSHs(sv_2mortal(newSVpv(arch ? arch : "", 0)));
     restore_chars();
   } else if (pkg->h) {
-    if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
-      push_name(pkg, RPMTAG_ARCH);
-    } else
-      XPUSHs(sv_2mortal(newSVpvs("src")));
+    if (headerIsEntry(pkg->h, RPMTAG_ARCH)) {
+      if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
+	push_name(pkg, RPMTAG_ARCH);
+      } else
+	XPUSHs(sv_2mortal(newSVpvs("src")));
+    }
+    else
+      /* gpg-pubkey packages has no arch tag */
+      XPUSHs(sv_2mortal(newSVpvs("")));
   }
 
 int
