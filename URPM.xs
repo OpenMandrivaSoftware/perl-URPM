@@ -2043,8 +2043,12 @@ Pkg_arch(pkg)
     get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
     XPUSHs(sv_2mortal(newSVpv(arch ? arch : "", 0)));
     restore_chars();
-  } else if (pkg->h)
-    push_name(pkg, RPMTAG_ARCH);
+  } else if (pkg->h) {
+    if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
+      push_name(pkg, RPMTAG_ARCH);
+    } else
+      XPUSHs(sv_2mortal(newSVpvs("src")));
+  }
 
 int
 Pkg_is_arch_compat__XS(pkg)
@@ -2057,16 +2061,23 @@ Pkg_is_arch_compat__XS(pkg)
     char *arch;
 
     get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
-    platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
-    RETVAL = rpmPlatformScore(platform, NULL, 0);
-    _free(platform);
+    if (!strcmp(arch, "src"))
+      RETVAL = 1;
+    else {
+      platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+      RETVAL = rpmPlatformScore(platform, NULL, 0);
+      _free(platform);
+    }
     restore_chars();
-  } else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
-    const char *arch = get_name(pkg->h, RPMTAG_ARCH);
-    platform = rpmExpand(arch ? arch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
-    RETVAL = rpmPlatformScore(platform, NULL, 0);
-    _free(arch);
-    _free(platform);
+  } else if (pkg->h) {
+    if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
+      const char *arch = get_name(pkg->h, RPMTAG_ARCH);
+      platform = rpmExpand(arch ? arch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+      RETVAL = rpmPlatformScore(platform, NULL, 0);
+      _free(arch);
+      _free(platform);
+    } else
+      RETVAL = 1;
   } else
     RETVAL = 0;
   OUTPUT:
