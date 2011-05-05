@@ -159,7 +159,7 @@ sub traverse_tag {
 			++$count;
 		    }
 		}
-	    } elsif ($tag eq 'triggeredby' || $tag eq 'path') {
+	    } elsif ($tag eq 'triggeredby' || $tag eq 'basenames') {
 		foreach (@{$urpm->{depslist} || []}) {
 		    if (grep { exists $names{$_} } $_->files, grep { m!^/! } $_->provides_nosense) {
 			$callback and $callback->($_);

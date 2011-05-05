@@ -492,7 +492,7 @@ sub unsatisfied_requires {
 	    #- check on installed system if a package which is not obsoleted is satisfying the require.
 	    my $satisfied = 0;
 	    if ($n =~ m!^/!) {
-		$db->traverse_tag('path', [ $n ], sub {
+		$db->traverse_tag('basenames', [ $n ], sub {
 		    my ($p) = @_;
 		    exists $state->{rejected}{$p->fullname} and return;
 		    $state->{cached_installed}{$n}{$p->fullname} = undef;
@@ -1093,7 +1093,7 @@ sub _handle_conflicts {
     foreach ($pkg->conflicts) {
 	$keep && @$keep and last;
 	if (my ($file) = m!^(/[^\s\[]*)!) {
-	    $db->traverse_tag('path', [ $file ], sub {
+	    $db->traverse_tag('basenames', [ $file ], sub {
 		$keep && @$keep and return;
 		my ($p) = @_;
 		if ($keep) {
