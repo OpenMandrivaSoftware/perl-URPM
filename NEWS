@@ -1,5 +1,7 @@
-Version 4.28 -    May 2011, by Per Øyvind Karlsen
+Version 4.28 -  5 May 2011, by Per Øyvind Karlsen
 
+- revert attempt at refactorizing Trans_run() which turned out to give code
+  harder to read and introduced bugs of options not being parsed (#63205)
 - fix an invalid free() that would've happened if package summary were to be
   missing and the "" string constant were attempted to be freed
 - fix odd problems caused by attempt at translating correct tag names for

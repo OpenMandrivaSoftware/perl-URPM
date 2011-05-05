@@ -3811,59 +3811,61 @@ Trans_run(trans, data, ...)
     STRLEN len;
     char *s = SvPV(ST(i), len);
 
-    if (SvIV(ST(i+1))) {
-      if (len == 4 && !memcmp(s, "test", 4))
-	transFlags |= RPMTRANS_FLAG_TEST;
-      else if (len == 11 && !memcmp(s, "excludedocs", 11))
-	transFlags |= RPMTRANS_FLAG_NODOCS;
-      else if (len == 5) {
-	if (!memcmp(s, "force", 5))
-	  probFilter |= (RPMPROB_FILTER_REPLACEPKG |
-	      RPMPROB_FILTER_REPLACEOLDFILES |
-	      RPMPROB_FILTER_REPLACENEWFILES |
-	      RPMPROB_FILTER_OLDPACKAGE);
-	else if (!memcmp(s, "delta", 5))
-	  td.min_delta = SvIV(ST(i+1));
-      }
-      else if (len == 6 && !memcmp(s, "nosize", 6))
-	probFilter |= (RPMPROB_FILTER_DISKSPACE|RPMPROB_FILTER_DISKNODES);
-      else if (len == 9 && !memcmp(s, "noscripts", 9))
-	transFlags |= (RPMTRANS_FLAG_NOSCRIPTS|_noTransScripts);
-      else if (len == 10) {
-	if (!memcmp(s, "notriggers", 10))
-	  transFlags |= (RPMTRANS_FLAG_NOTRIGGERS|_noTransTriggers);
-	else if (!memcmp(s, "nofdigests", 10))
-	  transFlags |= RPMTRANS_FLAG_NOFDIGESTS;
-	else if (!memcmp(s, "oldpackage", 10))
-	  probFilter |= RPMPROB_FILTER_OLDPACKAGE;
-      }
-      else if (len == 11 && !memcmp(s, "replacepkgs", 11))
-	probFilter |= RPMPROB_FILTER_REPLACEPKG;
-      else if (len == 12 && !memcmp(s, "replacefiles", 12))
-	probFilter |= RPMPROB_FILTER_REPLACEOLDFILES | RPMPROB_FILTER_REPLACENEWFILES;
-      else if (len == 9 && !memcmp(s, "repackage", 9))
-	transFlags |= RPMTRANS_FLAG_REPACKAGE;
-      else if (len == 6 && !memcmp(s, "justdb", 6))
-	transFlags |= RPMTRANS_FLAG_JUSTDB;
-      else if (len == 10 && !memcmp(s, "ignorearch", 10))
-	probFilter |= RPMPROB_FILTER_IGNOREARCH;
-      else if (len >= 9 && !memcmp(s, "callback_", 9)) {
-	if (len == 9+4 && !memcmp(s+9, "open", 4))
-	  td.callback_open = ST(i+1);
-	else if (len == 9+5 && !memcmp(s+9, "close", 5))
-	  td.callback_close = ST(i+1);
-	else if (len == 9+5 && !memcmp(s+9, "trans", 5))
-	  td.callback_trans = ST(i+1);
-	else if (len == 9+6 && !memcmp(s+9, "uninst", 6))
-	  td.callback_uninst = ST(i+1);
-	else if (len == 9+4 && !memcmp(s+9, "inst", 4))
-	  td.callback_inst = ST(i+1);
-      }
-    } else if (len == 11 && !memcmp(s, "raw_message", 11))
+    if (len == 4 && !memcmp(s, "test", 4)) {
+      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_TEST;
+    } else if (len == 11 && !memcmp(s, "excludedocs", 11)) {
+      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_NODOCS;
+    } else if (len == 5) {
+      if (!memcmp(s, "force", 5)) {
+	if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_REPLACEPKG |
+					  RPMPROB_FILTER_REPLACEOLDFILES |
+					  RPMPROB_FILTER_REPLACENEWFILES |
+					  RPMPROB_FILTER_OLDPACKAGE);
+      } else if (!memcmp(s, "delta", 5))
+	td.min_delta = SvIV(ST(i+1));
+    } else if (len == 6 && !memcmp(s, "nosize", 6)) {
+      if (SvIV(ST(i+1))) probFilter |= (RPMPROB_FILTER_DISKSPACE|RPMPROB_FILTER_DISKNODES);
+    } else if (len == 9 && !memcmp(s, "noscripts", 9)) {
+      if (SvIV(ST(i+1))) transFlags |= (RPMTRANS_FLAG_NOSCRIPTS |
+				        RPMTRANS_FLAG_NOPRE |
+				        RPMTRANS_FLAG_NOPREUN |
+				        RPMTRANS_FLAG_NOPOST |
+				        RPMTRANS_FLAG_NOPOSTUN );
+
+    } else if (len == 10 && !memcmp(s, "notriggers", 10)) {
+      if (SvIV(ST(i+1))) transFlags |= (RPMTRANS_FLAG_NOTRIGGERS|_noTransTriggers);
+    } else if (len == 10 && !memcmp(s, "nofdigests", 10)) {
+      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_NOFDIGESTS;
+    } else if (len == 10 && !memcmp(s, "oldpackage", 10)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_OLDPACKAGE;
+    } else if (len == 11 && !memcmp(s, "replacepkgs", 11)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEPKG;
+    } else if (len == 11 && !memcmp(s, "raw_message", 11)) {
       raw_message = 1;
-    else if (len == 17 && !memcmp(s, "translate_message", 17))
+    } else if (len == 12 && !memcmp(s, "replacefiles", 12)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_REPLACEOLDFILES | RPMPROB_FILTER_REPLACENEWFILES;
+    } else if (len == 9 && !memcmp(s, "repackage", 9)) {
+      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_REPACKAGE;
+    } else if (len == 6 && !memcmp(s, "justdb", 6)) {
+      if (SvIV(ST(i+1))) transFlags |= RPMTRANS_FLAG_JUSTDB;
+    } else if (len == 10 && !memcmp(s, "ignorearch", 10)) {
+      if (SvIV(ST(i+1))) probFilter |= RPMPROB_FILTER_IGNOREARCH;
+    } else if (len == 17 && !memcmp(s, "translate_message", 17))
       translate_message = 1;
+    else if (len >= 9 && !memcmp(s, "callback_", 9)) {
+      if (len == 9+4 && !memcmp(s+9, "open", 4)) {
+	if (SvROK(ST(i+1))) td.callback_open = ST(i+1);
+      } else if (len == 9+5 && !memcmp(s+9, "close", 5)) {
+	if (SvROK(ST(i+1))) td.callback_close = ST(i+1);
+      } else if (len == 9+5 && !memcmp(s+9, "trans", 5)) {
+	if (SvROK(ST(i+1))) td.callback_trans = ST(i+1);
+      } else if (len == 9+6 && !memcmp(s+9, "uninst", 6)) {
+	if (SvROK(ST(i+1))) td.callback_uninst = ST(i+1);
+      } else if (len == 9+4 && !memcmp(s+9, "inst", 4)) {
+	if (SvROK(ST(i+1))) td.callback_inst = ST(i+1);
+      }
     }
+  }
   /* check macros */
   {
     char *repa = rpmExpand("%_repackage_all_erasures", NULL);
