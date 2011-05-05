@@ -1099,7 +1099,6 @@ update_provides(URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     int len;
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
-    rpmsenseFlags *flags = NULL;
 
     /* examine requires for files which need to be marked in provides */
     he->tag = RPMTAG_REQUIRENAME;
@@ -1115,6 +1114,7 @@ update_provides(URPM__Package pkg, HV *provides) {
     he->tag = RPMTAG_PROVIDENAME;
     if (headerGet(pkg->h, he, 0)) {
       const char **list = he->p.argv;
+      rpmsenseFlags *flags = NULL;
       int count = he->c;
 
       he->tag = RPMTAG_PROVIDEFLAGS;
