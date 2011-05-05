@@ -1048,7 +1048,7 @@ pack_header(URPM__Package pkg) {
       pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
     if (pkg->summary == NULL) {
       const char *summary = get_name(pkg->h, RPMTAG_SUMMARY);
-      pkg->summary = summary ? (char*)summary : "";
+      pkg->summary = summary ? (char*)summary : strdup("");
     }
 
     if (!(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h =headerFree(pkg->h);

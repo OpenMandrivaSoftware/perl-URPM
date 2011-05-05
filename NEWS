@@ -1,5 +1,7 @@
 Version 4.28 -    May 2011, by Per Øyvind Karlsen
 
+- fix an invalid free() that would've happened if package summary were to be
+  missing and the "" string constant were attempted to be freed
 - fix odd problems caused by attempt at translating correct tag names for
   query table into rpm tags
 - use newSVpvs() for pushing empty strings as constants in stead
