@@ -129,7 +129,7 @@ sub traverse_tag {
 		    ++$count;
 		}
 	    }
-	} elsif ($tag eq 'whatprovides') {
+	} elsif ($tag eq 'providename') {
 	    foreach (@$names) {
 		foreach (keys %{$urpm->{provides}{$_} || {}}) {
 		    $callback and $callback->($urpm->{depslist}[$_]);
@@ -138,7 +138,7 @@ sub traverse_tag {
 	    }
 	} else {
 	    @names{@$names} = ();
-	    if ($tag eq 'whatrequires') {
+	    if ($tag eq 'requirename') {
 		foreach (@{$urpm->{depslist} || []}) {
 		    if (grep { exists $names{$_} } $_->requires_nosense) {
 			$callback and $callback->($_);
@@ -383,7 +383,7 @@ This is used when faking a URPM::DB: $urpm can be used as-a $db
 
 =item $urpm->traverse_tag($tag, $names, $callback)
 
-$tag may be one of C<name>, C<whatprovides>, C<whatrequires>, C<whatconflicts>,
+$tag may be one of C<name>, C<providename>, C<requirename>, C<whatconflicts>,
 C<group>, C<triggeredby>, or C<path>.
 $names is a reference to an array, holding the acceptable values of the said
 tag for the searched variables.
@@ -457,7 +457,7 @@ in the DB, passing a C<URPM::Package> object as argument the callback.
 
 =item $db->traverse_tag($tag,$names,$callback)
 
-$tag may be one of C<name>, C<whatprovides>, C<whatrequires>, C<whatconflicts>,
+$tag may be one of C<name>, C<providename>, C<requirename>, C<whatconflicts>,
 C<group>, C<triggeredby>, or C<path>.
 $names is a reference to an array, holding the acceptable values of the said
 tag for the searched variables.
@@ -864,7 +864,7 @@ B<rejected_already_installed>: { id => pkg }
 
 B<orphans_to_remove>: [ pkg ]
 
-B<whatrequires>: { name => { id => undef } }
+B<requirename>: { name => { id => undef } }
    # reversed requires_nosense for selected packages
 
 B<unselected_uninstalled>: [ pkg ]

@@ -383,7 +383,7 @@ sub _score_for_locales {
 }
 
 #- side-effects: $properties, $choices
-#-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
+#-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{requirename}, flag_requested, flag_required)
 sub _choose_required {
     my ($urpm, $db, $state, $dep, $properties, $choices, $diff_provides, %options) = @_;
 
@@ -446,15 +446,15 @@ sub pkg2media {
    find { $id >= ($_->{start} || 0) && $id <= ($_->{end} || 0) } @$mediums;
 }
 
-sub whatrequires {
+sub requirename {
     my ($urpm, $state, $property_name) = @_;
 
-    map { $urpm->{depslist}[$_] } whatrequires_id($state, $property_name);
+    map { $urpm->{depslist}[$_] } requirename_id($state, $property_name);
 }
-sub whatrequires_id {
+sub requirename_id {
     my ($state, $property_name) = @_;
 
-    keys %{$state->{whatrequires}{$property_name} || {}};
+    keys %{$state->{requirename}{$property_name} || {}};
 }
 
 #- return unresolved requires of a package (a new one or an existing one).
@@ -499,7 +499,7 @@ sub unsatisfied_requires {
 		    ++$satisfied;
 		});
 	    } else {
-		$db->traverse_tag('whatprovides', [ $n ], sub {
+		$db->traverse_tag('providename', [ $n ], sub {
 		    my ($p) = @_;
 		    exists $state->{rejected}{$p->fullname} and return;
 		    foreach ($p->provides) {
@@ -520,14 +520,14 @@ sub unsatisfied_requires {
 }
 
 #- this function is "suggests vs requires" safe:
-#-   'whatrequires' will give both requires & suggests, but unsatisfied_requires
+#-   'requirename' will give both requires & suggests, but unsatisfied_requires
 #-   will check $p->requires and so filter out suggests
 
 #- side-effects: only those done by $do
 sub with_db_unsatisfied_requires {
     my ($urpm, $db, $state, $name, $do) = @_;
 
-    $db->traverse_tag('whatrequires', [ $name ], sub {
+    $db->traverse_tag('requirename', [ $name ], sub {
 	my ($p) = @_;
 	if (my @l = unsatisfied_requires($urpm, $db, $state, $p, name => $name)) {
 	    $urpm->{debug_URPM}("installed " . $p->fullname . " is conflicting because of unsatisfied @l") if $urpm->{debug_URPM};
@@ -540,7 +540,7 @@ sub with_db_unsatisfied_requires {
 sub with_state_unsatisfied_requires {
     my ($urpm, $db, $state, $name, $do) = @_;
 
-    foreach (whatrequires_id($state, $name)) {
+    foreach (requirename_id($state, $name)) {
 	$state->{selected}{$_} or next;
 	my $p = $urpm->{depslist}[$_];
 	if (my @l = unsatisfied_requires($urpm, $db, $state, $p, name => $name)) {
@@ -560,7 +560,7 @@ sub with_any_unsatisfied_requires {
 # used when a require is not available
 #
 #- side-effects: $state->{backtrack}, $state->{selected}
-#-   + those of disable_selected_and_unrequested_dependencies ($state->{whatrequires}, flag_requested, flag_required)
+#-   + those of disable_selected_and_unrequested_dependencies ($state->{requirename}, flag_requested, flag_required)
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of set_rejected_and_compute_diff_provides ($state->{rejected}, $diff_provides_h)
 #-   + those of _add_rejected_backtrack ($state->{rejected})
@@ -670,7 +670,7 @@ sub backtrack_selected {
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of _add_rejected_backtrack ($state->{rejected})
-#-   + those of disable_selected_and_unrequested_dependencies ($state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
+#-   + those of disable_selected_and_unrequested_dependencies ($state->{selected}, $state->{requirename}, flag_requested, flag_required)
 sub backtrack_selected_psel_keep {
     my ($urpm, $db, $state, $psel, $keep) = @_;
 
@@ -836,7 +836,7 @@ sub resolve_rejected_ {
 	while (my $cp = shift @pkgs_todo) {
 	    #- close what requires this property, but check with selected package requiring old properties.
 	    foreach my $n ($cp->provides_nosense) {
-		    foreach my $pkg (whatrequires($urpm, $state, $n)) {
+		    foreach my $pkg (requirename($urpm, $state, $n)) {
 			if (my @l = unsatisfied_requires($urpm, $db, $state, $pkg, name => $n)) {
 			    #- a selected package requires something that is no more available
 			    #- and should be tried to be re-selected if possible.
@@ -889,7 +889,7 @@ sub resolve_requested {
 	    # workaround: if you do "urpmi virtual_pkg" and one virtual_pkg is already installed,
 	    # it will ask anyway for the other choices
 	    foreach my $suggest (keys %suggests) {
-		$db->traverse_tag('whatprovides', [ $suggest ], sub {
+		$db->traverse_tag('providename', [ $suggest ], sub {
 		    delete $suggests{$suggest};
 		});
 	    }
@@ -941,12 +941,12 @@ sub resolve_requested__no_suggests {
 # same as resolve_requested__no_suggests, but do not modify requested_flag
 #-
 #- side-effects: $state->{selected}, flag_required, flag_installed, flag_upgrade
-#-   + those of backtrack_selected     (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{backtrack})
-#-   + those of _unselect_package_deprecated_by (flag_requested, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
+#-   + those of backtrack_selected     (flag_requested, $state->{rejected}, $state->{requirename}, $state->{backtrack})
+#-   + those of _unselect_package_deprecated_by (flag_requested, $state->{rejected}, $state->{requirename}, $state->{oldpackage}, $state->{unselected_uninstalled})
 #-   + those of _handle_conflicts      ($state->{rejected})
 #-   + those of _handle_conflict ($state->{rejected})
-#-   + those of backtrack_selected_psel_keep (flag_requested, $state->{whatrequires})
-#-   + those of _handle_diff_provides  (flag_requested, $state->{rejected}, $state->{whatrequires})
+#-   + those of backtrack_selected_psel_keep (flag_requested, $state->{requirename})
+#-   + those of _handle_diff_provides  (flag_requested, $state->{rejected}, $state->{requirename})
 #-   + those of _no_more_recent_installed_and_providing ($state->{rejected})
 sub resolve_requested__no_suggests_ {
     my ($urpm, $db, $state, $requested, %options) = @_;
@@ -1017,7 +1017,7 @@ sub resolve_requested__no_suggests_ {
 
 	    #- keep in mind what is requiring each item (for unselect to work).
 	    foreach ($pkg->requires_nosense) {
-		$state->{whatrequires}{$_}{$pkg->id} = undef;
+		$state->{requirename}{$_}{$pkg->id} = undef;
 	    }
 
 	    #- cancel flag if this package should be cancelled but too late (typically keep options).
@@ -1060,7 +1060,7 @@ sub resolve_requested__no_suggests_ {
 #- side-effects:
 #-   + those of _set_rejected_from ($state->{rejected})
 #-   + those of _remove_all_rejected_from ($state->{rejected})
-#-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
+#-   + those of backtrack_selected ($state->{backtrack}, $state->{rejected}, $state->{selected}, $state->{requirename}, flag_requested, flag_required)
 sub _handle_conflicts_with_selected {
     my ($urpm, $db, $state, $pkg, $dep, $properties, $diff_provides, %options) = @_;
     foreach ($pkg->conflicts) {
@@ -1109,7 +1109,7 @@ sub _handle_conflicts {
 	    });
 	} elsif (my $name = property2name($_)) {
 	    my $property = $_;
-	    $db->traverse_tag('whatprovides', [ $name ], sub {
+	    $db->traverse_tag('providename', [ $name ], sub {
 		$keep && @$keep and return;
 		my ($p) = @_;
 		if ($p->provides_overlap($property)) {
@@ -1121,7 +1121,7 @@ sub _handle_conflicts {
 }
 
 #- side-effects:
-#-   + those of _unselect_package_deprecated_by_property (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires}, $state->{oldpackage}, $state->{unselected_uninstalled})
+#-   + those of _unselect_package_deprecated_by_property (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{requirename}, $state->{oldpackage}, $state->{unselected_uninstalled})
 sub _unselect_package_deprecated_by {
     my ($urpm, $db, $state, $diff_provides_h, $pkg) = @_;
 
@@ -1141,7 +1141,7 @@ sub _unselect_package_deprecated_by {
 #- side-effects: $state->{oldpackage}, $state->{unselected_uninstalled}
 #-   + those of set_rejected ($state->{rejected})
 #-   + those of _set_rejected_from ($state->{rejected})
-#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{whatrequires})
+#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{rejected}, $state->{requirename})
 sub _unselect_package_deprecated_by_property {
     my ($urpm, $db, $state, $pkg, $diff_provides_h, $n, $o, $v) = @_;
 
@@ -1243,9 +1243,9 @@ sub _find_packages_obsoleting {
 }
 
 #- side-effects: $properties
-#-   + those of backtrack_selected_psel_keep ($state->{rejected}, $state->{selected}, $state->{whatrequires}, flag_requested, flag_required)
+#-   + those of backtrack_selected_psel_keep ($state->{rejected}, $state->{selected}, $state->{requirename}, flag_requested, flag_required)
 #-   + those of resolve_rejected_ ($state->{rejected}, $properties)
-#-   + those of disable_selected_and_unrequested_dependencies (flag_requested, flag_required, $state->{selected}, $state->{whatrequires}, $state->{rejected})
+#-   + those of disable_selected_and_unrequested_dependencies (flag_requested, flag_required, $state->{selected}, $state->{requirename}, $state->{rejected})
 #-   + those of _set_rejected_from ($state->{rejected})
 sub _handle_diff_provides {
     my ($urpm, $db, $state, $properties, $diff_provides, $n, $pkg, %options) = @_;
@@ -1413,7 +1413,7 @@ sub _no_more_recent_installed_and_providing {
 #-   longer needed by any other package.
 #- return the packages that have been deselected.
 #-
-#- side-effects: flag_requested, flag_required, $state->{selected}, $state->{whatrequires}
+#- side-effects: flag_requested, flag_required, $state->{selected}, $state->{requirename}
 #-   + those of _remove_all_rejected_from ($state->{rejected})
 sub disable_selected {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
@@ -1441,7 +1441,7 @@ sub disable_selected {
 	#- determine package that requires properties no longer available, so that they need to be
 	#- unselected too.
 	foreach my $n ($pkg->provides_nosense) {
-	    foreach my $p (whatrequires($urpm, $state, $n)) {
+	    foreach my $p (requirename($urpm, $state, $n)) {
 		exists $state->{selected}{$p->id} or next;
 		if (unsatisfied_requires($urpm, $db, $state, $p, name => $n)) {
 		    #- this package has broken dependencies and is selected.
@@ -1450,10 +1450,10 @@ sub disable_selected {
 	    }
 	}
 
-	#- clean whatrequires hash.
+	#- clean requirename hash.
 	foreach ($pkg->requires_nosense) {
-	    delete $state->{whatrequires}{$_}{$pkg->id};
-	    %{$state->{whatrequires}{$_}} or delete $state->{whatrequires}{$_};
+	    delete $state->{requirename}{$_}{$pkg->id};
+	    %{$state->{requirename}{$_}} or delete $state->{requirename}{$_};
 	}
     }
 
@@ -1465,7 +1465,7 @@ sub disable_selected {
 #- return the packages that have been deselected.
 #-
 #- side-effects:
-#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{whatrequires}, $state->{rejected})
+#-   + those of disable_selected (flag_requested, flag_required, $state->{selected}, $state->{requirename}, $state->{rejected})
 sub disable_selected_and_unrequested_dependencies {
     my ($urpm, $db, $state, @pkgs_todo) = @_;
     my @all_unselected;
@@ -1498,7 +1498,7 @@ sub disable_selected_and_unrequested_dependencies {
 	foreach (keys %required) {
 	    my $pkg = $urpm->{depslist}[$_] or next;
 	    foreach ($pkg->provides_nosense) {
-		foreach my $p_id (whatrequires_id($state, $_)) {
+		foreach my $p_id (requirename_id($state, $_)) {
 		    exists $required{$p_id} and next;
 		    $state->{selected}{$p_id} and $required{$pkg->id} = 1;
 		}
@@ -1731,7 +1731,7 @@ sub _sort_by_dependencies_get_graph {
     my %edges;
     foreach my $id (@$l) {
 	my $pkg = $urpm->{depslist}[$id];
-	my @provides = map { whatrequires_id($state, $_) } $pkg->provides_nosense;
+	my @provides = map { requirename_id($state, $_) } $pkg->provides_nosense;
 	if (my $from = $state->{selected}{$id}{from}) {
 	    unshift @provides, $from->id;
 	}
