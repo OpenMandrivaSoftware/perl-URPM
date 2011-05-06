@@ -1,3 +1,8 @@
+Version 4.29 -  7 May 2011, by Per Øyvind Karlsen
+
+- fix segfault when trying to get EVR of a src.rpm from synthesis, as
+  @provides@ are omitted for these
+
 Version 4.28 -  5 May 2011, by Per Øyvind Karlsen
 
 - revert attempt at refactorizing Trans_run() which turned out to give code

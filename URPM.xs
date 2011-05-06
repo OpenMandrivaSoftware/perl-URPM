@@ -944,7 +944,21 @@ pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, 
 static const char *
 get_evr(URPM__Package pkg) {
   const char *evr = NULL;
-  if(pkg->provides && !pkg->h) {
+  if(pkg->info && !pkg->h) {
+    if (!pkg->provides) {
+      /* for src.rpms there's no @provides@ field added to the synthesis, so
+       * we'll create one by request here for EVR. */
+      char *name = NULL;
+      int epoch = 0;
+      char *version = NULL;
+      char *release = NULL;
+      char *distepoch = NULL;
+      get_fullname_parts(pkg, &name, &epoch, &version, &release, NULL, NULL, NULL, NULL);
+      int sz = asprintf(&pkg->provides, "%s[== %d:%s-%s]", name, epoch, version, release);
+      restore_chars();
+      if (sz < 0)
+	return "";
+    }
     char *name = NULL;
     char *tmp = NULL, *tmp2 = NULL, *tmp3 = NULL;
     get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
