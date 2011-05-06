@@ -952,7 +952,6 @@ get_evr(URPM__Package pkg) {
       int epoch = 0;
       char *version = NULL;
       char *release = NULL;
-      char *distepoch = NULL;
       get_fullname_parts(pkg, &name, &epoch, &version, &release, NULL, NULL, NULL, NULL);
       int sz = asprintf(&pkg->provides, "%s[== %d:%s-%s]", name, epoch, version, release);
       restore_chars();
