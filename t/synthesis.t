@@ -150,106 +150,109 @@ ok($requires[8] eq 'rpmlib(CompressedFileNames)');
 ok(@provides == 1);
 ok($provides[0] eq 'glibc-devel');
 
-SKIP: {
-    sub syntcheck {
-	my ($synthesis) = @_;
-	if (!(-r $synthesis)) {
-	    skip "$synthesis missing, only found in svn", 1;
-	}
-
-	my $urpm = new URPM;
-
-	$urpm->parse_synthesis($synthesis);
-
-	my $errors = 0;
-	$urpm->traverse( sub {
-		my ($pkg) = @_;
-		my @fullname = $pkg->fullname;
-		my $epoch = $pkg->epoch;
-		my $name = $pkg->name;
-		my $version = $pkg->version;
-		my $release = $pkg->release;
-		my $disttag = $pkg->disttag;
-		my $distepoch = $pkg->distepoch;
-		my $arch = $pkg->arch;
-
-		if ($name ne $fullname[0]) {
-		    print "name[" . $pkg->fullname . "]: $name != " . $fullname[0] . "\n";
-		    $errors++;
-		}
-		if ($version ne $fullname[1]) {
-		    print "version[" . $pkg->fullname . "]: $version != " . $fullname[1] . "\n";
-		    $errors++;
-		}
-		if ($release ne $fullname[2]) {
-		    print "release[" . $pkg->fullname . "]: $release != " . $fullname[2] . "\n";
-		    $errors++;
-		}
-		if ($disttag ne $fullname[3]) {
-		    print "disttag[" . $pkg->fullname . "]: $name != " . $fullname[3] . "\n";
-		    $errors++;
-		}
-		if ($distepoch ne $fullname[4]) {
-		    print "distepoch[" . $pkg->fullname . "]: $distepoch != " . $fullname[4] . "\n";
-		    $errors++;
-		}
-		if ($arch ne $fullname[5]) {
-		    print "arch[" . $pkg->fullname . "]: $arch != " . $fullname[5] . "\n";
-		    $errors++;
-		}
-		if ($pkg->fullname . ".rpm" ne $pkg->filename) {
-		    print "filename[" . $pkg->fullname . "]: " . $pkg->filename . "\n";
-		    $errors++;
-		}
-
-		if (!$pkg->group) {
-		    print $pkg->fullname . ": no group\n";
-		    $errors++;
-		}
-		if (!$pkg->filesize) {
-		    print $pkg->fullname . ": no filesize\n";
-		    $errors++;
-		}
-		if (!$pkg->summary) {
-		    print $pkg->fullname . ": no summary\n";
-		    $errors++;
-		}
-		if (!$name) {
-		    print $pkg->fullname . ": no name\n";
-		    $errors++;
-		}
-		if (!$version and $version ne "0") {
-		    print $pkg->version . ": no version\n";
-		    $errors++;
-		}
-		if (!$release and $release ne "0") {
-		    print $pkg->fullname . ": no release\n";
-		    $errors++;
-		}
-		if (!$arch and $pkg->group ne "Public Keys") {
-		    print $pkg->fullname . ": no arch\n";
-		    $errors++;
-		}
-
-		if ($pkg->name ne "gpg-pubkey") {
-
-		    my $expectedevr = $pkg->version . "-" . $pkg->release . ($pkg->distepoch ? ":" . $pkg->distepoch : "");
-		    if ($expectedevr ne $pkg->evr and "$epoch:$expectedevr" ne $pkg->evr and $pkg->name ne "gpg-pubkey") {
-			print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->evr . "\n";
-			$errors++;
-		    }
-
-		    my $expectedfullname = "$name-$version-$release" . ($disttag ? "-$disttag" : "") . ($distepoch ? $distepoch : "") . ($arch ? ".$arch" : "");
-		    if($pkg->fullname ne $expectedfullname) {
-			print "fullname: " . $pkg->fullname . " != $expectedfullname\n";
-			$errors++;
-		    }
-		}
-	    });
-
-	is($errors, 0, "$synthesis fields check");
-
+sub syntcheck {
+    my ($synthesis) = @_;
+    if (!(-r $synthesis)) {
+	skip "$synthesis missing, only found in svn", 1;
     }
+
+    my $urpm = new URPM;
+
+    $urpm->parse_synthesis($synthesis);
+
+    my $errors = 0;
+    $urpm->traverse( sub {
+	    my ($pkg) = @_;
+	    my @fullname = $pkg->fullname;
+	    my $epoch = $pkg->epoch;
+	    my $name = $pkg->name;
+	    my $version = $pkg->version;
+	    my $release = $pkg->release;
+	    my $disttag = $pkg->disttag;
+	    my $distepoch = $pkg->distepoch;
+	    my $arch = $pkg->arch;
+
+	    if ($name ne $fullname[0]) {
+		print "name[" . $pkg->fullname . "]: $name != " . $fullname[0] . "\n";
+		$errors++;
+	    }
+	    if ($version ne $fullname[1]) {
+		print "version[" . $pkg->fullname . "]: $version != " . $fullname[1] . "\n";
+		$errors++;
+	    }
+	    if ($release ne $fullname[2]) {
+		print "release[" . $pkg->fullname . "]: $release != " . $fullname[2] . "\n";
+		$errors++;
+	    }
+	    if ($disttag ne $fullname[3]) {
+		print "disttag[" . $pkg->fullname . "]: $name != " . $fullname[3] . "\n";
+		$errors++;
+	    }
+	    if ($distepoch ne $fullname[4]) {
+		print "distepoch[" . $pkg->fullname . "]: $distepoch != " . $fullname[4] . "\n";
+		$errors++;
+	    }
+	    if ($arch ne $fullname[5]) {
+		print "arch[" . $pkg->fullname . "]: $arch != " . $fullname[5] . "\n";
+		$errors++;
+	    }
+	    if ($pkg->fullname . ".rpm" ne $pkg->filename) {
+		print "filename[" . $pkg->fullname . "]: " . $pkg->filename . "\n";
+		$errors++;
+	    }
+
+	    if (!$pkg->group) {
+		print $pkg->fullname . ": no group\n";
+		$errors++;
+	    }
+	    if (!$pkg->filesize) {
+		print $pkg->fullname . ": no filesize\n";
+		$errors++;
+	    }
+	    if (!$pkg->summary) {
+		print $pkg->fullname . ": no summary\n";
+		$errors++;
+	    }
+	    if (!$name) {
+		print $pkg->fullname . ": no name\n";
+		$errors++;
+	    }
+	    if (!$version and $version ne "0") {
+		print $pkg->version . ": no version\n";
+		$errors++;
+	    }
+	    if (!$release and $release ne "0") {
+		print $pkg->fullname . ": no release\n";
+		$errors++;
+	    }
+	    if (!$arch and $pkg->group ne "Public Keys") {
+		print $pkg->fullname . ": no arch\n";
+		$errors++;
+	    }
+
+	    if ($pkg->name ne "gpg-pubkey") {
+
+		my $expectedevr = $pkg->version . "-" . $pkg->release . ($pkg->distepoch ? ":" . $pkg->distepoch : "");
+		if ($expectedevr ne $pkg->evr and "$epoch:$expectedevr" ne $pkg->evr and $pkg->name ne "gpg-pubkey") {
+		    print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->evr . "\n";
+		    $errors++;
+		}
+
+		my $expectedfullname = "$name-$version-$release" . ($disttag ? "-$disttag" : "") . ($distepoch ? $distepoch : "") . ($arch ? ".$arch" : "");
+		if($pkg->fullname ne $expectedfullname) {
+		    print "fullname: " . $pkg->fullname . " != $expectedfullname\n";
+		    $errors++;
+		}
+	    }
+	});
+
+    is($errors, 0, "$synthesis fields check");
+
+}
+
+SKIP: {
     syntcheck("res/synthesis.hdlist_distepoch.xz");
+}
+SKIP: {
     syntcheck("res/synthesis.hdlist_src.xz");
 }
