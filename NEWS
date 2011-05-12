@@ -1,3 +1,8 @@
+Version 4.30 . 12 May 2011, by Per Øyvind Karlsen
+
+- fix Resolve.pm/_choose_required() breakage after DUDF merge, causing ie.
+  'urpmq -d' to break (#63250, with big thanks to Funda\o/)
+
 Version 4.29 -  7 May 2011, by Per Øyvind Karlsen
 
 - fix segfault when trying to get EVR of a src.rpm from synthesis, as

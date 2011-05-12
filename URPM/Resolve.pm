@@ -410,13 +410,15 @@ sub _choose_required {
 	    my @l = grep { ref $_ } $options{callback_choices}->($urpm, $db, $state, $chosen, _dep_to_name($urpm, $dep), $prefered);
 	    $urpm->{debug_URPM}("replacing " . _dep_to_name($urpm, $dep) . " with " . 
 				join(' ', map { $_->name } @l)) if $urpm->{debug_URPM};
-	    push @{$urpm->{_dudf}}, {
-		chosen => $chosen,
-		prefered => $prefered,
-		properties => $properties,
-		virtualpkgname => _dep_to_name($urpm, $dep),
-		list => '<' . $l[0]->fullname . '>', # Ugly hack, otherwise the hash is totally fuck'd up.
-	    };
+	    if (@l) {
+		push @{$urpm->{_dudf}}, {
+		    chosen => $chosen,
+		    prefered => $prefered,
+		    properties => $properties,
+		    virtualpkgname => _dep_to_name($urpm, $dep),
+		    list => '<' . $l[0]->fullname . '>', # Ugly hack, otherwise the hash is totally fuck'd up.
+		};
+	    }
 	    unshift @$properties, map {
 		+{
 		    required => $_->id,
