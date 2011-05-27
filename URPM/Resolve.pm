@@ -1623,9 +1623,12 @@ sub compute_flags {
 
     #- now search packages which fullname match given regexps
     if (@regex) {
+	my $large_re_s = join("|", map { "(?:$_)" } @regex);
+	my $re = qr/$large_re_s/;
+
 	#- very costly :-(
 	foreach my $pkg (@{$urpm->{depslist}}) {
-	    if (grep { $pkg->fullname =~ /$_/ } @regex) {
+	    if ($pkg->fullname =~ $re){
 		compute_flag($urpm, $pkg, %options);
 	    }
 	}
