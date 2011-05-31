@@ -2154,7 +2154,7 @@ Pkg_sourcerpm(pkg)
   URPM::Package pkg
   PPCODE:
   if (pkg->h)
-   push_name(pkg, RPMTAG_DESCRIPTION);
+   push_name(pkg, RPMTAG_SUMMARY);
 
 void
 Pkg_packager(pkg)

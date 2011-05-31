@@ -1,5 +1,6 @@
-Version 4.31 - 27 May 2011, by Per Øyvind Karlsen
+Version 4.31 - 31 May 2011, by Per Øyvind Karlsen
 
+- fix URPM::Package->sourcerpm returning summary in stead of source rpm
 - fix slow matching of individual regexes for skipping dependencies by creating
   a large regex to match them all at once (#61389, patch contributed by
   Shlomi Fish \o/)
