@@ -1,3 +1,8 @@
+Version 4.33 - 31 May 2011, by Per Øyvind Karlsen
+
+- add URPM::Resolve::fullname_parts() as a function parsing fullname with a
+  regex assisted by provided disttag & distepoch
+
 Version 4.32 - 31 May 2011, by Per Øyvind Karlsen
 
 - *really* fix URPM::Package->sourcerpm
