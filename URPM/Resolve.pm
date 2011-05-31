@@ -774,6 +774,9 @@ sub set_rejected {
 	$urpm->{debug_URPM}("set_rejected: $fullname") if $urpm->{debug_URPM};
 	#- keep track of size of package which are finally removed.
 	$rv->{size} = $rdep->{rejected_pkg}->size;
+	#- (proyvind): hack to get disttag & distepoch available for regexp
+	$rv->{disttag} = $rdep->{rejected_pkg}->disttag;
+	$rv->{distepoch} = $rdep->{rejected_pkg}->distepoch;
     }
 
     #- keep track of what causes closure.
@@ -784,6 +787,8 @@ sub set_rejected {
 	    @$unsatisfied = uniq(@$unsatisfied, @$l);
 	}
 	$closure->{$_} = $rdep->{why}{$_} foreach keys %{$rdep->{why}};
+	$closure->{disttag} = $rdep->{from}->disttag;
+	$closure->{distepoch} = $rdep->{from}->distepoch;
     }
 
     #- set removed and obsoleted level.

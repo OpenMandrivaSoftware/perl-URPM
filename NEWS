@@ -1,5 +1,7 @@
 Version 4.33 - 31 May 2011, by Per Øyvind Karlsen
 
+- add disttag & distepoch to $state->{rejected} for assisting parsing of
+  fullname with regex
 - add URPM::Resolve::fullname_parts() as a function parsing fullname with a
   regex assisted by provided disttag & distepoch
 
