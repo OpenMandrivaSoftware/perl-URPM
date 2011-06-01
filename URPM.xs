@@ -308,7 +308,8 @@ get_int(Header header, rpmTag tag) {
  */
 static void
 get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
-  char *_version = NULL, *_release = NULL, *_disttag = NULL, *_distepoch = NULL, *_arch = NULL, *_eos = NULL, *tmp = NULL, *tmp2 = NULL;
+  char *_version = NULL, *_release = NULL, *_disttag = NULL, *_distepoch = NULL, *_arch = NULL, *_eos = NULL, *tmp = NULL;
+
   /* XXX: Could probably be written in a more generic way, only thing we
    * really want to do is to check for arch field, which will be missing in
    * the case of gpg-pubkey at least..
@@ -325,31 +326,19 @@ get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, c
 	  backup_char(_arch++);
 	if (arch != NULL) *arch = pubkey ? "" : _arch;
 	if (distepoch != NULL || disttag != NULL || release != NULL || version != NULL || name != NULL) {
-	  /* TODO: implement stricter patterns and different separator for disttag/distepoch */
-	  if ((tmp = pkg->provides)) {
-	    do {
-	      if ((tmp2 = strchr(tmp, '@')))
-		*tmp2 = '\0';
-	      if ((tmp = strrchr(tmp, ' ')) && (tmp = strrchr(tmp, '-')))
-		_distepoch = strrchr(tmp, ':');
-	      if (tmp2)
-		*tmp2 = '@';
-	    } while (!_distepoch && tmp2 && (tmp = ++tmp2));
-	    if (!_distepoch) {
-	      if ((tmp = strrchr(pkg->provides, ' ')) && (tmp = strrchr(tmp, '-')))
-		_distepoch = strrchr(tmp, ':');
-	    }
-	    if (_distepoch != NULL) {
-	      if ((tmp = strchr(++_distepoch, ']'))) {
+	  _disttag = _eos;
+	  for (int i = 0; i < 3 && _disttag; i++, _disttag)
+	    _disttag = strchr(++_disttag, '@');
+	  if (_disttag && (_distepoch = strchr(++_disttag, '@')))
+	      backup_char(_distepoch++);
+	  /* currently not very useful as there's no additional fields, but we'll do this check
+	   * so that adding any potential fields in the future shouldn't break anything
+	   */
+	  if (_distepoch != NULL && (tmp = strchr(_distepoch, '@')))
+	    backup_char(tmp);
+	  /* eliminate disttag from fullname so the parsing won't get messed up */
+	  if (_disttag != NULL && *_disttag && (tmp = strrchr(pkg->info, '-')) && !strncmp(tmp+1, _disttag, strlen(_disttag)))
 		backup_char(tmp);
-		if ((tmp = strrchr(pkg->info, '-')) && ((tmp2 = strstr(tmp, _distepoch)))) {
-		  backup_char(tmp++);
-		  _disttag = tmp;
-		  backup_char(tmp2);
-		}
-	      }
-	    }
-	  }
 	  if (distepoch != NULL) *distepoch = _distepoch ? _distepoch : "";
 	  if (disttag != NULL || release != NULL || version != NULL || name != NULL) {
 	    if (disttag != NULL) *disttag = _disttag ? _disttag : "";
