@@ -1,5 +1,6 @@
-Version 4.34 -  1 June 2011, by Per Øyvid Karlsen
+Version 4.34 - 21 June 2011, by Per Øyvid Karlsen
 
+- add some regression tests for parsing disttag & distepoch from synthesis
 - extract disttag & distepoch from new fields in @info@ of synthesis
 
 Version 4.33 - 31 May 2011, by Per Øyvind Karlsen

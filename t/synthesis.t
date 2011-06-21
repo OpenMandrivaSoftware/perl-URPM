@@ -2,7 +2,7 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 96;
+use Test::More tests => 100;
 use URPM;
 
 chdir 't' if -d 't';
@@ -10,11 +10,11 @@ my $file1 = 'synthesis.sample.cz';
 
 open my $f, "| gzip -9 >$file1";
 print $f <<'EOF';
-@provides@glibc-devel[== 6:2.2.4-25mdk]
+@provides@glibc-devel[== 6:2.2.4-25:2011.0]
 @requires@/sbin/install-info[*]@glibc[== 2.2.4]@kernel-headers@kernel-headers[>= 2.2.1]@/bin/sh@/bin/sh@/bin/sh@rpmlib(PayloadFilesHavePrefix)[<= 4.0-1]@rpmlib(CompressedFileNames)[<= 3.0.4-1]
 @conflicts@texinfo[< 3.11]@gcc[< 2.96-0.50mdk]
 @obsoletes@libc-debug@libc-headers@libc-devel@linuxthreads-devel@glibc-debug
-@info@glibc-devel-2.2.4-25mdk.i586@6@45692097@Development/C
+@info@glibc-devel-2.2.4-25-mdv2011.0.i586@6@45692097@Development/C@mdv@2011.0
 EOF
 close $f;
 
@@ -44,9 +44,11 @@ my $pkg = $a->{depslist}[0];
 ok($pkg);
 ok($pkg->name eq 'glibc-devel');
 ok($pkg->version eq '2.2.4');
-ok($pkg->release eq '25mdk');
+ok($pkg->release eq '25');
+ok($pkg->disttag eq 'mdv');
+ok($pkg->distepoch eq '2011.0');
 ok($pkg->arch eq 'i586');
-ok($pkg->fullname eq 'glibc-devel-2.2.4-25mdk.i586');
+ok($pkg->fullname eq 'glibc-devel-2.2.4-25-mdv2011.0.i586');
 ok(!defined $pkg->buildarchs);
 ok(!defined $pkg->buildhost);
 is($pkg->buildtime,0);
@@ -58,13 +60,15 @@ my ($name, $version, $release, $disttag, $distepoch, $arch, @l) = $pkg->fullname
 ok(@l == 0);
 ok($name eq 'glibc-devel');
 ok($version eq '2.2.4');
-ok($release eq '25mdk');
+ok($release eq '25');
+ok($disttag eq 'mdv');
+ok($distepoch eq '2011.0');
 ok($arch eq 'i586');
 
 ok($pkg->epoch == 6);
 ok($pkg->size == 45692097);
 ok($pkg->group eq 'Development/C');
-ok($pkg->filename eq 'glibc-devel-2.2.4-25mdk.i586.rpm');
+ok($pkg->filename eq 'glibc-devel-2.2.4-25-mdv2011.0.i586.rpm');
 ok(defined $pkg->id);
 ok($pkg->id == 0);
 ok($pkg->set_id(6) == 0);
@@ -92,13 +96,13 @@ ok($requires[8] eq 'rpmlib(CompressedFileNames)[<= 3.0.4-1]');
 
 my @provides = $pkg->provides;
 ok(@provides == 1);
-ok($provides[0] eq 'glibc-devel[== 6:2.2.4-25mdk]');
+ok($provides[0] eq 'glibc-devel[== 6:2.2.4-25:2011.0]');
 
 my @files = $pkg->files;
 ok(@files == 0);
 
-ok($pkg->compare("6:2.2.4-25mdk") == 0);
-ok($pkg->compare("2.2.4-25mdk") > 0);
+ok($pkg->compare("6:2.2.4-25:2011.0") == 0);
+ok($pkg->compare("2.2.4-25") > 0);
 ok($pkg->compare("6:2.2.4") == 0);
 ok($pkg->compare("2.2.3") > 0);
 ok($pkg->compare("2.2") > 0);
