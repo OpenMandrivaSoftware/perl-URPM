@@ -1,5 +1,6 @@
-Version 4.34 - 21 June 2011, by Per Øyvid Karlsen
+Version 4.34 - 23 June 2011, by Per Øyvid Karlsen
 
+- add support for specifying tag name to match with URPM::Transaction->remove()
 - add some regression tests for parsing disttag & distepoch from synthesis
 - extract disttag & distepoch from new fields in @info@ of synthesis
 

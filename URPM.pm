@@ -712,10 +712,11 @@ Options are:
     update => 0 / 1 : indicates whether this is an upgrade
     excludepath => [ ... ]
 
-=item $trans->remove($name)
+=item $trans->remove($keyp, [$tagname = "nvra"])
 
 Adds a package to be erased to the transaction represented by $trans.
-$name is the name of the package.
+$keyp is by default the full name of the package, unless a different tag to
+match has been specified with $tagname.
 
 =item $trans->check(%options)
 

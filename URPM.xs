@@ -3627,15 +3627,19 @@ Trans_add(trans, pkg, ...)
   RETVAL
 
 int
-Trans_remove(trans, name)
+Trans_remove(trans, name, tagname = NULL)
   URPM::Transaction trans
   char *name
+  char *tagname
   PREINIT:
   Header h;
   rpmmi mi;
   int count = 0;
+  rpmTag tag = RPMTAG_NVRA;
   CODE:
-  mi = rpmtsInitIterator(trans->ts, RPMTAG_NVRA, name, 0);
+  if (tagname)
+    tag = rpmtag_from_string(tagname);
+  mi = rpmtsInitIterator(trans->ts, tag, name, 0);
   while ((h = rpmmiNext(mi))) {
     unsigned int recOffset = rpmmiInstance(mi);
     if (recOffset != 0) {
