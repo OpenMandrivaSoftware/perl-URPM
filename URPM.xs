@@ -1645,9 +1645,12 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
   const char *_dbi_tags = NULL;
   const char *_dbi_config = NULL;
   const char *_dbi_config_Packages = NULL;
-  const char *fn = NULL;
+  const char *fn = NULL, *fn2 = NULL;
   const char *tmppath = NULL;
   glob_t gl = { .gl_pathc = 0, .gl_pathv = NULL, .gl_offs = 0 };
+  struct stat st;
+  FD_t fd = NULL;
+
   unsetenv("TMPDIR");
   rpmReadConfigFiles(NULL, NULL);
 
@@ -1668,6 +1671,31 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
 
   tsCur = rpmtsCreate();
   rpmtsSetRootDir(tsCur, prefix && prefix[0] ? prefix : NULL);
+
+  /* To try make upgrades smooth, we've tried to prevent the new configuration
+   * with possibly incompatible configuration from being dropped in during the
+   * upgrade. Now that the rpm upgrade has finished we'll make sure to switch
+   * to this new configuration before performing the conversion.
+   */
+  fn2 = rpmGetPath(prefix && prefix[0] ? prefix : "", "%{_dbpath}", "/DB_CONFIG.rpmnew", NULL);
+  if (!Stat(fn2, &st) && st.st_size) {
+    fn = rpmGetPath(prefix && prefix[0] ? prefix : "", "%{_dbpath}", "/DB_CONFIG", NULL);
+    if (!Stat(fn, &st)) {
+      /* if empty configuration, we'll just remove it */
+      if (!st.st_size)
+	Unlink(fn);
+      else {
+	/* if non-empty configuration exists, we'll rename it */
+	fn2 = rpmGetPath(prefix && prefix[0] ? prefix : "", "%{_dbpath}", "/DB_CONFIG.rpmsave", NULL);
+	Rename(fn, fn2);
+	fn2 = _free(fn2);
+      }
+    }
+    Rename(fn2, fn);
+    fn = _free(fn);
+  }
+  fn2 = _free(fn2);
+
   if(!rpmtsOpenDB(tsCur, O_RDONLY)) {
     if(dbtype == 1) {
       addMacro(NULL, "_dbi_tags", NULL, "Packages:Name:Basenames:Group:Requirename:Providename:Conflictname:Triggername:Dirnames:Requireversion:Provideversion:Installtid:Sigmd5:Sha1header:Filedigests:Depends:Pubkeys", -1);
