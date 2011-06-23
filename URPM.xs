@@ -622,7 +622,7 @@ xpush_simple_list_str(Header header, rpmTag tag_name) {
 }
 
 static void
-return_list_int32_t(Header header, rpmTag tag_name) {
+return_list_uint32_t(Header header, rpmTag tag_name) {
   dSP;
   if (header) {
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
@@ -2722,7 +2722,7 @@ Pkg_files_mtime(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int32_t(pkg->h, RPMTAG_FILEMTIMES);
+  return_list_uint32_t(pkg->h, RPMTAG_FILEMTIMES);
   SPAGAIN;
 
 void
@@ -2730,7 +2730,7 @@ Pkg_files_size(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int32_t(pkg->h, RPMTAG_FILESIZES);
+  return_list_uint32_t(pkg->h, RPMTAG_FILESIZES);
   SPAGAIN;
 
 void
@@ -2738,7 +2738,7 @@ Pkg_files_uid(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int32_t(pkg->h, RPMTAG_FILEUIDS);
+  return_list_uint32_t(pkg->h, RPMTAG_FILEUIDS);
   SPAGAIN;
 
 void
@@ -2746,7 +2746,7 @@ Pkg_files_gid(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int32_t(pkg->h, RPMTAG_FILEGIDS);
+  return_list_uint32_t(pkg->h, RPMTAG_FILEGIDS);
   SPAGAIN;
 
 void
@@ -2762,7 +2762,7 @@ Pkg_files_flags(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int32_t(pkg->h, RPMTAG_FILEFLAGS);
+  return_list_uint32_t(pkg->h, RPMTAG_FILEFLAGS);
   SPAGAIN;
   
 void
@@ -2778,7 +2778,7 @@ Pkg_changelog_time(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
-  return_list_int32_t(pkg->h, RPMTAG_CHANGELOGTIME);
+  return_list_uint32_t(pkg->h, RPMTAG_CHANGELOGTIME);
   SPAGAIN;
 
 void
