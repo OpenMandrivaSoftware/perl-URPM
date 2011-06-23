@@ -1649,7 +1649,6 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
   const char *tmppath = NULL;
   glob_t gl = { .gl_pathc = 0, .gl_pathv = NULL, .gl_offs = 0 };
   struct stat st;
-  FD_t fd = NULL;
 
   unsetenv("TMPDIR");
   rpmReadConfigFiles(NULL, NULL);
