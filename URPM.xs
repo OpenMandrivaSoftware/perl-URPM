@@ -3901,7 +3901,7 @@ Trans_run(trans, data, ...)
   }
   /* check macros */
   {
-    char *repa = rpmExpand("%_repackage_all_erasures", NULL);
+    char *repa = rpmExpand("%{_repackage_all_erasures}", NULL);
     if (repa && *repa && *repa != '0')
       transFlags |= RPMTRANS_FLAG_REPACKAGE;
     if (repa) free(repa);
