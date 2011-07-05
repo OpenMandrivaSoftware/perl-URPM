@@ -3519,7 +3519,7 @@ Db_traverse_tag(db,tag,names,callback)
 	  call_sv(callback, G_DISCARD | G_SCALAR);
 
 	  SPAGAIN;
-	  pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
+	  pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
 	}
 	++count;
       }
@@ -3701,7 +3701,7 @@ Trans_traverse(trans, callback)
       PUTBACK;
       call_sv(callback, G_DISCARD | G_SCALAR);
       SPAGAIN;
-      pkg->h = 0; /* avoid using it anymore, in case it has been copied inside callback */
+      pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
     }
     ++c;
   }
