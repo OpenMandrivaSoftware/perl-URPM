@@ -1,4 +1,8 @@
-Version 4.34 - 23 June 2011, by Per Øyvid Karlsen
+Version 4.35 -  5 July 2011, by Per Øyvind Karlsen
+
+- fix a regression breaking promotion of dependencies on conflicts
+
+Version 4.34 - 23 June 2011, by Per Øyvind Karlsen
 
 - add a workaround for handling upgrade from older berkeley db versions which
   might not support new configuration in DB_CONFIG, causing it to break during

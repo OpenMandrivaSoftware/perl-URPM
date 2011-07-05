@@ -574,7 +574,7 @@ return_list_str(char *s, Header header, rpmTag tag_name, rpmTag tag_flags, rpmTa
       const char **list = he->p.argv;
       rpmsenseFlags *flags = NULL;
       const char **list_evr = NULL;
-      int count = he->c;
+      int c = he->c;
 
       if (tag_flags) {
         he->tag = tag_flags;
@@ -586,14 +586,15 @@ return_list_str(char *s, Header header, rpmTag tag_name, rpmTag tag_flags, rpmTa
         if (headerGet(header, he, 0))
 	  list_evr = he->p.argv;
       }
-      for (he->ix = 0; he->ix < count; he->ix++) {
+      for (he->ix = 0; he->ix < c; he->ix++) {
+	++count;
 	if (f(NULL, 0, list[he->ix], flags ? flags[he->ix] : 0, 
 	      list_evr ? list_evr[he->ix] : NULL,
 	      param)) {
 	  list = _free(list);
 	  if (tag_flags) flags = _free(flags);
 	  if (tag_version) list_evr = _free(list_evr);
-	  return -he->ix;
+	  return (int)-count;
 	}
       }
       list = _free(list);
