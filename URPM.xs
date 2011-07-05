@@ -715,8 +715,8 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 	  case RPM_UINT8_TYPE:
 	  case RPM_UINT16_TYPE:
 	  case RPM_UINT32_TYPE:
-	      for (he->ix=0; he->ix < (int)he->c; he->ix++)
-		XPUSHs(sv_2mortal(newSViv(he->p.ui32p[he->ix])));
+	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	      XPUSHs(sv_2mortal(newSViv(he->p.ui32p[he->ix])));
 	    break;
 	  case RPM_STRING_TYPE:
 	    push_name_only(he->p.str, 0);
@@ -724,8 +724,8 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 	  case RPM_BIN_TYPE:
 	    break;
 	  case RPM_STRING_ARRAY_TYPE:
-	      for (he->ix = 0; he->ix < (int)he->c; he->ix++)
-		push_name_only(he->p.argv[he->ix], 0);
+	    for (he->ix = 0; he->ix < (int)he->c; he->ix++)
+	      push_name_only(he->p.argv[he->ix], 0);
 	    break;
 	  case RPM_I18NSTRING_TYPE:
 	    break;
@@ -1456,7 +1456,7 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	  default:
 	    rpmlog(RPMLOG_ERR, "%s: %s: %s\n", "rpmpkgRead", item, msg);
 	  case RPMRC_NOTFOUND:
-	      pkg->h = NULL;
+	    pkg->h = NULL;
 	  case RPMRC_OK:
 	    break;
 	  }
