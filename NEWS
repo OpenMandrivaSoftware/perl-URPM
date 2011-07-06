@@ -1,5 +1,6 @@
 Version 4.36 -  6 July 2011, by Per Øyvind Karlsen
 
+- document URPM::DB::convert() in API
 - fix a segfault happening when URPM::DB::convert() is run without arguments
  
 Version 4.35 -  5 July 2011, by Per Øyvind Karlsen

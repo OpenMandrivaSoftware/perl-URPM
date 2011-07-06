@@ -446,6 +446,13 @@ If type is unknown, 'array' will be undefined, if database is empty, 'ordering'
 will be undefined.
 If no rpm database is found under $prefix, 0 will be returned.
 
+=item convert($prefix, $type, $swap=0, $rebuild=0)
+
+Convert the rpmdb in $prefix to $type (only "hash" and "btree" is currently
+supported).
+If $swap is 1, swab to big endian, if -1, swab to little endian.
+If $rebuild is true, rebuild the rpmdb after the conversion.
+
 =item rebuild($prefix)
 
 Rebuilds the RPM database (like C<rpm --rebuilddb>). $prefix defaults to C<"">.
