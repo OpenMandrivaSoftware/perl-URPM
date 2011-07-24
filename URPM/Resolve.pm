@@ -31,7 +31,7 @@ sub property2name_op_version {
     $_[0] =~ /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/;
 }
 sub fullname_parts {
-    $_[1] =~ sprintf(qr/^(.*)-([^\-]*)-([^\-]*)%s\.([^\.\-]*)$/, (exists $_[0]{disttag} ? "-" . $_[0]{disttag} . (exists $_[0]{distepoch} ? $_[0]{distepoch} : "" ) : ""));
+    $_[1] =~ sprintf(qr/^(.*)-([^\-]*)-([^\-]*)%s\.([^\.\-]*)$/, ((exists $_[0]{disttag} && $_[0]{disttag}) ? "-" . $_[0]{disttag} . ((exists $_[0]{distepoch} && $_[0]{distepoch}) ? $_[0]{distepoch} : "" ) : ""));
 }
 
 #- wrappers around $state (cf "The $state object" in "perldoc URPM")
