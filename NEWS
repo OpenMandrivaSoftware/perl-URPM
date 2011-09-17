@@ -1,5 +1,8 @@
 Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
 
+- fix calling method in string
+  (spotted by perl_checker, introduced in revision mga#267800 ("honour search
+   medias when using --auto-select") but teuf on Fri Apr 23 2010
 - drop 'direction' parameter in obsoletes_overlap() & provides_overlap()
 - add basic support for --downgrade (mga#6655)
 - enable to report script & I/O errors

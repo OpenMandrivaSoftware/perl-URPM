@@ -1732,7 +1732,7 @@ sub request_packages_to_upgrade {
 	    }
 	}
 	if ($pkg && $options{idlist} && !any { $pkg->id == $_ } @{$options{idlist}}) {
-		$urpm->{debug_URPM}("not auto-selecting $pkg->fullname because it's not in search medias") if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("not auto-selecting " . $pkg->fullname . "because it's not in search medias") if $urpm->{debug_URPM};
 		$pkg = undef;
 	} 
 
