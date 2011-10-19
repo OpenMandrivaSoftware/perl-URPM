@@ -1825,7 +1825,7 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
 		    case RPMDBI_AVAILABLE:
 		    case RPMDBI_ADDED:
 		    case RPMDBI_REMOVED:
-		    case RPMDBI_DEPENDS:
+		    case RPMDBI_DEPCACHE:
 		    case RPMDBI_BTREE:
 		    case RPMDBI_HASH:
 		    case RPMDBI_QUEUE:

@@ -1,3 +1,7 @@
+Version 4.38 - 19 October 2011, by Per Øyvind Karlsen
+
+- fix api breakage with rpm 5.4
+
 Version 4.37 - 24 July 2011, by Per Øyvind Karlsen
 
 - fix URPM::Resolve::fullname_parts() to also work without disttag & distepoch
