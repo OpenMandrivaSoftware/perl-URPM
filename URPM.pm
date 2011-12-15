@@ -815,8 +815,8 @@ Destroys macros.
 
 =item setVerbosity($level)
 
-Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
-(RPMMESS_DEBUG).
+Sets rpm verbosity level. $level is an integer between 0 (RPMLOG_EMERG) and 7
+(RPMLOG_DEBUG).
 
 =item rpmErrorString()
 
