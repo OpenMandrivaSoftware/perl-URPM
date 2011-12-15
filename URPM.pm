@@ -11,7 +11,7 @@ use URPM::Resolve;
 use URPM::Signature;
 
 our @ISA = qw(DynaLoader);
-our $VERSION = '4.38';
+our $VERSION = '4.39';
 
 URPM->bootstrap($VERSION);
 
@@ -836,6 +836,10 @@ lower is prefered.
 
 Return the score of the given os. 0 mean not compatible,
 lower is prefered.
+
+=item rpmtag_from_string($tagstring)
+
+Returns integer constant value of $tagstring.
 
 =back
 

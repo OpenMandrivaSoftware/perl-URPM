@@ -1,3 +1,7 @@
+Version 4.39 - 		      , by Per Øyvind Karlsen
+
+- export rpmtag_from_string()
+
 Version 4.38 - 19 October 2011, by Per Øyvind Karlsen
 
 - fix api breakage with rpm 5.4

@@ -3968,6 +3968,9 @@ rpmEVRcompare(one, two)
   OUTPUT:
   RETVAL
 
+int
+rpmtag_from_string(tag)
+    const char *tag
 
 int
 Urpm_ranges_overlap(a, b)
