@@ -807,7 +807,11 @@ Delete a macro.
 
 Destroys macros.
 
+=back
+
 =head2 Misc other functions
+
+=over
 
 =item setVerbosity($level)
 
