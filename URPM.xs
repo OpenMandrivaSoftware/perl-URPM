@@ -161,7 +161,7 @@ newSVpv_utf8(const char *s, STRLEN len)
 /* XXX: RPMTAG_NVRA doesn't have disttag & distepoch */
 #if 0
 static const char *
-get_nvra(Header header) {
+get_nvra(const Header header) {
   HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
 
   val->tag = RPMTAG_NVRA;
@@ -215,7 +215,7 @@ get_nvra_fmt() {
 }
 
 static const char *
-get_nvra(Header h) {
+get_nvra(const Header h) {
   const char *qfmt = get_nvra_fmt();
   const char *NVRA = headerSprintf(h, qfmt, NULL, NULL, NULL);
   return NVRA;
@@ -263,7 +263,7 @@ rpmtag_from_string(const char *tag)
 }
 
 static const char *
-get_name(Header header, rpmTag tag) {
+get_name(const Header header, rpmTag tag) {
   HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
 
   val->tag = tag;
@@ -277,7 +277,7 @@ get_name(Header header, rpmTag tag) {
 }
 
 static int
-get_int(Header header, rpmTag tag) {
+get_int(const Header header, rpmTag tag) {
   HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
   int ret = 0;
 
@@ -307,7 +307,7 @@ get_int(Header header, rpmTag tag) {
  * with restore_chars()
  */
 static void
-get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
+get_fullname_parts(const URPM__Package pkg, char **name, int *epoch, char **version, char **release, char **disttag, char **distepoch, char **arch, char **eos) {
   char *_version = NULL, *_release = NULL, *_disttag = NULL, *_distepoch = NULL, *_arch = NULL, *_eos = NULL, *tmp = NULL;
 
   /* XXX: Could probably be written in a more generic way, only thing we
@@ -359,7 +359,7 @@ get_fullname_parts(URPM__Package pkg, char **name, int *epoch, char **version, c
 }
 
 static size_t
-get_filesize(Header h) {
+get_filesize(const Header h) {
   /* XXX: 24 is padding..? */
   return rpmpkgSizeof("Lead", NULL) + 24 + headerSizeof(h) + get_int(h, RPMTAG_ARCHIVESIZE);
 }
@@ -540,7 +540,7 @@ callback_list_str_overlap(char *s, int slen, const char *name, rpmsenseFlags fla
 }
 
 static int
-return_list_str(char *s, Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, callback_list_str f, void *param) {
+return_list_str(char *s, const Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, callback_list_str f, void *param) {
   int count = 0;
 
   if (s != NULL) {
@@ -606,7 +606,7 @@ return_list_str(char *s, Header header, rpmTag tag_name, rpmTag tag_flags, rpmTa
 }
 
 static int
-xpush_simple_list_str(Header header, rpmTag tag_name) {
+xpush_simple_list_str(const Header header, rpmTag tag_name) {
   dSP;
   if (header) {
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
@@ -623,7 +623,7 @@ xpush_simple_list_str(Header header, rpmTag tag_name) {
 }
 
 static void
-return_list_uint32_t(Header header, rpmTag tag_name) {
+return_list_uint32_t(const Header header, rpmTag tag_name) {
   dSP;
   if (header) {
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
@@ -639,7 +639,7 @@ return_list_uint32_t(Header header, rpmTag tag_name) {
 }
 
 static void
-return_list_uint_16(Header header, rpmTag tag_name) {
+return_list_uint_16(const Header header, rpmTag tag_name) {
   dSP;
   if (header) {
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
@@ -655,7 +655,7 @@ return_list_uint_16(Header header, rpmTag tag_name) {
 }
 
 static void
-return_list_tag_modifier(Header header, const char *tag_name) {
+return_list_tag_modifier(const Header header, const char *tag_name) {
   dSP;
   HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
   rpmTag tag = isdigit(*tag_name) ? (rpmTag)atoi(tag_name) : rpmtag_from_string(tag_name);
@@ -695,7 +695,7 @@ return_list_tag_modifier(Header header, const char *tag_name) {
 }
 
 static void
-return_list_tag(URPM__Package pkg, const char *tag_name) {
+return_list_tag(const URPM__Package pkg, const char *tag_name) {
   dSP;
   rpmTag tag = isdigit(*tag_name) ? (rpmTag)atoi(tag_name) : rpmtag_from_string(tag_name);
 
@@ -798,7 +798,7 @@ return_list_tag(URPM__Package pkg, const char *tag_name) {
 
 
 static void
-return_files(Header header, int filter_mode) {
+return_files(const Header header, int filter_mode) {
   dSP;
   if (header) {
     const char *s;
@@ -889,7 +889,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 }
 
 static char *
-pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, rpmsenseFlags (*check_flag)(rpmsenseFlags)) {
+pack_list(const Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, rpmsenseFlags (*check_flag)(rpmsenseFlags)) {
   char buff[8*BUFSIZ];
   char *p = buff;
   HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
@@ -932,7 +932,7 @@ pack_list(Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, 
  * with restore_chars()
  */
 static const char *
-get_evr(URPM__Package pkg) {
+get_evr(const URPM__Package pkg) {
   const char *evr = NULL;
   if(pkg->info && !pkg->h) {
     if (!pkg->provides) {
@@ -1005,7 +1005,7 @@ get_evr(URPM__Package pkg) {
 }
 
 static void
-pack_header(URPM__Package pkg) {
+pack_header(const URPM__Package pkg) {
   if (pkg->h) {
     if (pkg->info == NULL) {
       char buff[1024];
@@ -1060,7 +1060,7 @@ pack_header(URPM__Package pkg) {
 }
 
 static void
-update_hash_entry(HV *hash, const char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg) {
+update_hash_entry(HV *hash, const char *name, STRLEN len, int force, IV use_sense, const URPM__Package pkg) {
   SV** isv;
 
   if (!len) len = strlen(name);
@@ -1086,12 +1086,12 @@ update_hash_entry(HV *hash, const char *name, STRLEN len, int force, IV use_sens
 }
 
 static void
-update_provide_entry(const char *name, STRLEN len, int force, IV use_sense, URPM__Package pkg, HV *provides) {
+update_provide_entry(const char *name, STRLEN len, int force, IV use_sense, const URPM__Package pkg, HV *provides) {
   update_hash_entry(provides, name, len, force, use_sense, pkg);
 }
 
 static void
-update_provides(URPM__Package pkg, HV *provides) {
+update_provides(const URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     int len;
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
@@ -1158,7 +1158,7 @@ update_provides(URPM__Package pkg, HV *provides) {
 }
 
 static void
-update_obsoletes(URPM__Package pkg, HV *obsoletes) {
+update_obsoletes(const URPM__Package pkg, HV *obsoletes) {
   if (pkg->h) {
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
@@ -1188,7 +1188,7 @@ update_obsoletes(URPM__Package pkg, HV *obsoletes) {
 }
 
 static void
-update_provides_files(URPM__Package pkg, HV *provides) {
+update_provides_files(const URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     STRLEN len;
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
