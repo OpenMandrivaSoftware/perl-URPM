@@ -116,9 +116,8 @@ write_nocheck(int fd, const void *buf, size_t count) {
   return write(fd, buf, count);
 }
 
-static const void*
-unused_variable(const void *p) {
-  return p;
+static inline void
+unused_variable(__attribute__((unused)) const void *p) {
 }
 
 static int rpmError_callback_data;
