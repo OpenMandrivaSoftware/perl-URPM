@@ -807,6 +807,8 @@ Delete a macro.
 
 Destroys macros.
 
+=head2 Misc other functions
+
 =item setVerbosity($level)
 
 Sets rpm verbosity level. $level is an integer between 2 (RPMMESS_CRIT) and 7
