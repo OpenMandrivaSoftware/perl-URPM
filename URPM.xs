@@ -372,7 +372,7 @@ print_list_entry(char *buff, int sz, const char *name, rpmsenseFlags flags, cons
   memcpy(p, name, len); p += len;
 
   /* XXX: RPMSENSE_PREREQ obsolete, remove? */
-  if (flags & (RPMSENSE_PREREQ|RPMSENSE_TRIGGER)) {
+  if (flags & (RPMSENSE_PREREQ|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POSTUN|RPMSENSE_SCRIPT_POST)) {
     if (p - buff + 3 >= sz) return -1;
     memcpy(p, "[*]", 4); p += 3;
   }
