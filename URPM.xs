@@ -23,6 +23,7 @@
 #include <libintl.h>
 #include <glob.h>
 #include <stdbool.h>
+#include <magic.h>
 
 #undef Fflush
 #undef Mkdir
@@ -47,8 +48,6 @@
 #include <rpmgi.h>
 #include <rpmlog.h>
 #include <rpmconstant.h>
-
-#include "xfile.h"
 
 struct s_Package {
   char *info;
@@ -1973,6 +1972,66 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
   _free(_dbi_config_Packages);
   _free(tmppath);
   return xx;
+}
+
+static FD_t xOpen(const char *path) {
+    FD_t fd = NULL;
+    const char *message, *tmp;
+    magic_t cookie;
+      enum {
+	FD_ASCII,
+	FD_BZIP2,
+	FD_GZIP,
+	FD_LZMA,
+	FD_XZ,
+	FD_FAIL
+      } type = FD_FAIL;
+    if ((cookie = magic_open(MAGIC_NONE)) && !magic_load(cookie, NULL)) {
+	message = magic_file(cookie, path);
+	if(message == NULL)
+	    type = FD_FAIL;
+	else if(strstr(message, "ASCII"))
+	    type = FD_ASCII;
+	else if(strstr(message, "bzip2 compressed"))
+	    type = FD_BZIP2;
+	else if(strstr(message, "gzip compressed"))
+	    type = FD_GZIP;
+	else if(strstr(message, "xz compressed"))
+	    type = FD_XZ;
+	else if(strstr(message, "LZMA compressed"))
+	    type = FD_LZMA;
+	magic_close(cookie);
+    }
+    if(type == FD_FAIL && (tmp = strrchr(path, '.'))) {
+	if(!strcmp(tmp, ".bz2"))
+	    type = FD_BZIP2;
+	if(!strcmp(tmp, ".cz") || !strcmp(tmp, ".gz"))
+	    type = FD_GZIP;
+	else if(!strcmp(tmp, ".xz"))
+	    type = FD_XZ;
+	else if(!strcmp(tmp, ".lzma"))
+	    type = FD_LZMA;
+    }
+
+    switch(type) {
+	case FD_ASCII:
+	    fd = Fopen(path, "r.fdio");
+	    break;
+	case FD_BZIP2:
+	    fd = Fopen(path, "r.bzdio");
+	    break;
+	case FD_GZIP:
+	    fd = Fopen(path, "r.gzdio");
+	    break;
+	case FD_LZMA:
+	case FD_XZ:
+	    fd = Fopen(path, "r.xzdio");
+	    break;
+	default:
+	    break;
+    }
+
+    return fd;
 }
 
 static void
@@ -4027,8 +4086,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
       char *p, *eol;
       int buff_len;
       struct s_Package pkg;
-      xFile xF;
-      lzma_ret ret = LZMA_STREAM_END;
+      FD_t fd;
       int start_id = 1 + av_len(depslist);
       SV *callback = NULL;
 
@@ -4044,39 +4102,38 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
       }
 
       PUTBACK;
-      if ((xF = xOpen(filename)).type < XF_FAIL) {
+      if ((fd = xOpen(filename))) {
 	memset(&pkg, 0, sizeof(struct s_Package));
 	buff[sizeof(buff)-1] = 0;
 	p = buff;
 	int ok = 1;
-	while ((buff_len = xRead(&xF, &ret, p, sizeof(buff)-1-(p-buff))) >= 0 &&
+	while ((buff_len = Fread(p, 1, sizeof(buff)-1-(p-buff), fd)) >= 0 && 
 	       (buff_len += p-buff)) {
-	  buff[buff_len] = 0;
-	  p = buff;
-	  if ((eol = strchr(p, '\n')) != NULL) {
-	    do {
-	      *eol++ = 0;
-	      if (!parse_line(depslist, provides, obsoletes, &pkg, p, urpm, callback)) { ok = 0; break; }
-	      p = eol;
-	    } while ((eol = strchr(p, '\n')) != NULL);
-	  } else {
-	    /* a line larger than sizeof(buff) has been encountered, bad file problably */
-	    fprintf(stderr, "invalid line <%s>\n%s\n", p, buff);
-	    ok = 0;
-	    break;
-	  }
-	  if (xF.eof) {
-	    if (!parse_line(depslist, provides, obsoletes, &pkg, p, urpm, callback)) ok = 0;
-	    break;
-	  } else {
+	  if (buff_len) {
+	    buff[buff_len] = 0;
+	    p = buff;
+	    if ((eol = strchr(p, '\n')) != NULL) {
+	      do {
+		*eol++ = 0;
+		if (!parse_line(depslist, provides, obsoletes, &pkg, p, urpm, callback)) { ok = 0; break; }
+		p = eol;
+	      } while ((eol = strchr(p, '\n')) != NULL);
+	    } else {
+	      /* a line larger than sizeof(buff) has been encountered, bad file problably */
+	      fprintf(stderr, "invalid line <%s>\n%s\n", p, buff);
+	      ok = 0;
+	      break;
+	    }
 	    /* move the remaining non-complete-line at beginning */
 	    memmove(buff, p, buff_len-(p-buff));
 	    /* point to the end of the non-complete-line */
 	    p = &buff[buff_len-(p-buff)];
+	  } else {
+	    if (!parse_line(depslist, provides, obsoletes, &pkg, p, urpm, callback)) ok = 0;
+	    break;
 	  }
 	}
-	if(ret != LZMA_STREAM_END) ok = 0;
-	if (xClose(&xF) != 0) ok = 0;
+	if (Fclose(fd)) ok = 0;
 	SPAGAIN;
 	if (ok) {
 	  XPUSHs(sv_2mortal(newSViv(start_id)));

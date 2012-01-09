@@ -1,5 +1,6 @@
 Version 4.39 - 		      , by Per Øyvind Karlsen
 
+- add support for bzip2 compressed synthesis (by using Fopen() from rpmio)
 - export rpmtag_from_string()
 
 Version 4.38 - 19 October 2011, by Per Øyvind Karlsen
