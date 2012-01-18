@@ -358,8 +358,7 @@ get_fullname_parts(const URPM__Package pkg, char **name, int *epoch, char **vers
 
 static size_t
 get_filesize(const Header h) {
-  /* XXX: 24 is padding..? */
-  return rpmpkgSizeof("Lead", NULL) + 24 + headerSizeof(h) + get_int(h, RPMTAG_ARCHIVESIZE);
+  return get_int(h, RPMTAG_SIGSIZE) + 440; /* 440 is the rpm header size (?) empirical, but works */
 }
 
 static int
