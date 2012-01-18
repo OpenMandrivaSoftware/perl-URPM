@@ -74,8 +74,8 @@ SKIP: {
     $urpm = new URPM;
     $urpm->parse_synthesis($synthesis);
 
-    solve_check("basesystem-minimal", 164, 0, 0, "distepoch");
-    solve_check("basesystem", 743, 1, 0, "distepoch");
-    solve_check("task-kde4", 1943, 1, 0, "distepoch");
+    solve_check("basesystem-minimal", 244, 1, 0, "distepoch");
+    solve_check("basesystem", 420, 1, 0, "distepoch");
+    solve_check("task-kde4", 2065, 1, 0, "distepoch");
 
 }
