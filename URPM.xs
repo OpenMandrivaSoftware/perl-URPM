@@ -1115,7 +1115,7 @@ update_provides(const URPM__Package pkg, HV *provides) {
 	flags = (rpmsenseFlags*)he->p.ui32p;
       for (he->ix = 0; he->ix < count; he->ix++) {
 	len = strlen(list[he->ix]);
-	update_provide_entry(list[he->ix], len, 1, flags && (flags[he->ix] & (RPMSENSE_PREREQ|RPMSENSE_TRIGGER)),
+	update_provide_entry(list[he->ix], len, 1, flags && (flags[he->ix] & (RPMSENSE_PREREQ|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POSTUN|RPMSENSE_SCRIPT_POST|RPMSENSE_LESS|RPMSENSE_EQUAL|RPMSENSE_GREATER)),
 	    pkg, provides);
       }
       flags = _free(flags);
