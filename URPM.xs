@@ -1656,7 +1656,7 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
   _dbi_tags = rpmExpand("%{_dbi_tags}", NULL);
   _dbi_config = rpmExpand("%{_dbi_config}", NULL);
   _dbi_config_Packages = rpmExpand("%{_dbi_config_Packages}", NULL);
-  addMacro(NULL, "__dbi_txn", NULL, "create mpool txn thread thread_count=64 nofsync", -1);
+  addMacro(NULL, "__nofsync", NULL, "nofsync", -1);
 
   /* (ugly) clear any existing locks */
   fn = rpmGetPath(prefix && prefix[0] ? prefix : "", dbpath, "/", "__db.*", NULL);
