@@ -1,6 +1,11 @@
+Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
+
+- fix computing size of added/freed disk space when updating involves removing
+  some packages (mga#4427)
+- support kernel 3.x in kmod resolution
+
 Version 4.44 - 16 March 2013, by Per Øyvind Karlsen
 
-- support kernel 3.x in kmod resolution
 - disable rpmlint for building test package during regression tests
 - move out some functions accessing berkeley db API directly into a RPMBDB
   module built together with rpm in order to really guard ourself from
