@@ -37,6 +37,14 @@
 #define _RPMTAG_INTERNAL
 #define WITH_DB
 
+// rpmgi.h includes fts.h (incompatible with _FILE_OFFSET_BITS=64)
+// but only so it can add FTS* and FTSENT* members to structures.
+// Given we never dereference those structures, this is ugly but
+// safe:
+#define _FTS_H 1
+typedef void FTS;
+typedef void FTSENT;
+
 #include <rpmio.h>
 #include <rpmtag.h>
 #include <rpmdb.h>

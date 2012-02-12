@@ -1,5 +1,7 @@
 Version 4.39 - 		      , by Per Øyvind Karlsen
 
+- workaround fts.h incompatibility with _FILE_OFFSET_BITS=64 to fix build with
+  perl 5.14.2 (from Bernhard Rosenkraenzer)
 - ~fix filesize computation
 - add support for bzip2 compressed synthesis (by using Fopen() from rpmio)
 - export rpmtag_from_string()
