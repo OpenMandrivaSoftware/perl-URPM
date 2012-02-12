@@ -45,11 +45,11 @@ ChangeLog:
 **MM**
 }
 
-my $ldflags = `pkg-config --libs rpm liblzma`;
+my $ldflags = `pkg-config --libs rpm`;
 chomp($ldflags);
 $ldflags .= " -lmagic";
-my $includes = `pkg-config --cflags-only-I rpm liblzma`;
-my $ccflags = join(' ', '-Wall -Wextra -fno-strict-aliasing -std=gnu99', `pkg-config --cflags-only-other rpm liblzma`);
+my $includes = `pkg-config --cflags-only-I rpm`;
+my $ccflags = join(' ', '-Wall -Wextra -fno-strict-aliasing -std=gnu99', `pkg-config --cflags-only-other rpm`);
 chomp($ccflags);
 
 print "Found RPM version $version (compiling with flags: $ccflags)\n";
