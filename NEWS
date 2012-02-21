@@ -1,5 +1,6 @@
 Version 4.39 - 		      , by Per Øyvind Karlsen
 
+- link against berkeley db as we're accessing it's API directly
 - workaround fts.h incompatibility with _FILE_OFFSET_BITS=64 to fix build with
   perl 5.14.2 (from Bernhard Rosenkraenzer)
 - ~fix filesize computation
