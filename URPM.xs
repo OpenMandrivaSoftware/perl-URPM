@@ -793,7 +793,7 @@ return_list_tag(const URPM__Package pkg, const char *tag_name) {
 	}
 	break;
       default:
-	croak("unexpected tag");
+	croak("unexpected tag %s", tag_name);
 	break;
     }
     restore_chars();
