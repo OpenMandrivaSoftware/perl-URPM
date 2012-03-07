@@ -1,4 +1,4 @@
-Version 4.39 - 		      , by Per Øyvind Karlsen
+Version 4.39 -  7 March 2012, by Per Øyvind Karlsen
 
 - link against berkeley db as we're accessing it's API directly
 - workaround fts.h incompatibility with _FILE_OFFSET_BITS=64 to fix build with
