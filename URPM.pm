@@ -175,6 +175,13 @@ sub traverse_tag {
     $count;
 }
 
+#- this is used when faking a URPM::DB: $urpm can be used as-a $db
+#- (used for urpmi --env)
+sub traverse_tag_find {
+    my ($urpm, $tag, $name, $callback) = @_;
+    $urpm->traverse_tag($tag, [ $name ], $callback);
+}
+
 # wrapper around XS functions
 # it handles error cases
 sub _parse_hdlist_or_synthesis {

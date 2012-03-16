@@ -1,5 +1,6 @@
 Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
 
+- add URPM::traverse_tag_find() for urpme --env
 - fix computing size of added/freed disk space when updating involves removing
   some packages (mga#4427)
 - support kernel 3.x in kmod resolution
