@@ -1,2 +1,14 @@
+AutoLoader
+B
+Carp
+IO::Handle
 Compress::Zlib
+Encode
+File::GlobMapper
 File::Path
+IO::Compress::Gzip
+IO::Uncompress::Gunzip
+List::Util::PP
+XSLoader
+bytes
+constant
