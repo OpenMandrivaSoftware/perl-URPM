@@ -22,13 +22,18 @@ sub find(&@) {
 #- property2name* functions below parse things like "mandriva-release[>= 2008.1]"
 #- which is the format returned by URPM.xs for ->requires, ->provides, ->conflicts...
 sub property2name {
-    $_[0] =~ /^([^\s\[]*)/ && $1;
+    my ($property) = @_;
+    $property =~ /^([^\s\[]*)/ && $1;
 }
+
 sub property2name_range {
-    $_[0] =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/;
+    my ($property) = @_;
+    $property =~ /^([^\s\[]*)(?:\[\*\])?\[?([^\s\]]*\s*[^\s\]]*)/;
 }
+
 sub property2name_op_version {
-    $_[0] =~ /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/;
+    my ($property) = @_;
+    $property =~ /^([^\s\[]*)(?:\[\*\])?\s*\[?([^\s\]]*)\s*([^\s\]]*)/;
 }
 sub fullname_parts {
     $_[1] =~ sprintf(qr/^(.*)-([^\-]*)-([^\-]*)%s\.([^\.\-]*)$/, ((exists $_[0]{disttag} && $_[0]{disttag}) ? "-" . $_[0]{disttag} . ((exists $_[0]{distepoch} && $_[0]{distepoch}) ? $_[0]{distepoch} : "" ) : ""));
