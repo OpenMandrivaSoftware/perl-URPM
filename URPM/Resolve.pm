@@ -14,7 +14,6 @@ sub listlength {
     my (@l) = @_;
     scalar @l;
 }
-sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
 sub uniq {
     my (@l) = @_;
     my %l;
