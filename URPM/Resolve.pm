@@ -10,9 +10,17 @@ use Config;
 
 
 #- a few functions from MDK::Common copied here:
-sub listlength { scalar @_ }
+sub listlength {
+    my (@l) = @_;
+    scalar @l;
+}
 sub min { my $n = shift; $_ < $n and $n = $_ foreach @_; $n }
-sub uniq { my %l; $l{$_} = 1 foreach @_; grep { delete $l{$_} } @_ }
+sub uniq {
+    my (@l) = @_;
+    my %l;
+    $l{$_} = 1 foreach @l;
+    grep { delete $l{$_} } @l;
+}
 sub find(&@) {
     my $f = shift;
     $f->($_) and return $_ foreach @_;
