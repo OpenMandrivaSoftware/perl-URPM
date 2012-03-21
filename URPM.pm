@@ -537,7 +537,12 @@ Writes a line of information in a synthesis file.
 
 =item $package->conflicts()
 
+Full conflicts tags
+
 =item $package->conflicts_nosense()
+
+Just the conflicted package name.
+This is only used when faking a URPM::DB: $urpm can be used as-a $db
 
 =item $package->description()
 
@@ -646,8 +651,10 @@ The rpm's bare name.
 
 =item $package->obsoletes()
 
+Full obsoletes tags
 =item $package->obsoletes_nosense()
 
+Just the obsoleted package name.
 =item $package->obsoletes_overlap($s, [$direction])
 
 =item $package->os()
@@ -660,8 +667,10 @@ The rpm's bare name.
 
 =item $package->provides()
 
+Full provides tags
 =item $package->provides_nosense()
 
+Just the provided package name.
 =item $package->provides_overlap($s, [$direction])
 
 =item $package->rate()
@@ -670,7 +679,11 @@ The rpm's bare name.
 
 =item $package->requires()
 
+Full requires tags
+
 =item $package->requires_nosense()
+
+Just the required package name.
 
 =item $package->rflags()
 
