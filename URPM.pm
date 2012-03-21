@@ -398,6 +398,14 @@ Then, $callback is called for each matching package in the depslist.
 
 This is used when faking a URPM::DB: $urpm can be used as-a $db
 
+=item $urpm->traverse_tag_find($tag,$name,$callback)
+
+Quite similar to C<traverse_tag>, but stops when $callback returns true.
+
+(also note that only one $name is handled)
+
+This is used when faking a URPM::DB: $urpm can be used as-a $db
+
 =item URPM::verify_rpm($file, %options)
 
 Verifies an RPM file.
