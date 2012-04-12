@@ -1001,8 +1001,6 @@ get_evr(const URPM__Package pkg) {
 	pkg->provides = pack_list(pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION, NULL);
 
       evr = strstr(pkg->provides, needle);
-      if (evr == NULL)
-	evr = needle;
     }
     if(strlen(evr) != len)
       backup_char((char*)&evr[len]);

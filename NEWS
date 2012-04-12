@@ -1,3 +1,8 @@
+Version 4.41 - 12 April 2012, by Per Øyvind Karlsen
+
+- revert change in previous version, it resulted in unsupported rpms being
+  installed, better to properly handle this conversion in rpm itself now.
+
 Version 4.40 - 29 March 2012, by Per Øyvind Karlsen
 
 - handle rpms using old format with missing version, which would result in
