@@ -37,6 +37,30 @@
 #define _RPMTAG_INTERNAL
 #define WITH_DB
 
+#define	_RPMVSF_NODIGESTS	\
+  ( RPMVSF_NOSHA1HEADER |	\
+    RPMVSF_NOMD5HEADER |	\
+    RPMVSF_NOSHA1 |		\
+    RPMVSF_NOMD5 )
+
+#define	_RPMVSF_NOSIGNATURES	\
+  ( RPMVSF_NODSAHEADER |	\
+    RPMVSF_NORSAHEADER |	\
+    RPMVSF_NODSA |		\
+    RPMVSF_NORSA )
+
+#define	_RPMVSF_NOHEADER	\
+  ( RPMVSF_NOSHA1HEADER |	\
+    RPMVSF_NOMD5HEADER |	\
+    RPMVSF_NODSAHEADER |	\
+    RPMVSF_NORSAHEADER )
+
+#define	_RPMVSF_NOPAYLOAD	\
+  ( RPMVSF_NOSHA1 |		\
+    RPMVSF_NOMD5 |		\
+    RPMVSF_NODSA |		\
+    RPMVSF_NORSA )
+
 // rpmgi.h includes fts.h (incompatible with _FILE_OFFSET_BITS=64)
 // but only so it can add FTS* and FTSENT* members to structures.
 // Given we never dereference those structures, this is ugly but
