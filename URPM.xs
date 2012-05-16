@@ -3349,67 +3349,84 @@ void
 Db_info(prefix=NULL)
   char *prefix
   PREINIT:
-  rpmts ts = NULL;
   int xx, empty = 1;
   const char *dbpath = NULL;
   struct stat sb;
   PPCODE:
   read_config_files(0);
-  dbpath = rpmGetPath(prefix ? prefix : "", "%{?_dbpath}", NULL);
+  dbpath = rpmGetPath(prefix ? prefix : "", "%{?_dbpath}", "/", "Packages", NULL);
   if (Stat(dbpath, &sb) >= 0) {
-    ts = rpmtsCreate();
-    rpmtsSetRootDir(ts, prefix);
-    if ((rpmtsOpenDB(ts, O_RDONLY)) == 0) {
-      rpmdb db = rpmtsGetRdb(ts);
-      dbiIndex dbi = dbiOpen(db, RPMDBI_PACKAGES, 0);
-      DB *bdb = dbi->dbi_db;
-      DBC *dbcp = NULL;
-      DBT key, data;
+    DB_ENV *dbenv = NULL;
+    DB *bdb = NULL;
+    DBC *dbcp = NULL;
+    DBT key, data;
 
-      switch(bdb->type) {
-	case DB_BTREE:
-	  XPUSHs(sv_2mortal(newSVpvs("btree")));
-	  break;
-	case DB_RECNO:
-	  XPUSHs(sv_2mortal(newSVpvs("recno")));
-	  break;
-	case DB_HASH:
-	  XPUSHs(sv_2mortal(newSVpvs("hash")));
-	  break;
-	case DB_QUEUE:
-	  XPUSHs(sv_2mortal(newSVpvs("queue")));
-	  break;
-	case DB_UNKNOWN:
-	default:
-	  XPUSHs(&PL_sv_undef);
-	  break;
-      }
-      /* Acquire a cursor for the database. */
-      if ((xx = bdb->cursor(bdb, NULL, &dbcp, 0)) != 0) {
-	bdb->err(bdb, xx, "DB->cursor");
-	empty = 2;
-      }
-      if (empty != 2) {
-	/* Re-initialize the key/data pair. */
-	memset(&key, 0, sizeof(key));
-	memset(&data, 0, sizeof(data));
-
-	while ((xx = dbcp->c_get(dbcp, &key, &data, DB_NEXT)) == 0) {
-	  if (!*(uint32_t*)key.data)
-	    continue;
-	  if (htole32(*(uint32_t*)key.data) > 10000000)
-	    XPUSHs(sv_2mortal(newSVpvs("bigendian")));
-	  else
-	    XPUSHs(sv_2mortal(newSVpvs("littleendian")));
-	  empty = 0;
-	  break;
-	}
-      }
-      if (empty)
-	XPUSHs(&PL_sv_undef);
-      xx = dbiCclose(dbi, dbcp, 0);
+    if ((xx = db_env_create(&dbenv, 0)) != 0) {
+      fprintf(stderr, "db_env_create: %s\n", db_strerror(xx));
+      return;
     }
-    ts = rpmtsFree(ts);
+    if ((xx = dbenv->open(dbenv, dbpath,
+	    DB_JOINENV | DB_USE_ENVIRON, 0)) != 0 &&
+	(xx = dbenv->open(dbenv, dbpath,
+			  DB_CREATE | DB_INIT_MPOOL | DB_PRIVATE | DB_USE_ENVIRON, 0)) != 0)
+      dbenv->err(dbenv, xx, "DB_ENV->open");
+    else {
+      if ((xx = db_create(&bdb, dbenv, 0)) != 0)
+	dbenv->err(dbenv, xx, "db_create");
+      else {
+	if ((xx = bdb->open(bdb, NULL, dbpath, NULL, DB_UNKNOWN, DB_RDONLY, 0)))
+	  dbenv->err(dbenv, xx, "DB->open", bdb);
+	else {
+
+	  switch(bdb->type) {
+	    case DB_BTREE:
+	      XPUSHs(sv_2mortal(newSVpvs("btree")));
+	      break;
+	    case DB_RECNO:
+	      XPUSHs(sv_2mortal(newSVpvs("recno")));
+	      break;
+	    case DB_HASH:
+	      XPUSHs(sv_2mortal(newSVpvs("hash")));
+	      break;
+	    case DB_QUEUE:
+	      XPUSHs(sv_2mortal(newSVpvs("queue")));
+	      break;
+	    case DB_UNKNOWN:
+	    default:
+	      XPUSHs(&PL_sv_undef);
+	      break;
+	  }
+	  /* Acquire a cursor for the database. */
+	  if ((xx = bdb->cursor(bdb, NULL, &dbcp, 0)) != 0) {
+	    bdb->err(bdb, xx, "DB->cursor");
+	    empty = 2;
+	  }
+	  if (empty != 2) {
+	    /* Re-initialize the key/data pair. */
+	    memset(&key, 0, sizeof(key));
+	    memset(&data, 0, sizeof(data));
+
+	    while ((xx = dbcp->c_get(dbcp, &key, &data, DB_NEXT)) == 0) {
+	      if (!*(uint32_t*)key.data)
+		continue;
+	      if (htole32(*(uint32_t*)key.data) > 10000000)
+		XPUSHs(sv_2mortal(newSVpvs("bigendian")));
+	      else
+		XPUSHs(sv_2mortal(newSVpvs("littleendian")));
+	      empty = 0;
+	      break;
+	    }
+	  }
+	}
+	if (bdb != NULL && (xx = bdb->close(bdb, DB_NOSYNC)) != 0)
+	  dbenv->err(dbenv, xx, "DB_ENV->close");
+      }
+      if (dbenv != NULL && (xx = dbenv->close(dbenv, 0)) != 0)
+	fprintf(stderr, "dbenv->close: %s\n", db_strerror(xx));
+    }
+
+    if (empty)
+      XPUSHs(&PL_sv_undef);
   }
   _free(dbpath);
 

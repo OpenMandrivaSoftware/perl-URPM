@@ -1,5 +1,7 @@
-Version 4.42 - 15 April 2012, by Per Øyvind Karlsen
+Version 4.42 - 16 May 2012, by Per Øyvind Karlsen
 
+- make URPM::DB::info use berkeley db api rather than using rpmdb functions
+  that's not part of the public api, thus making things less fragile
 - fix building with rpm >= 5.4.9 where BDB data types are hidden
 
 Version 4.41 - 12 April 2012, by Per Øyvind Karlsen
