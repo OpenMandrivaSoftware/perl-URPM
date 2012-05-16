@@ -4499,6 +4499,7 @@ Urpm_verify_signature(filename, prefix=NULL)
 	} else snprintf(result, sizeof(result), "NOT OK (bad rpm): %s", rpmlogMessage());
 	break;
       case RPMRC_NOTFOUND:
+      case RPMRC_NOSIG:
 	snprintf(result, sizeof(result), "NOT OK (signature not found): %s", rpmlogMessage());
 	break;
       case RPMRC_FAIL:
