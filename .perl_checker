@@ -9,6 +9,7 @@ File::Path
 IO::Compress::Gzip
 IO::Uncompress::Gunzip
 List::Util::PP
+Test::More
 XSLoader
 bytes
 constant
