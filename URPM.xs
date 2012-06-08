@@ -2634,56 +2634,30 @@ int
 Pkg_set_flag_skip(pkg, value=1)
   URPM::Package pkg
   int value
+  ALIAS:
+    set_flag_base = 1
+    set_flag_disable_obsolete = 2
+    set_flag_installed = 3
+    set_flag_requested = 4
+    set_flag_required = 5
+    set_flag_upgrade = 6
   CODE:
-  RETVAL = pkg->flag & FLAG_SKIP;
-  if (value) pkg->flag |= FLAG_SKIP;
-  else       pkg->flag &= ~FLAG_SKIP;
+  unsigned flag;
+  switch (ix) {
+  case 0: flag = FLAG_SKIP; break;
+  case 1: flag = FLAG_BASE; break;
+  case 2: flag = FLAG_DISABLE_OBSOLETE; break;
+  case 3: flag = FLAG_INSTALLED; break;
+  case 4: flag = FLAG_REQUESTED; break;
+  case 5: flag = FLAG_REQUIRED; break;
+  case 6: flag = FLAG_UPGRADE; break;
+  }
+  RETVAL = pkg->flag & flag;
+  if (value) pkg->flag |= flag;
+  else       pkg->flag &= ~flag;
   OUTPUT:
   RETVAL
 
-int
-Pkg_set_flag_base(pkg, value=1)
-  URPM::Package pkg
-  int value
-  CODE:
-  RETVAL = pkg->flag & FLAG_BASE;
-  if (value) pkg->flag |= FLAG_BASE;
-  else       pkg->flag &= ~FLAG_BASE;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_set_flag_disable_obsolete(pkg, value=1)
-  URPM::Package pkg
-  int value
-  CODE:
-  RETVAL = pkg->flag & FLAG_DISABLE_OBSOLETE;
-  if (value) pkg->flag |= FLAG_DISABLE_OBSOLETE;
-  else       pkg->flag &= ~FLAG_DISABLE_OBSOLETE;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_set_flag_installed(pkg, value=1)
-  URPM::Package pkg
-  int value
-  CODE:
-  RETVAL = pkg->flag & FLAG_INSTALLED;
-  if (value) pkg->flag |= FLAG_INSTALLED;
-  else       pkg->flag &= ~FLAG_INSTALLED;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_set_flag_requested(pkg, value=1)
-  URPM::Package pkg
-  int value
-  CODE:
-  RETVAL = pkg->flag & FLAG_REQUESTED;
-  if (value) pkg->flag |= FLAG_REQUESTED;
-  else       pkg->flag &= ~FLAG_REQUESTED;
-  OUTPUT:
-  RETVAL
 
 int
 Pkg_flag_required(pkg)
@@ -2707,28 +2681,6 @@ Pkg_flag_required(pkg)
   case 6: flag = FLAG_SKIP; break;
   }
   RETVAL = pkg->flag & flag;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_set_flag_required(pkg, value=1)
-  URPM::Package pkg
-  int value
-  CODE:
-  RETVAL = pkg->flag & FLAG_REQUIRED;
-  if (value) pkg->flag |= FLAG_REQUIRED;
-  else       pkg->flag &= ~FLAG_REQUIRED;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_set_flag_upgrade(pkg, value=1)
-  URPM::Package pkg
-  int value
-  CODE:
-  RETVAL = pkg->flag & FLAG_UPGRADE;
-  if (value) pkg->flag |= FLAG_UPGRADE;
-  else       pkg->flag &= ~FLAG_UPGRADE;
   OUTPUT:
   RETVAL
 
