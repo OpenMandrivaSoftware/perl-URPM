@@ -8,7 +8,7 @@ use Test::More tests => 39;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
-use URPM::Query;
+
 
 chdir 't' if -d 't';
 
