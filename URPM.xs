@@ -321,18 +321,18 @@ get_int(const Header header, rpmTag tag) {
 
 #define push_utf8_name(pkg, tag) { \
     const char *str = get_name(pkg->h, tag); \
-    mXPUSHs(sv_2mortal((str && *str) ? newSVpv_utf8(str, 0) : newSVpvs(""))); \
+    mXPUSHs((str && *str) ? newSVpv_utf8(str, 0) : newSVpvs("")); \
     _free(str);\
 }
 
 #define push_name(pkg, tag) {\
   const char *str = get_name(pkg->h, tag); \
-  mXPUSHs(sv_2mortal((str && *str) ? newSVpv(str, 0) : newSVpvs(""))); \
+  mXPUSHs((str && *str) ? newSVpv(str, 0) : newSVpvs("")); \
   _free(str); \
 }
 
-#define push_utf8_name_only(str, len) mXPUSHs(sv_2mortal((str && *str) ? newSVpv_utf8(str, len) : newSVpvs("")))
-#define push_name_only(str, len) mXPUSHs(sv_2mortal((str && *str) ? newSVpv(str, len) : newSVpvs("")))
+#define push_utf8_name_only(str, len) mXPUSHs((str && *str) ? newSVpv_utf8(str, len) : newSVpvs(""))
+#define push_name_only(str, len) mXPUSHs((str && *str) ? newSVpv(str, len) : newSVpvs(""))
 /* This function might modify strings that needs to be restored after use
  * with restore_chars()
  */
@@ -660,7 +660,7 @@ return_list_uint32_t(const Header header, rpmTag tag_name) {
     he->tag = tag_name;
     if (headerGet(header, he, 0)) {
       for (he->ix = 0; he->ix < (int)he->c; he->ix++)
-	mXPUSHs(sv_2mortal(newSViv(he->p.ui32p[he->ix])));
+	mXPUSHs(newSViv(he->p.ui32p[he->ix]));
       he->p.ptr = _free(he->p.ptr);
     }
   }
@@ -676,7 +676,7 @@ return_list_uint_16(const Header header, rpmTag tag_name) {
     he->tag = tag_name;
     if (headerGet(header, he, 0)) {
       for(he->ix = 0; he->ix < (int)he->c; he->ix++)
-	mXPUSHs(sv_2mortal(newSViv(he->p.ui16p[he->ix])));
+	XPUSHs(newSViv(he->p.ui16p[he->ix]));
       he->p.ptr = _free(he->p.ptr);
     }
   }
@@ -745,7 +745,7 @@ return_list_tag(const URPM__Package pkg, const char *tag_name) {
 	  case RPM_UINT16_TYPE:
 	  case RPM_UINT32_TYPE:
 	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
-	      mXPUSHs(sv_2mortal(newSViv(he->p.ui32p[he->ix])));
+	      mXPUSHs(newSViv(he->p.ui32p[he->ix]));
 	    break;
 	  case RPM_STRING_TYPE:
 	    push_name_only(he->p.str, 0);
@@ -781,7 +781,7 @@ return_list_tag(const URPM__Package pkg, const char *tag_name) {
 	break;
       case RPMTAG_EPOCH:
 	get_fullname_parts(pkg, NULL, &epoch, NULL, NULL, NULL, NULL, NULL, NULL);
-	mXPUSHs(sv_2mortal(newSViv(epoch)));
+	mXPUSHs(newSViv(epoch));
       case RPMTAG_VERSION:
 	get_fullname_parts(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
 	if(!strlen(version))
@@ -875,7 +875,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 	const char *buf = rpmProblemString(p);
 	SV *sv = newSVpv(buf, 0);
 	if (rpm_codeset_is_utf8) SvUTF8_on(sv);
-	mXPUSHs(sv_2mortal(sv));
+	mXPUSHs(sv);
 	_free(buf);
       }
       if (raw_message) {
@@ -909,7 +909,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 	default:
 	  sv = newSVpvf("unknown@%s", pkgNEVR); break;
 	}
-	mXPUSHs(sv_2mortal(sv));
+	mXPUSHs(sv);
       }
     }
     rpmpsFreeIterator(iterator);
@@ -1321,8 +1321,8 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
     /* now, a callback will be called for sure */
     dSP;
     PUSHMARK(SP);
-    mXPUSHs(urpm);
-    mXPUSHs(sv_pkg);
+    XPUSHs(urpm);
+    XPUSHs(sv_pkg);
     PUTBACK;
     count = call_sv(callback, G_SCALAR);
     SPAGAIN;
@@ -1603,13 +1603,13 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
       ENTER;
       SAVETMPS;
       PUSHMARK(SP);
-      mXPUSHs(td->data);
+      XPUSHs(td->data);
       push_name_only(callback_type, 0);
-      mXPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((long)pkgKey - 1)) : &PL_sv_undef);
+      XPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((long)pkgKey - 1)) : &PL_sv_undef);
       if (callback_subtype != NULL) {
 	push_name_only(callback_subtype, 0);
-	mXPUSHs(sv_2mortal(newSViv(amount)));
-	mXPUSHs(sv_2mortal(newSViv(total)));
+	mXPUSHs(newSViv(amount));
+	mXPUSHs(newSViv(total));
       }
       PUTBACK;
       i = call_sv(callback, callback == td->callback_open ? G_SCALAR : G_DISCARD);
@@ -2169,11 +2169,11 @@ Pkg_arch(pkg)
       if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
 	push_name(pkg, RPMTAG_ARCH);
       } else
-	mXPUSHs(sv_2mortal(newSVpvs("src")));
+	mXPUSHs(newSVpvs("src"));
     }
     else
       /* gpg-pubkey packages has no arch tag */
-      mXPUSHs(sv_2mortal(newSVpvs("")));
+      mXPUSHs(newSVpvs(""));
   }
 
 int
@@ -2583,7 +2583,7 @@ Pkg_filename(pkg)
     }
   } else if (pkg->h) {
     const char *nvra = get_nvra(pkg->h);
-    mXPUSHs(sv_2mortal(newSVpvf("%s.rpm", nvra)));
+    mXPUSHs(newSVpvf("%s.rpm", nvra));
     _free(nvra);
   }
 
@@ -2592,7 +2592,7 @@ Pkg_id(pkg)
   URPM::Package pkg
   PPCODE:
   if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX)
-    mXPUSHs(sv_2mortal(newSViv(pkg->flag & FLAG_ID)));
+    mXPUSHs(newSViv(pkg->flag & FLAG_ID));
 
 void
 Pkg_set_id(pkg, id=-1)
@@ -2600,7 +2600,7 @@ Pkg_set_id(pkg, id=-1)
   int id
   PPCODE:
   if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX)
-    mXPUSHs(sv_2mortal(newSViv(pkg->flag & FLAG_ID)));
+    mXPUSHs(newSViv(pkg->flag & FLAG_ID));
   pkg->flag &= ~FLAG_ID;
   pkg->flag |= id >= 0 && id <= FLAG_ID_MAX ? id : FLAG_ID_INVALID;
 
@@ -3404,20 +3404,20 @@ Db_info(prefix=NULL)
 
 	  switch(bdb->type) {
 	    case DB_BTREE:
-	      mXPUSHs(sv_2mortal(newSVpvs("btree")));
+	      mXPUSHs(newSVpvs("btree"));
 	      break;
 	    case DB_RECNO:
-	      mXPUSHs(sv_2mortal(newSVpvs("recno")));
+	      mXPUSHs(newSVpvs("recno"));
 	      break;
 	    case DB_HASH:
-	      mXPUSHs(sv_2mortal(newSVpvs("hash")));
+	      mXPUSHs(newSVpvs("hash"));
 	      break;
 	    case DB_QUEUE:
-	      mXPUSHs(sv_2mortal(newSVpvs("queue")));
+	      mXPUSHs(newSVpvs("queue"));
 	      break;
 	    case DB_UNKNOWN:
 	    default:
-	      mXPUSHs(&PL_sv_undef);
+	      XPUSHs(&PL_sv_undef);
 	      break;
 	  }
 	  /* Acquire a cursor for the database. */
@@ -3434,9 +3434,9 @@ Db_info(prefix=NULL)
 	      if (!*(uint32_t*)key.data)
 		continue;
 	      if (htole32(*(uint32_t*)key.data) > 10000000)
-		mXPUSHs(sv_2mortal(newSVpvs("bigendian")));
+		mXPUSHs(newSVpvs("bigendian"));
 	      else
-		mXPUSHs(sv_2mortal(newSVpvs("littleendian")));
+		mXPUSHs(newSVpvs("littleendian"));
 	      empty = 0;
 	      break;
 	    }
@@ -3450,7 +3450,7 @@ Db_info(prefix=NULL)
     }
 
     if (empty)
-      mXPUSHs(&PL_sv_undef);
+      XPUSHs(&PL_sv_undef);
   }
   _free(dbpath);
 
@@ -3569,7 +3569,7 @@ Db_traverse(db,callback)
       pkg->h = header;
 
       PUSHMARK(SP);
-      mXPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
+      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
       PUTBACK;
 
       call_sv(callback, G_DISCARD | G_SCALAR);
@@ -3620,7 +3620,7 @@ Db_traverse_tag(db,tag,names,callback)
 	  pkg->h = header;
 
 	  PUSHMARK(SP);
-	  mXPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
+	  mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
 	  PUTBACK;
 
 	  call_sv(callback, G_DISCARD | G_SCALAR);
@@ -3662,7 +3662,7 @@ Db_traverse_tag_find(db,tag,name,callback)
       pkg->h = header;
 
       PUSHMARK(SP);
-      mXPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
+      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
       PUTBACK;
 
       int count = call_sv(callback, G_SCALAR);
@@ -3804,7 +3804,7 @@ Trans_traverse(trans, callback)
       pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
       pkg->h = h;
       PUSHMARK(SP);
-      mXPUSHs(sv_2mortal(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg)));
+      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
       PUTBACK;
       call_sv(callback, G_DISCARD | G_SCALAR);
       SPAGAIN;
@@ -3838,7 +3838,7 @@ Trans_check(trans, ...)
   rpmps ps = rpmtsProblems(trans->ts);
   if (rpmpsNumProblems(ps) > 0) {
     if (gimme == G_SCALAR)
-      mXPUSHs(sv_2mortal(newSViv(0)));
+      mXPUSHs(newSViv(0));
     else if (gimme == G_ARRAY) {
       /* now translation is handled by rpmlib, but only for version 4.2 and above */
       PUTBACK;
@@ -3846,9 +3846,9 @@ Trans_check(trans, ...)
       SPAGAIN;
     }
   } else if (gimme == G_SCALAR)
-    mXPUSHs(sv_2mortal(newSViv(1)));
+    mXPUSHs(newSViv(1));
   if(r == 1)
-    mXPUSHs(sv_2mortal(newSVpvs("error while checking dependencies")));
+    mXPUSHs(newSVpvs("error while checking dependencies"));
 
   ps = rpmpsFree(ps);
 
@@ -3860,12 +3860,12 @@ Trans_order(trans)
   PPCODE:
   if (rpmtsOrder(trans->ts) == 0) {
     if (gimme == G_SCALAR)
-      mXPUSHs(sv_2mortal(newSViv(1)));
+      mXPUSHs(newSViv(1));
   } else {
     if (gimme == G_SCALAR)
-      mXPUSHs(sv_2mortal(newSViv(0)));
+      mXPUSHs(newSViv(0));
     else if (gimme == G_ARRAY)
-      mXPUSHs(sv_2mortal(newSVpvs("error while ordering dependencies")));
+      mXPUSHs(newSVpvs("error while ordering dependencies"));
   }
 
 int
@@ -4185,8 +4185,8 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
 	if (Fclose(fd)) ok = 0;
 	SPAGAIN;
 	if (ok) {
-	  mXPUSHs(sv_2mortal(newSViv(start_id)));
-	  mXPUSHs(sv_2mortal(newSViv(av_len(depslist))));
+	  mXPUSHs(newSViv(start_id));
+	  mXPUSHs(newSViv(av_len(depslist)));
 	}
       } else {
 	  SV **nofatal = hv_fetch((HV*)SvRV(urpm), "nofatal", 7, 0);
@@ -4223,8 +4223,8 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
       close(d);
 
       if (empty_archive) {
-	mXPUSHs(sv_2mortal(newSViv(1 + av_len(depslist))));
-	mXPUSHs(sv_2mortal(newSViv(av_len(depslist))));
+	mXPUSHs(newSViv(1 + av_len(depslist)));
+	mXPUSHs(newSViv(av_len(depslist)));
       } else if (d >= 0 && fd) {
 	rpmts ts = NULL;
 	rpmgi gi = NULL;
@@ -4294,8 +4294,8 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
 	  ok = av_len(depslist) >= start_id;
 	SPAGAIN;
 	if (ok) {
-	  mXPUSHs(sv_2mortal(newSViv(start_id)));
-	  mXPUSHs(sv_2mortal(newSViv(av_len(depslist))));
+	  mXPUSHs(newSViv(start_id));
+	  mXPUSHs(newSViv(av_len(depslist)));
 	}
       } else {
 	SV **nofatal = hv_fetch((HV*)SvRV(urpm), "nofatal", 7, 0);
@@ -4380,8 +4380,8 @@ Urpm_parse_rpm(urpm, filename, ...)
 	}
 	SPAGAIN;
 	/* only one element read */
-	mXPUSHs(sv_2mortal(newSViv(av_len(depslist))));
-	mXPUSHs(sv_2mortal(newSViv(av_len(depslist))));
+	mXPUSHs(newSViv(av_len(depslist)));
+	mXPUSHs(newSViv(av_len(depslist)));
       } else free(_pkg);
     } else croak("first argument should contain a depslist ARRAY reference");
   } else croak("first argument should be a reference to a HASH");
@@ -4664,10 +4664,10 @@ Urpm_spec2srcheader(specfile)
     pkg->h = headerLink(spec->sourceHeader);
     sv_pkg = sv_newmortal();
     sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
-    mXPUSHs(sv_pkg);
+    XPUSHs(sv_pkg);
     spec = freeSpec(spec);
   } else {
-    mXPUSHs(&PL_sv_undef);
+    XPUSHs(&PL_sv_undef);
     /* apparently rpmlib sets errno this when given a bad spec. */
     if (errno == EBADF)
       errno = 0;
