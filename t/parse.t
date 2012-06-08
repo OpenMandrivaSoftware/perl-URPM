@@ -64,7 +64,7 @@ is($pkg->get_tag(1000), 'test-rpm', 'name');
 is($pkg->get_tag(1001), '1.0', 'version');
 is($pkg->get_tag(1002), '1mdk', 'release');
 is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
-    q/get headers from hdlist/);
+    q(get headers from hdlist));
 ok($pkg->is_platform_compat() > 0, "can evaluate platform score");
 
 my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
