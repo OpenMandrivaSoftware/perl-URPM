@@ -1918,94 +1918,53 @@ Pkg_summary(pkg)
 void
 Pkg_description(pkg)
   URPM::Package pkg
+    ALIAS:
+     sourcerpm = 1
+     packager  = 2
+     buildhost = 3
+     url       = 4
+     license   = 5
+     distribution = 6
+     vendor    = 7
+     os        = 8
+     payload_format = 9
   PPCODE:
   if (pkg->h)
-   push_utf8_name(pkg, RPMTAG_DESCRIPTION);
-
-void
-Pkg_sourcerpm(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_SOURCERPM);
-
-void
-Pkg_packager(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_utf8_name(pkg, RPMTAG_PACKAGER);
-
-void
-Pkg_buildhost(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_BUILDHOST);
+  switch (ix) {
+    case 0:
+      push_utf8_name_only(get_name(pkg->h, RPMTAG_DESCRIPTION), 0); break;
+    case 1:
+      push_name_only(get_name(pkg->h, RPMTAG_SOURCERPM), 0); break;
+    case 2:
+      push_utf8_name_only(get_name(pkg->h, RPMTAG_PACKAGER), 0); break;
+    case 3:
+      push_name_only(get_name(pkg->h, RPMTAG_BUILDHOST), 0); break;
+    case 4:
+      push_name_only(get_name(pkg->h, RPMTAG_URL), 0); break;
+    case 5:
+      push_name_only(get_name(pkg->h, RPMTAG_LICENSE), 0); break;
+    case 6:
+      push_name_only(get_name(pkg->h, RPMTAG_DISTRIBUTION), 0); break;
+    case 7:
+      push_name_only(get_name(pkg->h, RPMTAG_VENDOR), 0); break;
+    case 8:
+      push_name_only(get_name(pkg->h, RPMTAG_OS), 0); break;
+    case 9:
+      push_name_only(get_name(pkg->h, RPMTAG_PAYLOADFORMAT), 0); break;
+  }
 
 int
 Pkg_buildtime(pkg)
   URPM::Package pkg
+  ALIAS:
+       installtid = 1
   CODE:
   if (pkg->h)
-    RETVAL = get_int(pkg->h, RPMTAG_BUILDTIME);
+    RETVAL = get_int(pkg->h, ix == 1 ? RPMTAG_INSTALLTID : RPMTAG_BUILDTIME);
   else
     RETVAL = 0;
   OUTPUT:
   RETVAL
-
-int
-Pkg_installtid(pkg)
-  URPM::Package pkg
-  CODE:
-  if (pkg->h)
-    RETVAL = get_int(pkg->h, RPMTAG_INSTALLTID);
-  else
-    RETVAL = 0;
-  OUTPUT:
-  RETVAL
-
-void
-Pkg_url(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_URL);
-
-void
-Pkg_license(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_LICENSE);
-
-void
-Pkg_distribution(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_DISTRIBUTION);
-
-void
-Pkg_vendor(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_VENDOR);
-
-void
-Pkg_os(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_OS);
-
-void
-Pkg_payload_format(pkg)
-  URPM::Package pkg
-  PPCODE:
-  if (pkg->h)
-   push_name(pkg, RPMTAG_PAYLOADFORMAT);
 
 void
 Pkg_evr(pkg)
@@ -2427,158 +2386,67 @@ Pkg_provides_overlap(pkg, s, direction=1)
 void
 Pkg_buildarchs(pkg)
   URPM::Package pkg
+  ALIAS:
+    excludearchs   = 1
+    exclusivearchs = 2
+    dirnames       = 3
+    filelinktos    = 4
+    files          = 5
+    files_md5sum   = 6
+    files_owner    = 7
+    files_group    = 8
+    files_mtime    = 9
+    files_size     = 10
+    files_uid      = 11
+    files_gid      = 12
+    files_mode     = 13
+    files_flags    = 14
+    conf_files     = 15
+    changelog_time = 16
+    changelog_name = 17
+    changelog_text = 18
   PPCODE:
   PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_BUILDARCHS);
-  SPAGAIN;
-  
-void
-Pkg_excludearchs(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_EXCLUDEARCH);
-  SPAGAIN;
-  
-void
-Pkg_exclusivearchs(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_EXCLUSIVEARCH);
-  SPAGAIN;
-  
-void
-Pkg_dirnames(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_DIRNAMES);
-  SPAGAIN;
-
-void
-Pkg_filelinktos(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_FILELINKTOS);
-  SPAGAIN;
-
-void
-Pkg_files(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_files(pkg->h, 0);
-  SPAGAIN;
-
-void
-Pkg_files_digest(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_FILEDIGESTS);
-  SPAGAIN;
-
-void
-Pkg_files_md5sum(pkg)
-  PPCODE:
-  croak("files_md5sum() is dead. use files_digest() instead");
-
-void
-Pkg_files_owner(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_FILEUSERNAME);
-  SPAGAIN;
-
-void
-Pkg_files_group(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_FILEGROUPNAME);
-  SPAGAIN;
-
-void
-Pkg_files_mtime(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_uint32_t(pkg->h, RPMTAG_FILEMTIMES);
-  SPAGAIN;
-
-void
-Pkg_files_size(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_uint32_t(pkg->h, RPMTAG_FILESIZES);
-  SPAGAIN;
-
-void
-Pkg_files_uid(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_uint32_t(pkg->h, RPMTAG_FILEUIDS);
-  SPAGAIN;
-
-void
-Pkg_files_gid(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_uint32_t(pkg->h, RPMTAG_FILEGIDS);
-  SPAGAIN;
-
-void
-Pkg_files_mode(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_uint_16(pkg->h, RPMTAG_FILEMODES);
-  SPAGAIN;
-
-void
-Pkg_files_flags(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_uint32_t(pkg->h, RPMTAG_FILEFLAGS);
-  SPAGAIN;
-  
-void
-Pkg_conf_files(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_files(pkg->h, FILTER_MODE_CONF_FILES);
-  SPAGAIN;
-
-void
-Pkg_changelog_time(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_uint32_t(pkg->h, RPMTAG_CHANGELOGTIME);
-  SPAGAIN;
-
-void
-Pkg_changelog_name(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGNAME);
-  SPAGAIN;
-
-void
-Pkg_changelog_text(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGTEXT);
+       switch (ix) {
+       case 0:
+            xpush_simple_list_str(pkg->h, RPMTAG_BUILDARCHS); break;
+       case 1:
+            xpush_simple_list_str(pkg->h, RPMTAG_EXCLUDEARCH); break;
+       case 2:
+            xpush_simple_list_str(pkg->h, RPMTAG_EXCLUSIVEARCH); break;
+       case 3:
+            xpush_simple_list_str(pkg->h, RPMTAG_DIRNAMES); break;
+       case 4:
+            xpush_simple_list_str(pkg->h, RPMTAG_FILELINKTOS); break;
+       case 5:
+            return_files(pkg->h, 0); break;
+       case 6:
+            xpush_simple_list_str(pkg->h, RPMTAG_FILEMD5S); break;
+       case 7:
+            xpush_simple_list_str(pkg->h, RPMTAG_FILEUSERNAME); break;
+       case 8:
+            xpush_simple_list_str(pkg->h, RPMTAG_FILEGROUPNAME); break;
+       case 9:
+            return_list_uint32_t(pkg->h, RPMTAG_FILEMTIMES); break;
+       case 10:
+            return_list_uint32_t(pkg->h, RPMTAG_FILESIZES); break;
+       case 11:
+            return_list_uint32_t(pkg->h, RPMTAG_FILEUIDS); break;
+       case 12:
+            return_list_uint32_t(pkg->h, RPMTAG_FILEGIDS); break;
+       case 13:
+            return_list_uint_16(pkg->h, RPMTAG_FILEMODES); break;
+       case 14:
+            return_list_uint32_t(pkg->h, RPMTAG_FILEFLAGS); break;
+       case 15:
+            return_files(pkg->h, FILTER_MODE_CONF_FILES); break;
+       case 16:
+            return_list_uint32_t(pkg->h, RPMTAG_CHANGELOGTIME); break;
+       case 17:
+            xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGNAME); break;
+       case 18:
+            xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGTEXT); break;
+       }
   SPAGAIN;
 
 void
@@ -2599,18 +2467,16 @@ void
 Pkg_get_tag(pkg, tagname)
   URPM::Package pkg
   char *tagname
+  ALIAS:
+    get_tag_modifiers = 1
   PPCODE:
   PUTBACK;
-  return_list_tag(pkg, tagname);
-  SPAGAIN;
-
-void
-Pkg_get_tag_modifiers(pkg, tagname)
-  URPM::Package pkg
-  char *tagname
-  PPCODE:
-  PUTBACK;
-  return_list_tag_modifier(pkg->h, tagname);
+  switch (ix) {
+  case 0:
+       return_list_tag(pkg, tagname); break;
+  case 1:
+       return_list_tag_modifier(pkg->h, tagname); break;
+  }
   SPAGAIN;
   
 void
