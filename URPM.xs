@@ -2011,7 +2011,7 @@ static bool detectXZ(const char *path) {
 
     if (Stat(argv[1], &sb) >= 0 && sb.st_size > 8) {
       unsigned char buf[8];
-      FILE *f = fopen(argv[1], "r");
+      FILE *f = fopen(path, "r");
 
       fread(buf, 8, 1, f);
 
