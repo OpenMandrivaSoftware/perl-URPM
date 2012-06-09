@@ -2051,17 +2051,19 @@ static FD_t xOpen(const char *path) {
 	    type = FD_LZMA;
 	magic_close(cookie);
     }
-    if(type == FD_FAIL && (tmp = strrchr(path, '.'))) {
-	if(detectXZ(path) || !strcmp(tmp, ".xz"))
-	    type = FD_XZ;
-	else if(!strcmp(tmp, ".bz2"))
-	    type = FD_BZIP2;
+    if(type == FD_FAIL) {
+      if (detectXZ(path))
+	type = FD_XZ;
+      else if ((tmp = strrchr(path, '.'))) {
+	if(!strcmp(tmp, ".bz2"))
+	  type = FD_BZIP2;
 	if(!strcmp(tmp, ".cz") || !strcmp(tmp, ".gz"))
-	    type = FD_GZIP;
+	  type = FD_GZIP;
 	else if(!strcmp(tmp, ".xz"))
-	    type = FD_XZ;
+	  type = FD_XZ;
 	else if(!strcmp(tmp, ".lzma"))
-	    type = FD_LZMA;
+	  type = FD_LZMA;
+      }
     }
 
     switch(type) {
