@@ -2009,7 +2009,7 @@ rpmdb_convert(const char *prefix, int dbtype, int swap, int rebuild) {
 static bool detectXZ(const char *path) {
     struct stat sb;
 
-    if (Stat(argv[1], &sb) >= 0 && sb.st_size > 8) {
+    if (Stat(path, &sb) >= 0 && sb.st_size > 8) {
       unsigned char buf[8];
       FILE *f = fopen(path, "r");
 
@@ -2052,7 +2052,7 @@ static FD_t xOpen(const char *path) {
 	magic_close(cookie);
     }
     if(type == FD_FAIL && (tmp = strrchr(path, '.'))) {
-	if(detectXz(path) || !strcmp(tmp, ".xz"))
+	if(detectXZ(path) || !strcmp(tmp, ".xz"))
 	    type = FD_XZ;
 	else if(!strcmp(tmp, ".bz2"))
 	    type = FD_BZIP2;
