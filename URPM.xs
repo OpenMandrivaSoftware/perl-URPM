@@ -3229,60 +3229,26 @@ char *
 Trans_Element_name(trans, index)
   URPM::Transaction trans
   int index
+  ALIAS:
+       Element_epoch	  = 1
+       Element_version	  = 2
+       Element_release	  = 3
+       Element_distepoch  = 4
+       Element_fullname	  = 5
   CODE:
   rpmte te = rpmtsElement(trans->ts, index);
-  RETVAL = te ? (char *) rpmteN(te) : NULL;
-  OUTPUT:
-  RETVAL
-
-char *
-Trans_Element_epoch(trans, index)
-  URPM::Transaction trans
-  int index
-  CODE:
-  rpmte te = rpmtsElement(trans->ts, index);
-  RETVAL = te ? (char *) rpmteE(te) : NULL;
-  OUTPUT:
-  RETVAL
-
-char *
-Trans_Element_version(trans, index)
-  URPM::Transaction trans
-  int index
-  CODE:
-  rpmte te = rpmtsElement(trans->ts, index);
-  RETVAL = te ? (char *) rpmteV(te) : NULL;
-  OUTPUT:
-  RETVAL
-
-char *
-Trans_Element_release(trans, index)
-  URPM::Transaction trans
-  int index
-  CODE:
-  rpmte te = rpmtsElement(trans->ts, index);
-  RETVAL = te ? (char *) rpmteR(te) : NULL;
-  OUTPUT:
-  RETVAL
-
-char *
-Trans_Element_distepoch(trans, index)
-  URPM::Transaction trans
-  int index
-  CODE:
-  rpmte te = rpmtsElement(trans->ts, index);
-  RETVAL = te ? (char *) rpmteD(te) : NULL;
-  OUTPUT:
-  RETVAL
-
-
-char *
-Trans_Element_fullname(trans, index)
-  URPM::Transaction trans
-  int index
-  CODE:
-  rpmte te = rpmtsElement(trans->ts, index);
-  RETVAL = te ? (char *) rpmteNEVRA(te) : NULL;
+  if (te) {
+       switch (ix) {
+       case 1:  RETVAL = (char *) rpmteE(te); break;
+       case 2:  RETVAL = (char *) rpmteV(te); break;
+       case 3:  RETVAL = (char *) rpmteR(te); break;
+       case 4:  RETVAL = (char *) rpmteD(te); break;
+       case 5:  RETVAL = (char *) rpmteNEVRA(te); break;
+       default: RETVAL = (char *) rpmteN(te); break;
+       }
+  } else {
+       RETVAL = NULL;
+  }
   OUTPUT:
   RETVAL
 
@@ -3883,26 +3849,19 @@ Urpm_import_pubkey(...)
   RETVAL
 
 int
-Urpm_archscore(arch)
-  const char * arch
+Urpm_archscore(param)
+  const char * param
+  ALIAS:
+	  osscore = 1
   PREINIT:
   char * platform = NULL;
   CODE:
-  read_config_files(0);
-  platform = rpmExpand(arch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
-  RETVAL=rpmPlatformScore(platform, NULL, 0);
-  _free(platform);
-  OUTPUT:
-  RETVAL
 
-int
-Urpm_osscore(os)
-  const char * os
-  PREINIT:
-  char * platform = NULL;
-  CODE:
   read_config_files(0);
-  platform = rpmExpand("%{_target_cpu}-%{_target_vendor}-", os, "%{?_gnu}", NULL);
+  if (ix == 0)
+    platform = rpmExpand(param, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+  else
+    platform = rpmExpand("%{_target_cpu}-%{_target_vendor}-", param, "%{?_gnu}", NULL);
   RETVAL=rpmPlatformScore(platform, NULL, 0);
   _free(platform);
   OUTPUT:
