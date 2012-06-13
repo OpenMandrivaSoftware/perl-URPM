@@ -3009,9 +3009,8 @@ Db_traverse_tag_find(db,tag,name,callback)
   RETVAL
 
 URPM::Transaction
-Db_create_transaction(db, prefix=NULL)
+Db_create_transaction(db)
   URPM::DB db
-  char *prefix
   CODE:
   /* this is *REALLY* dangerous to create a new transaction while another is open,
      so use the db transaction instead. */
