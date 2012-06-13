@@ -2349,11 +2349,26 @@ int
 Pkg_obsoletes_overlap(pkg, s)
   URPM::Package pkg
   char *s
+  ALIAS:
+     provides_overlap = 1
   PREINIT:
   struct cb_overlap_s os;
   char *eon = NULL;
   char eonc = '\0';
+  rpmTag tag_name, tag_flags, tag_version;
   CODE:
+  switch (ix) {
+  case 1:
+       tag_name = RPMTAG_PROVIDENAME;
+       tag_flags = RPMTAG_PROVIDEFLAGS;
+       tag_version = RPMTAG_PROVIDEVERSION;
+       break;
+  default:
+       tag_name = RPMTAG_OBSOLETENAME;
+       tag_flags = RPMTAG_OBSOLETEFLAGS;
+       tag_version = RPMTAG_OBSOLETEVERSION;
+       break;
+  }
   os.name = s;
   os.flags = 0;
   while (*s && *s != ' ' && *s != '[' && *s != '<' && *s != '>' && *s != '=') ++s;
@@ -2374,44 +2389,7 @@ Pkg_obsoletes_overlap(pkg, s)
   /* mark end of name */
   if (eon) { eonc = *eon; *eon = 0; }
   /* return_list_str returns a negative value is the callback has returned non-zero */
-  RETVAL = return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION,
-			   callback_list_str_overlap, &os) < 0;
-  /* restore end of name */
-  if (eon) *eon = eonc;
-  OUTPUT:
-  RETVAL
-
-int
-Pkg_provides_overlap(pkg, s, direction=1)
-  URPM::Package pkg
-  char *s
-  int direction
-  PREINIT:
-  struct cb_overlap_s os;
-  char *eon = NULL;
-  char eonc = '\0';
-  CODE:
-  os.name = s;
-  os.flags = 0;
-  while (*s && *s != ' ' && *s != '[' && *s != '<' && *s != '>' && *s != '=') ++s;
-  if (*s) {
-    eon = s;
-    while (*s) {
-      if (*s == ' ' || *s == '[' || *s == '*' || *s == ']');
-      else if (*s == '<') os.flags |= RPMSENSE_LESS;
-      else if (*s == '>') os.flags |= RPMSENSE_GREATER;
-      else if (*s == '=') os.flags |= RPMSENSE_EQUAL;
-      else break;
-      ++s;
-    }
-    os.evr = s;
-  } else
-    os.evr = "";
-  os.direction = direction;
-  /* mark end of name */
-  if (eon) { eonc = *eon; *eon = 0; }
-  /* return_list_str returns a negative value is the callback has returned non-zero */
-  RETVAL = return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION,
+  RETVAL = return_list_str(ix == 0 ? pkg->obsoletes : pkg->provides, pkg->h, tag_name, tag_flags, tag_version,
 			   callback_list_str_overlap, &os) < 0;
   /* restore end of name */
   if (eon) *eon = eonc;
