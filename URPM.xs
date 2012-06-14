@@ -159,6 +159,24 @@ rpmError_callback() {
   return RPMLOG_DEFAULT;
 }
 
+static inline int _run_cb_while_traversing(SV *callback, Header header) {
+     dSP;
+     URPM__Package pkg = calloc(1, sizeof(struct s_Package));
+
+     pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
+     pkg->h = header;
+
+     PUSHMARK(SP);
+     mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
+     PUTBACK;
+
+     int count = call_sv(callback, G_SCALAR);
+
+     SPAGAIN;
+     pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
+     return count;
+}
+
 static inline  void _header_free(URPM__Package pkg) {
   if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE))
     pkg->h = headerFree(pkg->h);
@@ -2916,20 +2934,7 @@ Db_traverse(db,callback)
   mi = rpmtsInitIterator(db->ts, RPMDBI_PACKAGES, NULL, 0);
   while ((header = rpmmiNext(mi))) {
     if (SvROK(callback)) {
-      dSP;
-      URPM__Package pkg = calloc(1, sizeof(struct s_Package));
-
-      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
-      pkg->h = header;
-
-      PUSHMARK(SP);
-      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
-      PUTBACK;
-
-      call_sv(callback, G_DISCARD | G_SCALAR);
-
-      SPAGAIN;
-      pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
+         _run_cb_while_traversing(callback, header);
     }
     ++count;
   }
@@ -2967,20 +2972,7 @@ Db_traverse_tag(db,tag,names,callback)
       mi = rpmtsInitIterator(db->ts, rpmtag, name, str_len);
       while ((header = rpmmiNext(mi))) {
 	if (SvROK(callback)) {
-	  dSP;
-	  URPM__Package pkg = calloc(1, sizeof(struct s_Package));
-
-	  pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
-	  pkg->h = header;
-
-	  PUSHMARK(SP);
-	  mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
-	  PUTBACK;
-
-	  call_sv(callback, G_DISCARD | G_SCALAR);
-
-	  SPAGAIN;
-	  pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
+	  _run_cb_while_traversing(callback, header);
 	}
 	++count;
       }
@@ -3009,20 +3001,7 @@ Db_traverse_tag_find(db,tag,name,callback)
   ts_nosignature(db->ts);
   mi = rpmtsInitIterator(db->ts, rpmtag, name, 0);
   while ((header = rpmmiNext(mi))) {
-      dSP;
-      URPM__Package pkg = calloc(1, sizeof(struct s_Package));
-
-      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
-      pkg->h = header;
-
-      PUSHMARK(SP);
-      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
-      PUTBACK;
-
-      int count = call_sv(callback, G_SCALAR);
-
-      SPAGAIN;
-      pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
+      int count = _run_cb_while_traversing(callback, header);
 
       if (count == 1 && POPi) {
 	found = 1;
