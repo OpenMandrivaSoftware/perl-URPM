@@ -159,6 +159,11 @@ rpmError_callback() {
   return RPMLOG_DEFAULT;
 }
 
+static inline  void _header_free(URPM__Package pkg) {
+  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE))
+    pkg->h = headerFree(pkg->h);
+}
+
 static bool rpm_codeset_is_utf8 = false;
 
 static struct s_backup {
@@ -1080,7 +1085,7 @@ pack_header(const URPM__Package pkg) {
       pkg->summary = summary ? (char*)summary : strdup("");
     }
 
-    if (!(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h =headerFree(pkg->h);
+    _header_free(pkg);
     pkg->h = NULL;
   }
 }
@@ -1467,7 +1472,7 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0 && header) {
 	  Fclose(fd);
 
-	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
+	  _header_free(pkg);
 	  pkg->h = header;
 	  pkg->flag &= ~FLAG_NO_HEADER_FREE;
 
@@ -1481,7 +1486,7 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 
 	close(d);
 	if (fd != NULL) {
-	  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
+	  _header_free(pkg);
 	  const char item[] = "Header";
 	  const char * msg = NULL;
 	  rpmRC rc = rpmpkgRead(item, fd, &pkg->h, &msg);
@@ -1752,7 +1757,7 @@ Pkg_DESTROY(pkg)
   free(pkg->provides);
   free(pkg->rflags);
   free(pkg->summary);
-  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
+  _header_free(pkg);
   free(pkg);
 
 void
@@ -2517,7 +2522,7 @@ void
 Pkg_free_header(pkg)
   URPM::Package pkg
   CODE:
-  if (pkg->h && !(pkg->flag & FLAG_NO_HEADER_FREE)) pkg->h = headerFree(pkg->h);
+  _header_free(pkg);
   pkg->h = NULL;
 
 void
