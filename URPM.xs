@@ -2959,9 +2959,7 @@ Db_traverse_tag(db,tag,names,callback)
     AV* names_av = (AV*)SvRV(names);
     int len = av_len(names_av);
     int i;
-    rpmTag rpmtag;
-
-    rpmtag = rpmtag_from_string(tag);
+    rpmTag rpmtag = rpmtag_from_string(tag);
 
     for (i = 0; i <= len; ++i) {
       STRLEN str_len;
