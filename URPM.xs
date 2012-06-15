@@ -532,10 +532,10 @@ callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, rpmsen
 }
 
 struct cb_overlap_s {
-  char *name;
   rpmsenseFlags flags;
-  char *evr;
   int direction; /* indicate to compare the above at left or right to the iteration element */
+  char *name;
+  char *evr;
 };
 
 static int
