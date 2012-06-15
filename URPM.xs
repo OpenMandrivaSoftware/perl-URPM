@@ -687,31 +687,33 @@ xpush_simple_list_str(const Header header, rpmTag tag_name) {
 }
 
 static void
-return_list_uint32_t(const Header header, rpmTag tag_name) {
+return_list_number(const Header header, rpmTag tag_name) {
   dSP;
   if (header) {
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
     he->tag = tag_name;
     if (headerGet(header, he, 0)) {
-      for (he->ix = 0; he->ix < (int)he->c; he->ix++)
-	mXPUSHs(newSViv(he->p.ui32p[he->ix]));
-      he->p.ptr = _free(he->p.ptr);
-    }
-  }
-  PUTBACK;
-}
-
-static void
-return_list_uint_16(const Header header, rpmTag tag_name) {
-  dSP;
-  if (header) {
-    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
-
-    he->tag = tag_name;
-    if (headerGet(header, he, 0)) {
-      for(he->ix = 0; he->ix < (int)he->c; he->ix++)
-	XPUSHs(newSViv(he->p.ui16p[he->ix]));
+	switch (he->t) {
+	  case RPM_UINT8_TYPE:
+	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	      mXPUSHs(newSViv(he->p.ui8p[he->ix]));
+	    break;
+	  case RPM_UINT16_TYPE:
+	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	      mXPUSHs(newSViv(he->p.ui16p[he->ix]));
+	    break;
+	  case RPM_UINT32_TYPE:
+	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	      mXPUSHs(newSViv(he->p.ui32p[he->ix]));
+	    break;
+	  case RPM_UINT64_TYPE:
+	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	      mXPUSHs(newSViv(he->p.ui64p[he->ix]));
+	    break;
+	  default:
+	    break;
+	}
       he->p.ptr = _free(he->p.ptr);
     }
   }
@@ -2473,7 +2475,7 @@ Pkg_files_mtime(pkg)
        default:
             tag = RPMTAG_FILEMTIMES; break;
        }
-       return_list_uint32_t(pkg->h, tag);
+       return_list_number(pkg->h, tag);
   SPAGAIN;
 
 void
