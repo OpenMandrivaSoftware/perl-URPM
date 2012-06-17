@@ -2488,12 +2488,10 @@ Pkg_get_tag(pkg, tagname)
     get_tag_modifiers = 1
   PPCODE:
   PUTBACK;
-  switch (ix) {
-  case 0:
-       return_list_tag(pkg, tagname); break;
-  case 1:
-       return_list_tag_modifier(pkg->h, tagname); break;
-  }
+  if (ix == 0)
+    return_list_tag(pkg, tagname);
+  else
+    return_list_tag_modifier(pkg->h, tagname);
   SPAGAIN;
   
 void
