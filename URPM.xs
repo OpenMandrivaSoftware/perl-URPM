@@ -2293,9 +2293,19 @@ Pkg_obsoletes(pkg)
 void
 Pkg_obsoletes_nosense(pkg)
   URPM::Package pkg
+  ALIAS:
+      conflicts_nosense = 1
+      provides_nosense  = 2
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, 0, 0, callback_list_str_xpush, NULL);
+  rpmTag tag;
+  char *s;
+  switch (ix) {
+  case 1:  tag = RPMTAG_CONFLICTNAME; s = pkg->conflicts; break;
+  case 2:  tag = RPMTAG_PROVIDENAME;  s = pkg->provides;  break;
+  default: tag = RPMTAG_OBSOLETENAME; s = pkg->obsoletes; break;
+  }
+  return_list_str(s, pkg->h, tag, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 int
@@ -2345,28 +2355,12 @@ Pkg_conflicts(pkg)
   SPAGAIN;
 
 void
-Pkg_conflicts_nosense(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, 0, 0, callback_list_str_xpush, NULL);
-  SPAGAIN;
-
-void
 Pkg_provides(pkg)
   URPM::Package pkg
   PPCODE:
   PUTBACK;
   return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION,
 		  callback_list_str_xpush, NULL);
-  SPAGAIN;
-
-void
-Pkg_provides_nosense(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, 0, 0, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 int
