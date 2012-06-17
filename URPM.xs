@@ -2408,7 +2408,6 @@ Pkg_buildarchs(pkg)
     exclusivearchs = 2
     dirnames       = 3
     filelinktos    = 4
-    files          = 5
     files_md5sum   = 6
     files_owner    = 7
     files_group    = 8
@@ -2418,7 +2417,6 @@ Pkg_buildarchs(pkg)
     files_gid      = 12
     files_mode     = 13
     files_flags    = 14
-    conf_files     = 15
     changelog_time = 16
     changelog_name = 17
     changelog_text = 18
@@ -2435,8 +2433,6 @@ Pkg_buildarchs(pkg)
             xpush_simple_list_str(pkg->h, RPMTAG_DIRNAMES); break;
        case 4:
             xpush_simple_list_str(pkg->h, RPMTAG_FILELINKTOS); break;
-       case 5:
-            return_files(pkg->h, 0); break;
        case 6:
             xpush_simple_list_str(pkg->h, RPMTAG_FILEMD5S); break;
        case 7:
@@ -2455,8 +2451,6 @@ Pkg_buildarchs(pkg)
             return_list_uint_16(pkg->h, RPMTAG_FILEMODES); break;
        case 14:
             return_list_uint32_t(pkg->h, RPMTAG_FILEFLAGS); break;
-       case 15:
-            return_files(pkg->h, FILTER_MODE_CONF_FILES); break;
        case 16:
             return_list_uint32_t(pkg->h, RPMTAG_CHANGELOGTIME); break;
        case 17:
@@ -2464,6 +2458,21 @@ Pkg_buildarchs(pkg)
        case 18:
             xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGTEXT); break;
        }
+  SPAGAIN;
+
+void
+Pkg_files(pkg)
+  URPM::Package pkg
+  ALIAS:
+    conf_files     = 1
+  PPCODE:
+  PUTBACK;
+       int filter_mode;
+       if (ix == 0)
+            filter_mode = 0;
+       else
+            filter_mode = FILTER_MODE_CONF_FILES;
+      return_files(pkg->h, filter_mode);
   SPAGAIN;
 
 void
