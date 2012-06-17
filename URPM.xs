@@ -2411,32 +2411,35 @@ Pkg_buildarchs(pkg)
     files_md5sum   = 6
     files_owner    = 7
     files_group    = 8
-    changelog_name = 17
-    changelog_text = 18
+    changelog_name = 9
+    changelog_text = 10
   PPCODE:
   PUTBACK;
+       rpmTag tag;
        switch (ix) {
-       case 0:
-            xpush_simple_list_str(pkg->h, RPMTAG_BUILDARCHS); break;
        case 1:
-            xpush_simple_list_str(pkg->h, RPMTAG_EXCLUDEARCH); break;
+	    tag = RPMTAG_EXCLUDEARCH; break;
        case 2:
-            xpush_simple_list_str(pkg->h, RPMTAG_EXCLUSIVEARCH); break;
+            tag = RPMTAG_EXCLUSIVEARCH; break;
        case 3:
-            xpush_simple_list_str(pkg->h, RPMTAG_DIRNAMES); break;
+            tag = RPMTAG_DIRNAMES; break;
        case 4:
-            xpush_simple_list_str(pkg->h, RPMTAG_FILELINKTOS); break;
+            tag = RPMTAG_FILELINKTOS; break;
        case 6:
-            xpush_simple_list_str(pkg->h, RPMTAG_FILEMD5S); break;
+            tag = RPMTAG_FILEMD5S; break;
        case 7:
-            xpush_simple_list_str(pkg->h, RPMTAG_FILEUSERNAME); break;
+            tag = RPMTAG_FILEUSERNAME; break;
        case 8:
-            xpush_simple_list_str(pkg->h, RPMTAG_FILEGROUPNAME); break;
-       case 17:
-            xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGNAME); break;
-       case 18:
-            xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGTEXT); break;
+            tag = RPMTAG_FILEGROUPNAME; break;
+       case 9:
+            tag = RPMTAG_CHANGELOGNAME; break;
+       case 10:
+            tag = RPMTAG_CHANGELOGTEXT; break;
+       default:
+            tag = RPMTAG_BUILDARCHS; break;
        }
+      xpush_simple_list_str(pkg->h, tag);
+
   SPAGAIN;
 
 void
