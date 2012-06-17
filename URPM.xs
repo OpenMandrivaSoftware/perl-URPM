@@ -134,6 +134,7 @@ typedef struct s_Package* URPM__Package;
 
 
 #define FILTER_MODE_ALL_FILES     0
+#define FILTER_MODE_DOC_FILES     1
 #define FILTER_MODE_CONF_FILES    2
 
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -871,9 +872,8 @@ return_files(const Header header, int filter_mode) {
       s = list[he->ix];
       len = strlen(list[he->ix]);
 
-      if (filter_mode && (filter_mode & FILTER_MODE_CONF_FILES) &&
-	  flags && (flags[he->ix] & RPMFILE_CONFIG) == 0)
-	continue;
+      if (filter_mode && (filter_mode & FILTER_MODE_CONF_FILES) && flags && (flags[he->ix] & RPMFILE_CONFIG) == 0) continue;
+      if ((filter_mode & FILTER_MODE_DOC_FILES) && flags && (flags[he->ix] & RPMFILE_DOC) == 0) continue;
 
       push_name_only(s, len);
     }
@@ -2408,16 +2408,11 @@ Pkg_buildarchs(pkg)
     exclusivearchs = 2
     dirnames       = 3
     filelinktos    = 4
+    files          = 5
     files_md5sum   = 6
     files_owner    = 7
     files_group    = 8
-    files_mtime    = 9
-    files_size     = 10
-    files_uid      = 11
-    files_gid      = 12
-    files_mode     = 13
-    files_flags    = 14
-    changelog_time = 16
+    conf_files     = 15
     changelog_name = 17
     changelog_text = 18
   PPCODE:
@@ -2433,26 +2428,16 @@ Pkg_buildarchs(pkg)
             xpush_simple_list_str(pkg->h, RPMTAG_DIRNAMES); break;
        case 4:
             xpush_simple_list_str(pkg->h, RPMTAG_FILELINKTOS); break;
+       case 5:
+            return_files(pkg->h, 0); break;
        case 6:
             xpush_simple_list_str(pkg->h, RPMTAG_FILEMD5S); break;
        case 7:
             xpush_simple_list_str(pkg->h, RPMTAG_FILEUSERNAME); break;
        case 8:
             xpush_simple_list_str(pkg->h, RPMTAG_FILEGROUPNAME); break;
-       case 9:
-            return_list_uint32_t(pkg->h, RPMTAG_FILEMTIMES); break;
-       case 10:
-            return_list_uint32_t(pkg->h, RPMTAG_FILESIZES); break;
-       case 11:
-            return_list_uint32_t(pkg->h, RPMTAG_FILEUIDS); break;
-       case 12:
-            return_list_uint32_t(pkg->h, RPMTAG_FILEGIDS); break;
-       case 13:
-            return_list_uint_16(pkg->h, RPMTAG_FILEMODES); break;
-       case 14:
-            return_list_uint32_t(pkg->h, RPMTAG_FILEFLAGS); break;
-       case 16:
-            return_list_uint32_t(pkg->h, RPMTAG_CHANGELOGTIME); break;
+       case 15:
+            return_files(pkg->h, FILTER_MODE_CONF_FILES); break;
        case 17:
             xpush_simple_list_str(pkg->h, RPMTAG_CHANGELOGNAME); break;
        case 18:
@@ -2461,18 +2446,35 @@ Pkg_buildarchs(pkg)
   SPAGAIN;
 
 void
-Pkg_files(pkg)
+Pkg_files_mtime(pkg)
   URPM::Package pkg
   ALIAS:
-    conf_files     = 1
+    files_size     = 1
+    files_uid      = 2
+    files_gid      = 3
+    files_mode     = 4
+    files_flags    = 5
+    changelog_time = 6
   PPCODE:
   PUTBACK;
-       int filter_mode;
-       if (ix == 0)
-            filter_mode = 0;
-       else
-            filter_mode = FILTER_MODE_CONF_FILES;
-      return_files(pkg->h, filter_mode);
+       rpmTag tag;
+       switch (ix) {
+       case 1:
+            tag = RPMTAG_FILESIZES; break;
+       case 2:
+            tag = RPMTAG_FILEUIDS; break;
+       case 3:
+            tag = RPMTAG_FILEGIDS; break;
+       case 4:
+            tag = RPMTAG_FILEMODES; break;
+       case 5:
+            tag = RPMTAG_FILEFLAGS; break;
+       case 6:
+            tag = RPMTAG_CHANGELOGTIME; break;
+       default:
+            tag = RPMTAG_FILEMTIMES; break;
+       }
+       return_list_uint32_t(pkg->h, tag);
   SPAGAIN;
 
 void
