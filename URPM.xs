@@ -1761,6 +1761,19 @@ urpm_perl_atexit(void)
   (void) rpmcliFini(NULL);
 }
 
+static void push_rflags(URPM__Package pkg, int gimme) {
+  dSP;
+  if (gimme == G_ARRAY && pkg->rflags != NULL) {
+    char *s = pkg->rflags;
+    char *eos;
+    while ((eos = strchr(s, '\t')) != NULL) {
+      mXPUSHs(newSVpv(s, eos-s));
+      s = eos + 1;
+    }
+    mXPUSHs(newSVpv(s, 0));
+  }
+}
+
 MODULE = URPM            PACKAGE = URPM::Package       PREFIX = Pkg_
 
 void
@@ -2741,15 +2754,7 @@ Pkg_rflags(pkg)
   PREINIT:
   I32 gimme = GIMME_V;
   PPCODE:
-  if (gimme == G_ARRAY && pkg->rflags != NULL) {
-    char *s = pkg->rflags;
-    char *eos;
-    while ((eos = strchr(s, '\t')) != NULL) {
-      push_name_only(s, eos-s);
-      s = ++eos;
-    }
-    push_name_only(s, 0);
-  }
+  push_rflags(pkg, gimme);
 
 void
 Pkg_set_rflags(pkg, ...)
@@ -2775,16 +2780,8 @@ Pkg_set_rflags(pkg, ...)
   }
   new_rflags[total_len - 1] = 0; /* but mark end-of-string correctly */
 
-  if (gimme == G_ARRAY && pkg->rflags != NULL) {
-    char *s = pkg->rflags;
-    char *eos;
-    while ((eos = strchr(s, '\t')) != NULL) {
-      push_name_only(s, eos-s);
-      s = eos + 1;
-    }
-    push_name_only(s, 0);
-  }
-
+  push_rflags(pkg, gimme);
+ 
   free(pkg->rflags);
   pkg->rflags = new_rflags;
 
