@@ -662,9 +662,10 @@ xpush_simple_list_str(const Header header, rpmTag tag_name) {
 
     he->tag = tag_name;
     if (!headerGet(header, he, 0)) return 0;
+    EXTEND(SP, he->c);
 
     for (he->ix = 0; he->ix < (int)he->c; he->ix++)
-      push_name_only(he->p.argv[he->ix], 0);
+      mPUSHs(newSVpv(he->p.argv[he->ix], 0));
     he->p.ptr = _free(he->p.ptr);
     PUTBACK;
     return he->c;
