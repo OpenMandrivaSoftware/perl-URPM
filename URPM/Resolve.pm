@@ -84,7 +84,7 @@ sub find_candidate_packages_ {
 		$pkg->is_arch_compat or next;
 		$o_rejected && exists $o_rejected->{$pkg->fullname} and next;
 		#- check if at least one provide of the package overlap the property.
-		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property, 1)
+		!$urpm->{provides}{$name}{$_} || $pkg->provides_overlap($property)
 		    and push @packages, $pkg;
 	    }
 	}
@@ -500,7 +500,7 @@ sub unsatisfied_requires {
 	    #- check on the selected package if a provide is satisfying the resolution (need to do the ops).
 	    foreach (grep { exists $state->{selected}{$_} } keys %{$urpm->{provides}{$n} || {}}) {
 		my $p = $urpm->{depslist}[$_];
-		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($prop, 1) and next REQUIRES;
+		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($prop) and next REQUIRES;
 	    }
 
 	    #- check if the package itself provides what is necessary.
