@@ -2346,10 +2346,9 @@ Pkg_obsoletes_nosense(pkg)
   SPAGAIN;
 
 int
-Pkg_obsoletes_overlap(pkg, s, direction=-1)
+Pkg_obsoletes_overlap(pkg, s)
   URPM::Package pkg
   char *s
-  int direction
   PREINIT:
   struct cb_overlap_s os;
   char *eon = NULL;
@@ -2371,7 +2370,7 @@ Pkg_obsoletes_overlap(pkg, s, direction=-1)
     os.evr = s;
   } else
     os.evr = "";
-  os.direction = direction;
+  os.direction = ix == 0 ? -1 : 1;
   /* mark end of name */
   if (eon) { eonc = *eon; *eon = 0; }
   /* return_list_str returns a negative value is the callback has returned non-zero */

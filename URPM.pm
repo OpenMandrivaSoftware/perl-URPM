@@ -691,7 +691,7 @@ Full obsoletes tags
 =item $package->obsoletes_nosense()
 
 Just the obsoleted package name.
-=item $package->obsoletes_overlap($s, [$direction])
+=item $package->obsoletes_overlap($s)
 
 =item $package->os()
 
@@ -707,7 +707,7 @@ Full provides tags
 =item $package->provides_nosense()
 
 Just the provided package name.
-=item $package->provides_overlap($s, [$direction])
+=item $package->provides_overlap($s)
 
 =item $package->rate()
 

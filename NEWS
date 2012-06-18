@@ -1,5 +1,6 @@
 Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
 
+- drop 'direction' parameter in obsoletes_overlap() & provides_overlap()
 - add basic support for --downgrade (mga#6655)
 - enable to report script & I/O errors
 - fix scoring locale packages
