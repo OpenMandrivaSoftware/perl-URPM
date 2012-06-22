@@ -289,7 +289,7 @@ sub _find_required_package__sort {
 	my @chosen = map { $_->[0] } @chosen_with_score;
 
 	#- return immediately if there is only one chosen package
-	if (@chosen == 1) { return \@chosen }
+	return \@chosen if @chosen == 1;
 
 	#- if several packages were selected to match a requested installation,
 	#- and if --more-choices wasn't given, trim the choices to the first one.
@@ -1500,9 +1500,7 @@ sub disable_selected_and_unrequested_dependencies {
 	#- keep in the packages that had to be unselected.
 	@all_unselected or push @all_unselected, @unselected;
 
-	if ($urpm->{keep_unrequested_dependencies}) {
-	    last;
-	}
+	last if $urpm->{keep_unrequested_dependencies};
 
 	#- search for unrequested required packages.
 	foreach (@unselected) {
@@ -1662,9 +1660,7 @@ sub compute_flags {
 sub _choose_best_pkg {
     my ($urpm, $pkg_installed, @pkgs) = @_;
 
-    _choose_best_pkg_($urpm, $pkg_installed, grep {
-	$_->compare_pkg($pkg_installed) > 0;
-    } @pkgs);
+    _choose_best_pkg_($urpm, $pkg_installed, grep { $_->compare_pkg($pkg_installed) > 0 } @pkgs);
 }
 
 #- side-effects: none
