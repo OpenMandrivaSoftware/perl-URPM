@@ -1090,7 +1090,7 @@ pack_header(const URPM__Package pkg) {
       has_old_suggests = 0;
       pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_old_suggests);
       if (has_old_suggests)
-      pkg->suggests = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_old_suggests);
+	pkg->suggests = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_old_suggests);
       else
         pkg->suggests = pack_list(pkg->h, RPMTAG_SUGGESTSNAME, RPMTAG_SUGGESTSFLAGS, RPMTAG_SUGGESTSVERSION, NULL);
     if (pkg->obsoletes == NULL)
@@ -2157,7 +2157,6 @@ Pkg_compare(pkg, evr)
   EVR_t lEVR = rpmEVRnew(RPMSENSE_EQUAL, 0),
         rEVR = rpmEVRnew(RPMSENSE_EQUAL, 0);
   CODE:
-  if (!compare) {
     int i;
 
     /* This will remove fields from _evr (from the right) that evr is missing
@@ -2174,7 +2173,7 @@ Pkg_compare(pkg, evr)
     compare = rpmEVRcompare(lEVR, rEVR);
     rpmEVRfree(lEVR);
     rpmEVRfree(rEVR);
-  }
+
   RETVAL = compare;
   OUTPUT:
   RETVAL
