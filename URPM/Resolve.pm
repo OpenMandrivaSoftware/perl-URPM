@@ -1565,11 +1565,7 @@ sub _selected_size_filesize {
 
     foreach (values %{$state->{rejected} || {}}) {
 	$_->{removed} || $_->{obsoleted} or next;
-	if ($_->{size} < 0) {
-		$size += $_->{size};
-	} else {
-		$size -= $_->{size};
-	}
+	$size -= abs($_->{size});
     }
 
     foreach (@{$state->{orphans_to_remove} || []}) {
