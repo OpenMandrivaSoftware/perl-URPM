@@ -9,6 +9,7 @@ URPM/Query.pm
 URPM/Resolve.pm
 URPM/Signature.pm
 t/00prepare.t
+t/01setter-getter.t
 t/buggy_synthesis.cz
 t/empty_synthesis.cz
 t/fatal.t
