@@ -109,7 +109,7 @@ sub find_candidate_packages {
 sub get_installed_arch {
     my ($db, $n) = @_;
     my $arch;
-    $db->traverse_tag('name', [ $n ], sub { $arch = $_[0]->arch });
+    $db->traverse_tag_find('name', $n, sub { $arch = $_[0]->arch });
     $arch;
 }
 
@@ -158,7 +158,7 @@ sub is_package_installed {
     my ($db, $pkg) = @_;
 
     my $found;
-    $db->traverse_tag('name', [ $pkg->name ], sub {
+    $db->traverse_tag_find('name', $pkg->name, sub {
 	my ($p) = @_;
 	$found ||= $p->fullname eq $pkg->fullname;
     });
@@ -169,7 +169,7 @@ sub _is_selected_or_installed {
     my ($urpm, $db, $name) = @_;
 
     (grep { $_->flag_available } $urpm->packages_providing($name)) > 0 ||
-      $db->traverse_tag('name', [ $name ], undef) > 0;
+      $db->traverse_tag_find('name', $name, sub {}) > 0;
 }
 
 #- finds $pkg "provides" that matches $provide_name, and returns the version provided
