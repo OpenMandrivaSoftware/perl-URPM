@@ -1625,7 +1625,6 @@ sub compute_flag {
 #-   + those of compute_flag (flag_skip, flag_disable_obsolete)
 sub compute_flags {
     my ($urpm, $val, %options) = @_;
-    if (ref $val eq 'HASH') { $val = [ keys %$val ] } #- compatibility with urpmi <= 4.5-13mdk
     my @regex;
 
     #- unless a regular expression is given, search in provides
