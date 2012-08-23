@@ -2437,15 +2437,11 @@ void
 Pkg_files(pkg)
   URPM::Package pkg
   ALIAS:
-    conf_files     = 1
+    conf_files     = FILTER_MODE_CONF_FILES
+    doc_files      = FILTER_MODE_DOC_FILES
   PPCODE:
   PUTBACK;
-       int filter_mode;
-       if (ix == 0)
-            filter_mode = 0;
-       else
-            filter_mode = FILTER_MODE_CONF_FILES;
-      return_files(pkg->h, filter_mode);
+  return_files(pkg->h, ix);
   SPAGAIN;
 
 void
