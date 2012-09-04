@@ -491,10 +491,10 @@ Quite similar to C<traverse_tag>, but stops when $callback returns true.
 
 (also note that only one $name is handled)
 
-=item $db->create_transaction($prefix)
+=item $db->create_transaction()
 
 Creates and returns a new transaction (an C<URPM::Transaction> object) on the
-specified DB. For $prefix, cf L<open>.
+specified DB.
 
 =back
 
