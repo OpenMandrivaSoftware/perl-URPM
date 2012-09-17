@@ -910,7 +910,7 @@ sub resolve_requested_suggests {
 	    my %suggests = map { $_ => 1 } $pkg->suggests or next;
 
 	    #- do not install a package that has already been suggested
-	    $db->traverse_tag('name', [ $pkg->name ], sub {
+	    $db->traverse_tag_find('name', $pkg->name, sub {
 		my ($p) = @_;
 		delete $suggests{$_} foreach $p->suggests;
 	    });
