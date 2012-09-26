@@ -361,7 +361,7 @@ sub _find_required_package__kmod {
     $choices->[0]->name =~ /^dkms-|-kernel-\d\./ or return;
 
     grep {
-	if (my ($_name, $version, $flavor, $release) = $_->name =~ /(.*)-kernel-(\d\..*)-(.*)-(.*)/) {
+	if (my ($version, $flavor, $release) = $_->name =~ /(:?.*)-kernel-(\d\..*)-(.*)-(.*)/) {
 	    my $kernel = "kernel-$flavor-$version-$release";
 	    _is_selected_or_installed($urpm, $db, $kernel);
 	} elsif ($_->name =~ /^dkms-/) {
