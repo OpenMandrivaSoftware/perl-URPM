@@ -10,6 +10,11 @@ use Config;
 
 
 #- a few functions from MDK::Common copied here:
+sub any(&@) {
+    my $f = shift;
+    $f->($_) and return 1 foreach @_;
+    0;
+}
 sub listlength {
     my (@l) = @_;
     scalar @l;
@@ -390,7 +395,7 @@ sub _score_for_locales {
 	  } else {
 	      0; # bad locale
 	  }
-    } elsif (grep { /locales-en/ } @r) {
+    } elsif (any { /locales-en/ } @r) {
 	2; # 
     } else {
 	1;
@@ -1732,7 +1737,7 @@ sub request_packages_to_upgrade {
 		$pkg = undef;
 	    }
 	}
-	if ($pkg && $options{idlist} && !grep { $pkg->id == $_ } @{$options{idlist}}) {
+	if ($pkg && $options{idlist} && !any { $pkg->id == $_ } @{$options{idlist}}) {
 		$urpm->{debug_URPM}("not auto-selecting $pkg->fullname because it's not in search medias") if $urpm->{debug_URPM};
 		$pkg = undef;
 	} 
@@ -1822,7 +1827,7 @@ sub sort_graph {
 		# don't care
 	    } elsif (exists $added{$p_id}) {
 		# already done
-	    } elsif (grep { $_ == $p_id } @ids) {
+	    } elsif (any { $_ == $p_id } @ids) {
 		my $begin = 1;
 		my @l = grep { $begin &&= $_ != $p_id } @ids;
 		$loop_ahead = 1;
