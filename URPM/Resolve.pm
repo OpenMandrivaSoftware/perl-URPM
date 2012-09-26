@@ -70,7 +70,7 @@ sub removed_or_obsoleted_packages {
 #- (nb: see also find_required_package())
 #-
 #- side-effects: none
-sub find_candidate_packages_ {
+sub find_candidate_packages {
     my ($urpm, $id_prop, $o_rejected) = @_;
     my @packages;
 
@@ -188,7 +188,7 @@ sub provided_version_that_overlaps {
 
 #- find the package (or packages) to install matching $id_prop
 #- returns (list ref of matches, list ref of preferred matches)
-#- (see also find_candidate_packages_())
+#- (see also find_candidate_packages())
 #-
 #- side-effects: flag_install, flag_upgrade (and strict_arch_check_installed cache)
 sub find_required_package {
@@ -583,7 +583,7 @@ sub backtrack_selected {
 
 	    #- search for all possible packages, first is to try the selection, then if it is
 	    #- impossible, backtrack the origin.
-	    my @packages = find_candidate_packages_($urpm, $dep->{required});
+	    my @packages = find_candidate_packages($urpm, $dep->{required});
 
 	    foreach (@packages) {
 		    #- avoid dead loop.
@@ -951,7 +951,7 @@ sub resolve_requested__no_suggests {
 
     foreach (keys %$requested) {
 	#- keep track of requested packages by propating the flag.
-	foreach (find_candidate_packages_($urpm, $_)) {
+	foreach (find_candidate_packages($urpm, $_)) {
 	    $_->set_flag_requested;
 	}
     }
@@ -1277,7 +1277,7 @@ sub _handle_diff_provides {
 	#- try if upgrading the package will be satisfying all the requires...
 	#- there is no need to avoid promoting epoch as the package examined is not
 	#- already installed.
-	my @packages = find_candidate_packages_($urpm, $p->name, $state->{rejected});
+	my @packages = find_candidate_packages($urpm, $p->name, $state->{rejected});
 	@packages = 
 	  grep { ($_->name eq $p->name ? $p->compare_pkg($_) < 0 :
 		    $_->obsoletes_overlap($p->name . " == " . $p->evr))
@@ -1297,7 +1297,7 @@ sub _handle_diff_provides {
 	    #- there exists enough packages that provided the unsatisfied requires.
 	    my @best;
 	    foreach (@unsatisfied) {
-		my @packages = find_candidate_packages_($urpm, $_, $state->{rejected});
+		my @packages = find_candidate_packages($urpm, $_, $state->{rejected});
 		if (@packages = grep { $_->fullname ne $p->fullname } @packages) {
 		    push @best, join('|', map { $_->id } @packages);
 		}
@@ -1336,7 +1336,7 @@ sub _handle_conflict {
     #- the existing package will conflict with the selection; check
     #- whether a newer version will be ok, else ask to remove the old.
     my $need_deps = $p->name . " > " . $p->evr;
-    my @packages = grep { $_->name eq $p->name } find_candidate_packages_($urpm, $need_deps, $state->{rejected});
+    my @packages = grep { $_->name eq $p->name } find_candidate_packages($urpm, $need_deps, $state->{rejected});
     @packages = grep { ! $_->provides_overlap($property) } @packages;
 
     if (!@packages) {
