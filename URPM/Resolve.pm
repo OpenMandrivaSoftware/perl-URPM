@@ -97,19 +97,6 @@ sub find_candidate_packages_ {
     @packages;
 }
 
-#- deprecated, use find_candidate_packages_() directly
-#-
-#- side-effects: none
-sub find_candidate_packages {
-    my ($urpm, $id_prop, $o_rejected) = @_;
-
-    my %packages;
-    foreach (find_candidate_packages_($urpm, $id_prop, $o_rejected)) {
-	push @{$packages{$_->name}}, $_;
-    }
-    \%packages;
-}
-
 #- returns the "arch" of package $n in rpm db
 sub get_installed_arch {
     my ($db, $n) = @_;
@@ -198,9 +185,6 @@ sub provided_version_that_overlaps {
     }
     $version;
 }
-
-#- deprecated function, use find_required_package()
-sub find_chosen_packages { &find_required_package }
 
 #- find the package (or packages) to install matching $id_prop
 #- returns (list ref of matches, list ref of preferred matches)
