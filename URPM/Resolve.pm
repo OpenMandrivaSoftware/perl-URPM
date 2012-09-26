@@ -132,11 +132,12 @@ my %installed_arch;
 #- side-effects: none (but uses a cache)
 sub strict_arch_check_installed {
     my ($db, $pkg) = @_;
-    if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
+    my $arch = $pkg->arch;
+    if ($arch ne 'src' && $arch ne 'noarch') {
 	my $n = $pkg->name;
 	defined $installed_arch{$n} or $installed_arch{$n} = get_installed_arch($db, $n);
 	if ($installed_arch{$n} && $installed_arch{$n} ne 'noarch') {
-	    $pkg->arch eq $installed_arch{$n} or return;
+	    $arch eq $installed_arch{$n} or return;
 	}
     }
     1;
@@ -148,9 +149,11 @@ sub strict_arch_check_installed {
 #- side-effects: none
 sub strict_arch_check {
     my ($installed_pkg, $pkg) = @_;
-    if ($pkg->arch ne 'src' && $pkg->arch ne 'noarch') {
-	if ($installed_pkg->arch ne 'noarch') {
-	    $pkg->arch eq $installed_pkg->arch or return;
+    my $arch = $pkg->arch;
+    if ($arch ne 'src' && $arch ne 'noarch') {
+	my $inst_arch = $installed_pkg->arch;
+	if ($inst_arch ne 'noarch') {
+	    $arch eq $inst_arch or return;
 	}
     }
     1;
