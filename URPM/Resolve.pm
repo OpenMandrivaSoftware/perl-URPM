@@ -1093,7 +1093,7 @@ sub resolve_requested__no_suggests_ {
 sub _handle_conflicts_with_selected {
     my ($urpm, $db, $state, $pkg, $dep, $properties, $diff_provides, %options) = @_;
     foreach ($pkg->conflicts) {
-	if (my ($n, $o, $v) = property2name_op_version($_)) {
+	if (my $n = property2name($_)) {
 	    foreach my $p ($urpm->packages_providing($n)) {
 		$pkg == $p and next;
 		$p->provides_overlap($_) or next;
