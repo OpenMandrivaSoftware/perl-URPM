@@ -290,7 +290,7 @@ URPM - Manipulate RPM files and headers
 =head1 DESCRIPTION
 
 The URPM module allows you to manipulate RPM files, RPM header files and
-hdlist files and manage them in memory. It is notably used by the C<urpmi>
+hdlist files and manage them in memory. It is notably used by the L<urpmi>
 utility. It provides four classes : C<URPM>, C<URPM::DB>, C<URPM::Package>,
 and C<URPM::Transaction>.
 
