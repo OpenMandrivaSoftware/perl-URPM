@@ -3962,10 +3962,7 @@ Urpm_verify_rpm(filename, ...)
     ts = rpmtsCreate();
     rpmtsSetRootDir(ts, NULL);
     rpmtsOpenDB(ts, O_RDONLY);
-    if (rpmVerifySignatures(&qva, ts, fd, filename))
-      RETVAL = 0;
-    else
-      RETVAL = 1;
+    RETVAL = rpmVerifySignatures(&qva, ts, fd, filename) ? 0 : 1;
     Fclose(fd);
     (void)rpmtsFree(ts);
   }
