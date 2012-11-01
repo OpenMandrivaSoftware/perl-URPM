@@ -115,7 +115,7 @@ typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
 #define FLAG_ID_MASK          0x001fffffU
-#define FLAG_RATE             0x00e00000U
+#define FLAG_RATE_MASK        0x00e00000U
 #define FLAG_BASE             0x01000000U
 #define FLAG_SKIP             0x02000000U
 #define FLAG_DISABLE_OBSOLETE 0x04000000U
@@ -2745,7 +2745,7 @@ int
 Pkg_rate(pkg)
   URPM::Package pkg
   CODE:
-  RETVAL = (pkg->flag & FLAG_RATE) >> FLAG_RATE_POS;
+  RETVAL = (pkg->flag & FLAG_RATE_MASK) >> FLAG_RATE_POS;
   OUTPUT:
   RETVAL
 
@@ -2754,8 +2754,8 @@ Pkg_set_rate(pkg, rate)
   URPM::Package pkg
   int rate
   CODE:
-  RETVAL = (pkg->flag & FLAG_RATE) >> FLAG_RATE_POS;
-  pkg->flag &= ~FLAG_RATE;
+  RETVAL = (pkg->flag & FLAG_RATE_MASK) >> FLAG_RATE_POS;
+  pkg->flag &= ~FLAG_RATE_MASK;
   pkg->flag |= (rate >= 0 && rate <= FLAG_RATE_MAX ? rate : FLAG_RATE_INVALID) << FLAG_RATE_POS;
   OUTPUT:
   RETVAL
