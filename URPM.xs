@@ -114,6 +114,21 @@ typedef struct s_Transaction* URPM__DB;
 typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
+/*
+ * URPM__Package->flag is an unsigned int:
+ * bit :  significance
+ * 0..20: ID
+ * 21-23: rate
+ * 24:    BASE
+ * 25:    SKIP
+ * 26:    DISABLE_OBSOLETE
+ * 27:    INSTALLED
+ * 28:    REQUESTED
+ * 29:    REQUIRED
+ * 30:    UPGRADE
+ * 31:    NO_HEADER_FREE
+ * */
+
 #define FLAG_ID_MASK          0x001fffffU
 #define FLAG_RATE_MASK        0x00e00000U
 #define FLAG_BASE             0x01000000U
