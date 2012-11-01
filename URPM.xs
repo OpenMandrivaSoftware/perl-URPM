@@ -114,7 +114,7 @@ typedef struct s_Transaction* URPM__DB;
 typedef struct s_Transaction* URPM__Transaction;
 typedef struct s_Package* URPM__Package;
 
-#define FLAG_ID               0x001fffffU
+#define FLAG_ID_MASK          0x001fffffU
 #define FLAG_RATE             0x00e00000U
 #define FLAG_BASE             0x01000000U
 #define FLAG_SKIP             0x02000000U
@@ -1128,7 +1128,7 @@ update_hash_entry(HV *hash, const char *name, STRLEN len, int force, IV use_sens
     }
     if (isv && *isv != &PL_sv_undef) {
       char id[8];
-      STRLEN id_len = snprintf(id, sizeof(id), "%d", pkg->flag & FLAG_ID);
+      STRLEN id_len = snprintf(id, sizeof(id), "%d", pkg->flag & FLAG_ID_MASK);
       SV **sense = hv_fetch((HV*)SvRV(*isv), id, id_len, 1);
       if (sense && use_sense) sv_setiv(*sense, use_sense);
     }
@@ -1384,7 +1384,7 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
     int data_len = 1+strlen(data);
     if (!strcmp(tag, "info")) {
       pkg->info = memcpy(malloc(data_len), data, data_len);
-      pkg->flag &= ~FLAG_ID;
+      pkg->flag &= ~FLAG_ID_MASK;
       pkg->flag |= 1 + av_len(depslist);
       URPM__Package _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package));
       push_in_depslist(_pkg, urpm, depslist, callback, provides, obsoletes, 0);
@@ -2239,7 +2239,7 @@ void
 Pkg_id(pkg)
   URPM::Package pkg
   PPCODE:
-  int id = pkg->flag & FLAG_ID;
+  int id = pkg->flag & FLAG_ID_MASK;
   if (id <= FLAG_ID_MAX)
     mXPUSHs(newSViv(id));
 
@@ -2248,10 +2248,10 @@ Pkg_set_id(pkg, id=-1)
   URPM::Package pkg
   int id
   PPCODE:
-  int old_id = pkg->flag & FLAG_ID;
+  int old_id = pkg->flag & FLAG_ID_MASK;
   if (old_id <= FLAG_ID_MAX)
     mXPUSHs(newSViv(old_id));
-  pkg->flag &= ~FLAG_ID;
+  pkg->flag &= ~FLAG_ID_MASK;
   pkg->flag |= id >= 0 && id <= FLAG_ID_MAX ? id : FLAG_ID_INVALID;
 
 void
@@ -3064,7 +3064,7 @@ Trans_add(trans, pkg, ...)
   URPM::Transaction trans
   URPM::Package pkg
   CODE:
-  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX && pkg->h != NULL) {
+  if ((pkg->flag & FLAG_ID_MASK) <= FLAG_ID_MAX && pkg->h != NULL) {
     int update = 0;
     int rc;
     rpmRelocation  relocations = NULL;
@@ -3094,7 +3094,8 @@ Trans_add(trans, pkg, ...)
 	}
       }
     }
-    rc = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(long)(pkg->flag & FLAG_ID)), update, relocations);
+    rc = rpmtsAddInstallElement(trans->ts, pkg->h, (fnpyKey)(1+(long)(pkg->flag & FLAG_ID_MASK)), update, relocations);
+
     if(rc) {
       rpmps ps = rpmtsProblems(trans->ts);
       PUTBACK;
