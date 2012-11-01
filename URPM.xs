@@ -3145,16 +3145,7 @@ Trans_traverse(trans, callback)
   mi = rpmtsInitIterator(trans->ts, RPMDBI_PACKAGES, NULL, 0);
   while ((h = rpmmiNext(mi))) {
     if (SvROK(callback)) {
-      dSP;
-      URPM__Package pkg = calloc(1, sizeof(struct s_Package));
-      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
-      pkg->h = h;
-      PUSHMARK(SP);
-      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
-      PUTBACK;
-      call_sv(callback, G_DISCARD | G_SCALAR);
-      SPAGAIN;
-      pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
+      _run_cb_while_traversing(callback, h, G_DISCARD);
     }
     ++c;
   }
