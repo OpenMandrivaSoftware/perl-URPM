@@ -160,7 +160,7 @@ rpmError_callback() {
   return RPMLOG_DEFAULT;
 }
 
-static inline int _run_cb_while_traversing(SV *callback, Header header) {
+static inline int _run_cb_while_traversing(SV *callback, Header header, VOL I32 flags) {
      dSP;
      URPM__Package pkg = calloc(1, sizeof(struct s_Package));
 
@@ -171,7 +171,7 @@ static inline int _run_cb_while_traversing(SV *callback, Header header) {
      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
      PUTBACK;
 
-     int count = call_sv(callback, G_SCALAR);
+     int count = call_sv(callback, G_SCALAR | flags);
 
      SPAGAIN;
      pkg->h = NULL; /* avoid using it anymore, in case it has been copied inside callback */
@@ -2949,7 +2949,7 @@ Db_traverse(db,callback)
   mi = rpmtsInitIterator(db->ts, RPMDBI_PACKAGES, NULL, 0);
   while ((header = rpmmiNext(mi))) {
     if (SvROK(callback)) {
-         _run_cb_while_traversing(callback, header);
+         _run_cb_while_traversing(callback, header, G_DISCARD);
     }
     ++count;
   }
@@ -2985,7 +2985,7 @@ Db_traverse_tag(db,tag,names,callback)
       mi = rpmtsInitIterator(db->ts, rpmtag, name, str_len);
       while ((header = rpmmiNext(mi))) {
 	if (SvROK(callback)) {
-	  _run_cb_while_traversing(callback, header);
+	  _run_cb_while_traversing(callback, header, G_DISCARD);
 	}
 	++count;
       }
@@ -3014,7 +3014,7 @@ Db_traverse_tag_find(db,tag,name,callback)
   ts_nosignature(db->ts);
   mi = rpmtsInitIterator(db->ts, rpmtag, name, 0);
   while ((header = rpmmiNext(mi))) {
-      int count = _run_cb_while_traversing(callback, header);
+      int count = _run_cb_while_traversing(callback, header, 0);
 
       if (count == 1 && POPi) {
 	found = 1;
