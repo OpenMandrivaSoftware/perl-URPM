@@ -2239,16 +2239,18 @@ void
 Pkg_id(pkg)
   URPM::Package pkg
   PPCODE:
-  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX)
-    mXPUSHs(newSViv(pkg->flag & FLAG_ID));
+  int id = pkg->flag & FLAG_ID;
+  if (id <= FLAG_ID_MAX)
+    mXPUSHs(newSViv(id));
 
 void
 Pkg_set_id(pkg, id=-1)
   URPM::Package pkg
   int id
   PPCODE:
-  if ((pkg->flag & FLAG_ID) <= FLAG_ID_MAX)
-    mXPUSHs(newSViv(pkg->flag & FLAG_ID));
+  int old_id = pkg->flag & FLAG_ID;
+  if (old_id <= FLAG_ID_MAX)
+    mXPUSHs(newSViv(old_id));
   pkg->flag &= ~FLAG_ID;
   pkg->flag |= id >= 0 && id <= FLAG_ID_MAX ? id : FLAG_ID_INVALID;
 
