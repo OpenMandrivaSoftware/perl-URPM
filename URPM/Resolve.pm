@@ -982,6 +982,7 @@ sub resolve_requested__no_suggests_ {
     #- then examine provides that will be removed (which need to be satisfied by another
     #- package present or by a new package to upgrade), then requires not satisfied and
     #- finally conflicts that will force a new upgrade or a remove.
+    my $count = 1;
     do {
 	while (my $dep = shift @properties) {
 	    #- we need to avoid selecting packages if the source has been disabled.
@@ -1069,7 +1070,13 @@ sub resolve_requested__no_suggests_ {
 	} elsif (my $dep = shift @choices) {
 	    push @properties, $dep;
 	}
-    } while @diff_provides || @properties || @choices;
+
+	# safety:
+	if ($count++ > 1000) {
+	    die("detecting looping forever while trying to resolve dependancies.\n"
+		. "Aborting... Try again with '-vv --debug' options");
+	}
+    } while (@diff_provides || @properties || @choices);
 
     #- return what has been selected by this call (not all selected hash which may be not empty
     #- previously. avoid returning rejected packages which weren't selectable.

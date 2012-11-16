@@ -1,5 +1,6 @@
 Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
 
+- prevent urpmi from looping forever when some packages are broken
 - API: add resolve_requested_suggests
 - add URPM::traverse_tag_find() for urpme --env
 - fix computing size of added/freed disk space when updating involves removing
