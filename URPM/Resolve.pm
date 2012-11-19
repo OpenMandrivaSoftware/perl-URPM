@@ -1072,7 +1072,7 @@ sub resolve_requested__no_suggests_ {
 	}
 
 	# safety:
-	if ($count++ > 1000) {
+	if ($count++ > 10000) {
 	    die("detecting looping forever while trying to resolve dependancies.\n"
 		. "Aborting... Try again with '-vv --debug' options");
 	}
