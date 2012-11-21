@@ -514,22 +514,7 @@ callback_list_str_xpush(char *s, int slen, const char *name, rpmsenseFlags flags
   /* returning zero indicates to continue processing */
   return 0;
 }
-static int
-callback_list_str_xpush_requires(char *s, int slen, const char *name, const rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
-  dSP;
-  if (s)
-    push_name_only(s, slen);
-  else if (is_not_old_suggests(flags)) {
-    char buff[BUFSIZ];
-    char *buf = buff;
-    int len = print_list_entry(buf, sizeof(buff)-1, name, flags, evr);
-    if (len >= 0)
-      push_name_only(buf, len);
-  }
-  PUTBACK;
-  /* returning zero indicates to continue processing */
-  return 0;
-}
+
 static int
 callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
   dSP;
@@ -2275,7 +2260,7 @@ Pkg_requires(pkg)
   PPCODE:
   PUTBACK;
   return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION,
-		  callback_list_str_xpush_requires, NULL);
+		  callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -2284,7 +2269,7 @@ Pkg_requires_nosense(pkg)
   PPCODE:
   PUTBACK;
   return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, 0, 
-		  callback_list_str_xpush_requires, NULL);
+		  callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
