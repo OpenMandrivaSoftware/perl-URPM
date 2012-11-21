@@ -2264,15 +2264,6 @@ Pkg_requires(pkg)
   SPAGAIN;
 
 void
-Pkg_requires_nosense(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, 0, 
-		  callback_list_str_xpush, NULL);
-  SPAGAIN;
-
-void
 Pkg_suggests(pkg)
   URPM::Package pkg
   PPCODE:
@@ -2298,6 +2289,7 @@ Pkg_obsoletes_nosense(pkg)
   ALIAS:
       conflicts_nosense = 1
       provides_nosense  = 2
+      requires_nosense  = 3
   PPCODE:
   PUTBACK;
   rpmTag tag;
@@ -2305,6 +2297,7 @@ Pkg_obsoletes_nosense(pkg)
   switch (ix) {
   case 1:  tag = RPMTAG_CONFLICTNAME; s = pkg->conflicts; break;
   case 2:  tag = RPMTAG_PROVIDENAME;  s = pkg->provides;  break;
+  case 3:  tag = RPMTAG_REQUIRENAME;  s = pkg->requires;  break;
   default: tag = RPMTAG_OBSOLETENAME; s = pkg->obsoletes; break;
   }
   return_list_str(s, pkg->h, tag, 0, 0, callback_list_str_xpush, NULL);
