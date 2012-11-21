@@ -2255,15 +2255,6 @@ Pkg_set_id(pkg, id=-1)
   pkg->flag |= id >= 0 && id <= FLAG_ID_MAX ? id : FLAG_ID_INVALID;
 
 void
-Pkg_requires(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION,
-		  callback_list_str_xpush, NULL);
-  SPAGAIN;
-
-void
 Pkg_suggests(pkg)
   URPM::Package pkg
   PPCODE:
@@ -2277,10 +2268,21 @@ Pkg_suggests(pkg)
 void
 Pkg_obsoletes(pkg)
   URPM::Package pkg
+  ALIAS:
+      conflicts = 1
+      provides  = 2
+      requires  = 3
   PPCODE:
   PUTBACK;
-  return_list_str(pkg->obsoletes, pkg->h, RPMTAG_OBSOLETENAME, RPMTAG_OBSOLETEFLAGS, RPMTAG_OBSOLETEVERSION,
-		  callback_list_str_xpush, NULL);
+  rpmTag tag, flags, tag_version;
+  char *s;
+  switch (ix) {
+  case 1:  tag = RPMTAG_CONFLICTNAME; s = pkg->conflicts; flags = RPMTAG_CONFLICTFLAGS; tag_version = RPMTAG_CONFLICTVERSION; break;
+  case 2:  tag = RPMTAG_PROVIDENAME;  s = pkg->provides;  flags = RPMTAG_PROVIDEFLAGS;  tag_version = RPMTAG_PROVIDEVERSION;  break;
+  case 3:  tag = RPMTAG_REQUIRENAME;  s = pkg->requires;  flags = RPMTAG_REQUIREFLAGS;  tag_version = RPMTAG_REQUIREVERSION;  break;
+  default: tag = RPMTAG_OBSOLETENAME; s = pkg->obsoletes; flags = RPMTAG_OBSOLETEFLAGS; tag_version = RPMTAG_OBSOLETEVERSION; break;
+  }
+  return_list_str(s, pkg->h, tag, flags, tag_version, callback_list_str_xpush, NULL);
   SPAGAIN;
 
 void
@@ -2339,24 +2341,6 @@ Pkg_obsoletes_overlap(pkg, s, direction=-1)
   if (eon) *eon = eonc;
   OUTPUT:
   RETVAL
-
-void
-Pkg_conflicts(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_str(pkg->conflicts, pkg->h, RPMTAG_CONFLICTNAME, RPMTAG_CONFLICTFLAGS, RPMTAG_CONFLICTVERSION,
-		  callback_list_str_xpush, NULL);
-  SPAGAIN;
-
-void
-Pkg_provides(pkg)
-  URPM::Package pkg
-  PPCODE:
-  PUTBACK;
-  return_list_str(pkg->provides, pkg->h, RPMTAG_PROVIDENAME, RPMTAG_PROVIDEFLAGS, RPMTAG_PROVIDEVERSION,
-		  callback_list_str_xpush, NULL);
-  SPAGAIN;
 
 int
 Pkg_provides_overlap(pkg, s, direction=1)
