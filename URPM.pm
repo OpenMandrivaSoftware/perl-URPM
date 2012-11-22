@@ -841,6 +841,8 @@ Destroys macros.
 
 =over
 
+=head2 Misc other functions
+
 =item setVerbosity($level)
 
 Sets rpm verbosity level. $level is an integer between 0 (RPMLOG_EMERG) and 7
