@@ -841,7 +841,11 @@ Destroys macros.
 
 =over
 
+=back
+
 =head2 Misc other functions
+
+=over
 
 =item setVerbosity($level)
 
