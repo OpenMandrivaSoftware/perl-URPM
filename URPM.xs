@@ -1136,11 +1136,6 @@ update_hash_entry(HV *hash, const char *name, STRLEN len, int force, IV use_sens
 }
 
 static void
-update_provide_entry(const char *name, STRLEN len, int force, IV use_sense, const URPM__Package pkg, HV *provides) {
-  update_hash_entry(provides, name, len, force, use_sense, pkg);
-}
-
-static void
 update_provides(const URPM__Package pkg, HV *provides) {
   if (pkg->h) {
     int len;
@@ -1168,8 +1163,8 @@ update_provides(const URPM__Package pkg, HV *provides) {
 	flags = (rpmsenseFlags*)he->p.ui32p;
       for (he->ix = 0; he->ix < count; he->ix++) {
 	len = strlen(list[he->ix]);
-	update_provide_entry(list[he->ix], len, 1, flags && (flags[he->ix] & (RPMSENSE_PREREQ|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POSTUN|RPMSENSE_SCRIPT_POST|RPMSENSE_LESS|RPMSENSE_EQUAL|RPMSENSE_GREATER)),
-	    pkg, provides);
+
+	update_hash_entry(provides, list[he->ix], len, 1, flags && flags[he->ix] & (RPMSENSE_PREREQ|RPMSENSE_SCRIPT_PREUN|RPMSENSE_SCRIPT_PRE|RPMSENSE_SCRIPT_POSTUN|RPMSENSE_SCRIPT_POST|RPMSENSE_LESS|RPMSENSE_EQUAL|RPMSENSE_GREATER), pkg);
       }
       flags = _free(flags);
       list = _free(list);
@@ -1198,11 +1193,11 @@ update_provides(const URPM__Package pkg, HV *provides) {
       ps = strchr(s, '@');
       while(ps != NULL) {
 	*ps = 0; es = strchr(s, '['); if (!es) es = strchr(s, ' '); *ps = '@';
-	update_provide_entry(s, es != NULL ? es-s : ps-s, 1, es != NULL, pkg, provides);
+	update_hash_entry(provides, s, es != NULL ? es-s : ps-s, 1, es != NULL, pkg);
 	s = ps + 1; ps = strchr(s, '@');
       }
       es = strchr(s, '['); if (!es) es = strchr(s, ' ');
-      update_provide_entry(s, es != NULL ? es-s : 0, 1, es != NULL, pkg, provides);
+      update_hash_entry(provides, s, es != NULL ? es-s : 0, 1, es != NULL, pkg);
     }
   }
 }
@@ -1247,7 +1242,7 @@ update_provides_files(const URPM__Package pkg, HV *provides) {
     if(headerGet(pkg->h, he, 0)) {
       for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
 	len = strlen(he->p.argv[he->ix]);
-	update_provide_entry(he->p.argv[he->ix], len, 0, 0, pkg, provides);
+	update_hash_entry(provides, he->p.argv[he->ix], len, 0, 0, pkg);
       }
 
       he->p.ptr= _free(he->p.ptr);
