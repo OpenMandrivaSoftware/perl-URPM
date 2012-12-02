@@ -1938,38 +1938,46 @@ void
 Pkg_description(pkg)
   URPM::Package pkg
     ALIAS:
-     sourcerpm = 1
-     packager  = 2
-     buildhost = 3
-     url       = 4
-     license   = 5
-     distribution = 6
-     vendor    = 7
-     os        = 8
-     payload_format = 9
+     packager  = 1
   PPCODE:
-  if (pkg->h)
-  switch (ix) {
-    case 0:
-      push_utf8_name_only(get_name(pkg->h, RPMTAG_DESCRIPTION), 0); break;
-    case 1:
-      push_name_only(get_name(pkg->h, RPMTAG_SOURCERPM), 0); break;
-    case 2:
-      push_utf8_name_only(get_name(pkg->h, RPMTAG_PACKAGER), 0); break;
-    case 3:
-      push_name_only(get_name(pkg->h, RPMTAG_BUILDHOST), 0); break;
-    case 4:
-      push_name_only(get_name(pkg->h, RPMTAG_URL), 0); break;
-    case 5:
-      push_name_only(get_name(pkg->h, RPMTAG_LICENSE), 0); break;
-    case 6:
-      push_name_only(get_name(pkg->h, RPMTAG_DISTRIBUTION), 0); break;
-    case 7:
-      push_name_only(get_name(pkg->h, RPMTAG_VENDOR), 0); break;
-    case 8:
-      push_name_only(get_name(pkg->h, RPMTAG_OS), 0); break;
-    case 9:
-      push_name_only(get_name(pkg->h, RPMTAG_PAYLOADFORMAT), 0); break;
+  if (pkg->h) {
+       rpmTag tag = ix == 0 ? RPMTAG_DESCRIPTION : RPMTAG_PACKAGER;
+       mXPUSHs(newSVpv_utf8(get_name(pkg->h, tag), 0));
+  }
+
+void
+Pkg_sourcerpm(pkg)
+  URPM::Package pkg
+    ALIAS:
+     buildhost = 1
+     url       = 2
+     license   = 3
+     distribution = 4
+     vendor    = 5
+     os        = 6
+     payload_format = 7
+  PPCODE:
+  if (pkg->h) {
+       rpmTag tag;
+        switch (ix) {
+        case 1:
+        tag = RPMTAG_BUILDHOST; break;
+        case 2:
+        tag = RPMTAG_URL; break;
+        case 3:
+        tag = RPMTAG_LICENSE; break;
+        case 4:
+        tag = RPMTAG_DISTRIBUTION; break;
+        case 5:
+        tag = RPMTAG_VENDOR; break;
+        case 6:
+        tag = RPMTAG_OS; break;
+        case 7:
+        tag = RPMTAG_PAYLOADFORMAT; break;
+        default:
+        tag = RPMTAG_SOURCERPM; break;
+        }
+        mXPUSHs(newSVpv(get_name(pkg->h, tag), 0));
   }
 
 int
