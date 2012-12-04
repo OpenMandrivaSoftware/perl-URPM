@@ -6,6 +6,8 @@ Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
 - fix computing size of added/freed disk space when updating involves removing
   some packages (mga#4427)
 - support kernel 3.x in kmod resolution
+- prefer package from first medium when same NEVR exists in several media
+  (thus prefering 64bit media over 32 bit ones) (mga#7524)
 
 Version 4.44 - 16 March 2013, by Per Øyvind Karlsen
 
