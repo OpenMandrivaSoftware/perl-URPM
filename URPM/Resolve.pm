@@ -101,7 +101,7 @@ sub find_candidate_packages {
 sub get_installed_arch {
     my ($db, $n) = @_;
     my $arch;
-    $db->traverse_tag_find('name', $n, sub { $arch = $_[0]->arch });
+    $db->traverse_tag_find('name', $n, sub { $arch = $_[0]->arch; 1 });
     $arch;
 }
 
