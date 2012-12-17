@@ -1,5 +1,7 @@
 Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
 
+- prevent creating empty transactions in rare cases
+  (that cause rpm to abort on assert while creating a new pool)
 - prevent urpmi from looping forever when some packages are broken
 - API: add resolve_requested_suggests
 - add URPM::traverse_tag_find() for urpme --env

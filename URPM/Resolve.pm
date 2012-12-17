@@ -2024,7 +2024,7 @@ sub build_transaction_set {
 
     if ($state->{orphans_to_remove}) {
 	my @l = map { scalar $_->fullname } @{$state->{orphans_to_remove}};
-	push @{$state->{transaction}}, { remove  => \@l };
+	push @{$state->{transaction}}, { remove  => \@l } if @l;
     }
 
     $state->{transaction};
