@@ -1,3 +1,7 @@
+Version 4.44 - 14 January 2013, by Per Øyvind Karlsen
+
+- don't disable strict aliasing
+
 Version 4.43 -  9 June 2012, by Per Øyvind Karlsen
 
 - add a simple detectXZ() function for reading the magic ourself in situations
