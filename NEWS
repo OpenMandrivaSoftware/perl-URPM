@@ -1,5 +1,8 @@
-Version 4.44 - 14 January 2013, by Per Øyvind Karlsen
+Version 4.44 - 16 January 2013, by Per Øyvind Karlsen
 
+- move out some functions accessing berkeley db API directly into a RPMBDB
+  module built together with rpm in order to really guard ourself from
+  breakages during new major berkeley db version upgrades
 - don't disable strict aliasing
 
 Version 4.43 -  9 June 2012, by Per Øyvind Karlsen

@@ -47,7 +47,7 @@ ChangeLog:
 
 my $ldflags = `pkg-config --libs rpm`;
 chomp($ldflags);
-$ldflags .= " -lmagic -ldb";
+$ldflags .= " -lmagic";
 my $includes = `pkg-config --cflags-only-I rpm`;
 my $ccflags = join(' ', '-Wall -Wextra -std=gnu99', `pkg-config --cflags-only-other rpm`);
 chomp($ccflags);

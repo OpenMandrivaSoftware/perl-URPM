@@ -7,6 +7,7 @@ use File::Copy qw (copy);
 use File::Path qw (make_path remove_tree);
 use Cwd qw (abs_path);
 use URPM;
+use RPMBDB;
 
 my $db;
 
@@ -64,19 +65,19 @@ my @hashlittle = ("hash", "littleendian");
 remove_tree($tmp);
 make_path($tmpdbpath);
 copy("$rpmdb_btreebig/Packages", "$tmpdbpath/Packages");
-my @check = URPM::DB::info($tmp);
+my @check = RPMBDB::info($tmp);
 is_deeply(\@check, \@btreebig, "checking rpmdb (btree, big endian) type & ordering ok");
-ok(URPM::DB::convert($tmp, "hash", -1, 0), "converting to hash, little endian ordering");
-@check = URPM::DB::info($tmp);
+ok(RPMBDB::convert($tmp, "hash", -1, 0), "converting to hash, little endian ordering");
+@check = RPMBDB::info($tmp);
 is_deeply(\@check, \@hashlittle, "conversion to hash, little endian");
 
 remove_tree($tmp);
 make_path($tmpdbpath);
 copy("$rpmdb_hashlittle/Packages", "$tmpdbpath/Packages");
-@check = URPM::DB::info($tmp);
+@check = RPMBDB::info($tmp);
 is_deeply(\@check, \@hashlittle, "checking rpmdb (hash, little endian) type & ordering ok");
-ok(URPM::DB::convert($tmp, "btree", 1, 1), "converting to btree, big endian ordering");
-@check = URPM::DB::info($tmp);
+ok(RPMBDB::convert($tmp, "btree", 1, 1), "converting to btree, big endian ordering");
+@check = RPMBDB::info($tmp);
 is_deeply(\@check, \@btreebig, "conversion to btree, big endian");
 
 ok($db = URPM::DB::open($tmp), 'newly converted DB opened');
