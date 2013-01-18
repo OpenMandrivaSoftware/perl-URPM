@@ -202,13 +202,10 @@ get_nvra(const Header header) {
 
 #else
 
-/* Since the NVRA format won't change, we'll store it in a global variable so
- * that we only have to expand the macro once.
- */
-static const char *nvra_fmt = NULL;
-
 static const char *
 get_nvra_fmt() {
+  static const char *nvra_fmt = NULL;
+
   if(!nvra_fmt) {
     char *qfmt = rpmExpand("%{?___NVRA:%___NVRA}%{?!___NVRA:/%_build_name_fmt}", NULL);
     /* On older rpm versions '%___NVRA' isn't defined, so then we'll have to create
