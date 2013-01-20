@@ -1347,9 +1347,8 @@ parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *b
       pkg->info = memcpy(malloc(data_len), data, data_len);
       pkg->flag &= ~FLAG_ID;
       pkg->flag |= 1 + av_len(depslist);
-      URPM__Package _pkg;
-      SV *sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package",
-			    _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package)));
+      URPM__Package _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package));
+      SV *sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package", _pkg);
       if (call_package_callback(urpm, sv_pkg, callback)) {
 	if (provides) update_provides(_pkg, provides);
 	if (obsoletes) update_obsoletes(_pkg, obsoletes);
