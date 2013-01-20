@@ -1241,8 +1241,7 @@ update_provides_files(const URPM__Package pkg, HV *provides) {
     he->tag = RPMTAG_FILEPATHS;
     if(headerGet(pkg->h, he, 0)) {
       for (he->ix = 0; he->ix < (int)he->c; he->ix++) {
-	len = strlen(he->p.argv[he->ix]);
-	update_hash_entry(provides, he->p.argv[he->ix], len, 0, 0, pkg);
+	update_hash_entry(provides, he->p.argv[he->ix], 0, 0, 0, pkg);
       }
 
       he->p.ptr= _free(he->p.ptr);
