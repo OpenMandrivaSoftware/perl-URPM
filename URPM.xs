@@ -4168,10 +4168,9 @@ Urpm_stream2header(fp)
 	msg = (const char*)_free(msg);
         if (pkg->h) {
             SV *sv_pkg;
-            EXTEND(SP, 1);
             sv_pkg = sv_newmortal();
             sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
-            PUSHs(sv_pkg);
+            XPUSHs(sv_pkg);
         }
         Fclose(fd);
     }
