@@ -164,7 +164,7 @@ sub _is_selected_or_installed {
     my ($urpm, $db, $name) = @_;
 
     (grep { $_->flag_available } $urpm->packages_providing($name)) > 0 ||
-      $db->traverse_tag_find('name', $name, sub {}) > 0;
+      $db->traverse_tag('name', [ $name ], undef) > 0;
 }
 
 #- finds $pkg "provides" that matches $provide_name, and returns the version provided
