@@ -4165,12 +4165,8 @@ Urpm_stream2header(fp)
 	    break;
 	}
 	msg = (const char*)_free(msg);
-        if (pkg->h) {
-            SV *sv_pkg;
-            sv_pkg = sv_newmortal();
-            sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
-            XPUSHs(sv_pkg);
-        }
+        if (pkg->h)
+            XPUSHs(sv_setref_pv(sv_newmortal(), "URPM::Package", (void*)pkg));
         Fclose(fd);
     }
 
@@ -4189,7 +4185,6 @@ Urpm_spec2srcheader(specfile)
 /* Do not verify whether sources exist */
 #define SPEC_FORCE 1
   if (!parseSpec(ts, specfile, "/", 0, NULL, NULL, SPEC_ANYARCH, SPEC_FORCE, 0)) {
-    SV *sv_pkg;
     HE_t he = (HE_t)memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
     spec = rpmtsSetSpec(ts, NULL);
@@ -4211,9 +4206,7 @@ Urpm_spec2srcheader(specfile)
     }
 
     pkg->h = headerLink(spec->sourceHeader);
-    sv_pkg = sv_newmortal();
-    sv_setref_pv(sv_pkg, "URPM::Package", (void*)pkg);
-    XPUSHs(sv_pkg);
+    XPUSHs(sv_setref_pv(sv_newmortal(), "URPM::Package", (void*)pkg));
     spec = freeSpec(spec);
   } else {
     XPUSHs(&PL_sv_undef);
