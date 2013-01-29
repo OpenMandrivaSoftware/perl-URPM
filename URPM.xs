@@ -1354,7 +1354,6 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
 
 static void
 push_in_depslist(struct s_Package *_pkg, SV *urpm, AV *depslist, SV *callback, HV *provides, HV *obsoletes, int packing) {
-    // leak if callback ever returns 1 ! (never happen)
     SV *sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package", _pkg);
     if (call_package_callback(urpm, sv_pkg, callback)) {
       if (provides) {
