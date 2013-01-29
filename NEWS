@@ -1,5 +1,6 @@
 Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
 
+- enable to report script & I/O errors
 - fix scoring locale packages
 - prevent creating empty transactions in rare cases
   (that cause rpm to abort on assert while creating a new pool)

@@ -106,6 +106,7 @@ struct s_TransactionData {
   SV* callback_trans;
   SV* callback_uninst;
   SV* callback_inst;
+  SV* callback_error;
   long min_delta;
   SV *data; /* chain with another data user provided */
 };
@@ -1588,6 +1589,17 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
       callback = td->callback_inst;
       callback_type = "inst";
       break;
+    case RPMCALLBACK_SCRIPT_START:
+    case RPMCALLBACK_SCRIPT_STOP:
+      callback = td->callback_inst;
+      callback_type = "script";
+      break;
+    case RPMCALLBACK_CPIO_ERROR:
+    case RPMCALLBACK_SCRIPT_ERROR:
+    case RPMCALLBACK_UNPACK_ERROR:
+      callback = td->callback_error;
+      callback_type = "error";
+      break;
     default:
       break;
   }
@@ -1614,6 +1626,15 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
       case RPMCALLBACK_TRANS_STOP:
       case RPMCALLBACK_UNINST_STOP:
 	callback_subtype = "stop";
+	break;
+      case RPMCALLBACK_CPIO_ERROR:
+	callback_subtype = "cpio";
+	break;
+      case RPMCALLBACK_SCRIPT_ERROR:
+	callback_subtype = "script";
+	break;
+      case RPMCALLBACK_UNPACK_ERROR:
+	callback_subtype = "unpack";
 	break;
       default:
 	break;
@@ -3228,7 +3249,7 @@ Trans_run(trans, data, ...)
   URPM::Transaction trans
   SV *data
   PREINIT:
-  struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, 100000, data };
+  struct s_TransactionData td = { NULL, NULL, NULL, NULL, NULL, NULL, 100000, data };
   rpmtransFlags transFlags = RPMTRANS_FLAG_NONE;
   int probFilter = 0;
   int translate_message = 0, raw_message = 0;
@@ -3290,6 +3311,8 @@ Trans_run(trans, data, ...)
 	if (SvROK(ST(i+1))) td.callback_uninst = ST(i+1);
       } else if (len == 9+4 && !memcmp(s+9, "inst", 4)) {
 	if (SvROK(ST(i+1))) td.callback_inst = ST(i+1);
+      } else if (len == 9+4 && !memcmp(s+9, "errror", 6)) {
+	if (SvROK(ST(i+1))) td.callback_error = ST(i+1);
       }
     }
   }
