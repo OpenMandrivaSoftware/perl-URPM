@@ -1608,13 +1608,14 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
       ENTER;
       SAVETMPS;
       PUSHMARK(SP);
-      XPUSHs(td->data);
-      push_name_only(callback_type, 0);
-      XPUSHs(pkgKey != NULL ? sv_2mortal(newSViv((long)pkgKey - 1)) : &PL_sv_undef);
+      EXTEND(SP, callback_subtype == NULL ? 2 : 5);
+      PUSHs(td->data);
+      mPUSHs(newSVpv(callback_type, 0));
+      PUSHs(pkgKey != NULL ? sv_2mortal(newSViv((long)pkgKey - 1)) : &PL_sv_undef);
       if (callback_subtype != NULL) {
-	push_name_only(callback_subtype, 0);
-	mXPUSHs(newSViv(amount));
-	mXPUSHs(newSViv(total));
+	mPUSHs(newSVpv(callback_subtype, 0));
+	mPUSHs(newSViv(amount));
+	mPUSHs(newSViv(total));
       }
       PUTBACK;
       i = call_sv(callback, callback == td->callback_open ? G_SCALAR : G_DISCARD);
