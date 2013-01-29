@@ -340,6 +340,9 @@ Compare EVR containers for equality.
 This method gets the B<depslist> and the B<provides> from a synthesis file
 and adds them to the URPM object.
 
+The return value is a two-element array containing the first and the last id
+parsed.
+
 =item $urpm->parse_hdlist($file, %options)
 
 This method loads rpm informations from rpm headers contained in an hdlist
