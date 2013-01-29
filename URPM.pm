@@ -303,15 +303,25 @@ and C<URPM::Transaction>.
 The constructor creates a new, empty URPM object. It's a blessed hash that
 contains three fields:
 
+=over
+
+=item *
+
 B<depslist> is an arrayref containing the list of depending packages (which are
 C<URPM::Package> objects).
+
+=item *
 
 B<obsoletes> is an hashref containing as keys the list of property names
 obsoleted by the URPM object.
 
+=item *
+
 B<provides> is an hashref containing as keys the list of property names
 provided by the URPM object. The associated value is true if the property is
 versioned.
+
+=back
 
 If the constructor is called with the arguments C<< nofatal => 1 >>, various
 fatal error messages are suppressed (file not found in parse_hdlist() and
