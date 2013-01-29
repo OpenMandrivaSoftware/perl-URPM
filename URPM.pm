@@ -301,10 +301,13 @@ and C<URPM::Transaction>.
 =item URPM->new()
 
 The constructor creates a new, empty URPM object. It's a blessed hash that
-contains two fields:
+contains three fields:
 
 B<depslist> is an arrayref containing the list of depending packages (which are
 C<URPM::Package> objects).
+
+B<obsoletes> is an hashref containing as keys the list of property names
+obsoleted by the URPM object.
 
 B<provides> is an hashref containing as keys the list of property names
 provided by the URPM object. The associated value is true if the property is
@@ -803,6 +806,7 @@ It's usually the $urpm object.
 Recognized options are:
 
     callback_close  => sub { ... }
+    callback_error  => sub { ... }
     callback_inst   => sub { ... }
     callback_open   => sub { ... }
     callback_trans  => sub { ... }
@@ -828,7 +832,8 @@ C<$cb_type> is one of 'open' or 'close'.
 
 Other Callbacks signature is callback(C<$data>, C<$cb_type>, C<$pkg_id>, C<$subtype>, C<$amout>, C<$total>)
 
-C<$cb_type> is one of 'inst', 'trans' or 'uninst'. C<$subtype> can be 'start', 'progress' or 'stop'.
+C<$cb_type> is one of 'error', 'inst', 'trans' or 'uninst'. C<$subtype> can be 'start', 'progress' or 'stop'.
+For 'error', it can be 'cpio', 'script' or 'unpack'.
 
 The purpose of those callbacks is to report progress (the two last parameters (C<$amount> & C<$total>) enable to compute progress percentage).
 
