@@ -1344,8 +1344,9 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
     /* now, a callback will be called for sure */
     dSP;
     PUSHMARK(SP);
-    XPUSHs(urpm);
-    XPUSHs(sv_pkg);
+    EXTEND(SP, 2);
+    PUSHs(urpm);
+    PUSHs(sv_pkg);
     PUTBACK;
     count = call_sv(callback, G_SCALAR);
     SPAGAIN;
