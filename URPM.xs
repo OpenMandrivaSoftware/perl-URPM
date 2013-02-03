@@ -329,6 +329,18 @@ rpmtag_from_string(const char *tag)
   croak("unknown tag [%s]", tag);
 }
 
+static unsigned mask_from_string(char *name) {
+  unsigned mask;
+  if (!strcmp(name, "skip")) mask = FLAG_SKIP;
+  else if (!strcmp(name, "disable_obsolete")) mask = FLAG_DISABLE_OBSOLETE;
+  else if (!strcmp(name, "installed")) mask = FLAG_INSTALLED;
+  else if (!strcmp(name, "requested")) mask = FLAG_REQUESTED;
+  else if (!strcmp(name, "required")) mask = FLAG_REQUIRED;
+  else if (!strcmp(name, "upgrade")) mask = FLAG_UPGRADE;
+  else croak("unknown flag: %s", name);
+  return mask;
+}
+
 static const char *
 get_name(const Header header, rpmTag tag) {
   HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
@@ -2639,13 +2651,7 @@ Pkg_flag(pkg, name)
   PREINIT:
   unsigned mask;
   CODE:
-  if (!strcmp(name, "skip")) mask = FLAG_SKIP;
-  else if (!strcmp(name, "disable_obsolete")) mask = FLAG_DISABLE_OBSOLETE;
-  else if (!strcmp(name, "installed")) mask = FLAG_INSTALLED;
-  else if (!strcmp(name, "requested")) mask = FLAG_REQUESTED;
-  else if (!strcmp(name, "required")) mask = FLAG_REQUIRED;
-  else if (!strcmp(name, "upgrade")) mask = FLAG_UPGRADE;
-  else croak("unknown flag: %s", name);
+  mask = mask_from_string(name);
   RETVAL = pkg->flag & mask;
   OUTPUT:
   RETVAL
@@ -2658,13 +2664,7 @@ Pkg_set_flag(pkg, name, value=1)
   PREINIT:
   unsigned mask;
   CODE:
-  if (!strcmp(name, "skip")) mask = FLAG_SKIP;
-  else if (!strcmp(name, "disable_obsolete")) mask = FLAG_DISABLE_OBSOLETE;
-  else if (!strcmp(name, "installed")) mask = FLAG_INSTALLED;
-  else if (!strcmp(name, "requested")) mask = FLAG_REQUESTED;
-  else if (!strcmp(name, "required")) mask = FLAG_REQUIRED;
-  else if (!strcmp(name, "upgrade")) mask = FLAG_UPGRADE;
-  else croak("unknown flag: %s", name);
+  mask = mask_from_string(name);
   RETVAL = pkg->flag & mask;
   if (value) pkg->flag |= mask;
   else       pkg->flag &= ~mask;
