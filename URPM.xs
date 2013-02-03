@@ -3313,7 +3313,7 @@ Trans_run(trans, data, ...)
 	if (SvROK(ST(i+1))) td.callback_uninst = ST(i+1);
       } else if (len == 9+4 && !memcmp(s+9, "inst", 4)) {
 	if (SvROK(ST(i+1))) td.callback_inst = ST(i+1);
-      } else if (len == 9+4 && !memcmp(s+9, "errror", 6)) {
+      } else if (len == 9+5 && !memcmp(s+9, "error", 5)) {
 	if (SvROK(ST(i+1))) td.callback_error = ST(i+1);
       }
     }
