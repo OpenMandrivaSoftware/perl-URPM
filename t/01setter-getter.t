@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 63;
+use Test::More tests => 64;
 use URPM;
 
 
@@ -16,6 +16,7 @@ ok(@{$u->{depslist}} == 1, 'depslist');
 
 my $pkg = $u->{depslist}[0];
 ok($pkg, 'Package');
+is($pkg->payload_format, 'cpio', 'payload');
 
 is($pkg->rflags, undef, 'default rflags');
 is($pkg->set_rflags(1, 3), undef, 'storing rflags');
