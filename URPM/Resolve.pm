@@ -999,7 +999,7 @@ sub resolve_requested__no_suggests_ {
 	    } else {
 		_set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 
-		if ($pkg->flag_installed && !$pkg->flag_upgrade) {
+		if ($pkg->flag_installed && !$pkg->flag_upgrade && !$urpm->{options}{downgrade}) {
 		    _no_more_recent_installed_and_providing($urpm, $db, $state, $pkg, $dep->{required}) or next;
 		}
 	    }
@@ -1204,9 +1204,9 @@ sub _unselect_package_deprecated_by_property {
 	    if ($o && $comparison > 0) {
 		#- installed package is newer
 		#- remove this package from the list of packages to install,
-		#- unless urpmi was invoked with --allow-force (in which
-		#- case rpm could be invoked with --oldpackage)
-		if (!$urpm->{options}{'allow-force'}) {
+		#- unless urpmi was invoked with --allow-force 
+		#- (in which case rpm could be invoked with --oldpackage)
+		if (!$urpm->{options}{'allow-force'} && !$urpm->{options}{downgrade}) {
 		    #- since the originally requested packages (or other
 		    #- non-installed ones) could be unselected by the following
 		    #- operation, remember them, to warn the user
