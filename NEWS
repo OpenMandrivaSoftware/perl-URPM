@@ -1,4 +1,4 @@
-Version 4.44 - 16 January 2013, by Per Øyvind Karlsen
+Version 4.44 - 16 March 2013, by Per Øyvind Karlsen
 
 - disable rpmlint for building test package during regression tests
 - move out some functions accessing berkeley db API directly into a RPMBDB
