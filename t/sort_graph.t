@@ -54,6 +54,7 @@ sub check_it {
     ok(@sorted > 0);
 
     if (!@sorted && $dump_it) {
+ 	no warnings 'once';
 	require Data::Dumper;
 	$Data::Dumper::Sortkeys = 1;
 	warn Data::Dumper::Dumper($list_unsorted, $requires);
