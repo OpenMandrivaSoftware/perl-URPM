@@ -49,7 +49,7 @@ my $ldflags = `pkg-config --libs rpm`;
 chomp($ldflags);
 $ldflags .= " -lmagic";
 my $includes = `pkg-config --cflags-only-I rpm`;
-my $ccflags = join(' ', '-Wall -Wextra -std=gnu99', `pkg-config --cflags-only-other rpm`);
+my $ccflags = join(' ', '-Wall -Wextra -std=gnu11', `pkg-config --cflags-only-other rpm`);
 chomp($ccflags);
 
 print "Found RPM version $version (compiling with flags: $ccflags)\n";
