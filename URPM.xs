@@ -2642,7 +2642,7 @@ Pkg_set_flag_skip(pkg, value=1)
     set_flag_required = 5
     set_flag_upgrade = 6
   CODE:
-  unsigned flag;
+  unsigned flag = 0;
   switch (ix) {
   case 0: flag = FLAG_SKIP; break;
   case 1: flag = FLAG_BASE; break;
@@ -2670,7 +2670,7 @@ Pkg_flag_required(pkg)
     flag_base = 5
     flag_skip = 6
   CODE:
-  unsigned flag;
+  unsigned flag = 0;
   switch (ix) {
   case 0: flag = FLAG_REQUIRED; break;
   case 1: flag = FLAG_UPGRADE; break;
