@@ -1598,15 +1598,18 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
       break;
     case RPMCALLBACK_INST_START:
     case RPMCALLBACK_INST_PROGRESS:
-    case RPMCALLBACK_INST_STOP:
+    // TODO: implement in rpm
+    // case RPMCALLBACK_INST_STOP:
       callback = td->callback_inst;
       callback_type = "inst";
       break;
+    // TODO: implement in rpm
+    /*
     case RPMCALLBACK_SCRIPT_START:
     case RPMCALLBACK_SCRIPT_STOP:
       callback = td->callback_inst;
       callback_type = "script";
-      break;
+      break;*/
     case RPMCALLBACK_CPIO_ERROR:
     case RPMCALLBACK_SCRIPT_ERROR:
     case RPMCALLBACK_UNPACK_ERROR:
@@ -1636,7 +1639,8 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
 	else
 	  tprev = tcurr;
 	break;
-      case RPMCALLBACK_INST_STOP:
+      // TODO: implement in rpm
+      // case RPMCALLBACK_INST_STOP:
       case RPMCALLBACK_TRANS_STOP:
       case RPMCALLBACK_UNINST_STOP:
 	callback_subtype = "stop";
