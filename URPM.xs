@@ -1248,7 +1248,6 @@ update_obsoletes(const URPM__Package pkg, HV *obsoletes) {
 static void
 update_provides_files(const URPM__Package pkg, HV *provides) {
   if (pkg->h) {
-    STRLEN len;
     HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
     he->tag = RPMTAG_FILEPATHS;
