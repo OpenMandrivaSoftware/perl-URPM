@@ -2996,7 +2996,7 @@ Db_traverse_tag_find(db,tag,name,callback)
   ts_nosignature(db->ts);
   mi = rpmtsInitIterator(db->ts, rpmtag, name, 0);
   while ((header = rpmmiNext(mi))) {
-      dSP,
+      dSP;
       int count = _run_cb_while_traversing(callback, header, 0);
 
       SPAGAIN;
