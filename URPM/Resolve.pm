@@ -560,8 +560,8 @@ sub with_state_unsatisfied_requires {
 
 sub with_any_unsatisfied_requires {
     my ($urpm, $db, $state, $name, $do) = @_;
-    with_db_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 0, @l)});
-    with_state_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 1, @l)});
+    with_db_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 0, @l) });
+    with_state_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 1, @l) });
 }
 
 
@@ -594,7 +594,7 @@ sub backtrack_selected {
 
 			my $closure = $state->{rejected}{$_->fullname}{closure} || {};
 			foreach my $p (grep { exists $closure->{$_}{avoid} } keys %$closure) {
-				_add_rejected_backtrack($state, $_, { conflicts => [ $p ] })
+				_add_rejected_backtrack($state, $_, { conflicts => [ $p ] });
 			}
 			#- backtrack callback should return a strictly positive value if the selection of the new
 			#- package is prefered over the currently selected package.
@@ -1260,6 +1260,7 @@ sub _find_packages_obsoleting {
     my ($urpm, $state, $p) = @_;
 
     grep {
+	$_ &&
 	!$_->flag_skip
 	  && $_->is_arch_compat
 	    && !exists $state->{rejected}{$_->fullname}
@@ -1287,7 +1288,7 @@ sub _handle_diff_provides {
 	@packages = 
 	  grep { ($_->name eq $p->name ? $p->compare_pkg($_) < 0 :
 		    $_->obsoletes_overlap($p->name . " == " . $p->evr))
-		   && (!strict_arch($urpm) || strict_arch_check($p, $_))
+		   && (!strict_arch($urpm) || strict_arch_check($p, $_));
 	     } @packages;
 
 	if (!@packages) {
