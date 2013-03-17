@@ -14,9 +14,20 @@ END {
     system("rm -rf tmp"); 
 }
 
+# workaround because I suck...
+sub _find_candidate_packages {
+    my ($urpm, $id_prop, $o_rejected) = @_;
+
+    my %packages;
+    foreach ($urpm->find_candidate_packages($id_prop, $o_rejected)) {
+	push @{$packages{$_->name}}, $_;
+    }
+    \%packages;
+}
+
 sub solve_check {
     my ($pkg, $pkgtotal, $suggest, $write, $suffix) = @_;
-    my $cand_pkgs = $urpm->find_candidate_packages($pkg);
+    my $cand_pkgs = _find_candidate_packages($urpm, $pkg);
     my @pkgs;
     my $out = "";
     my $in = "";
