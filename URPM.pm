@@ -30,7 +30,10 @@ sub set_nofatal { $_[0]{nofatal} = $_[1] }
 
 sub packages_providing {
     my ($urpm, $name) = @_;
-    grep { $_ } map { $urpm->{depslist}[$_] } sort { $a <=> $b } keys %{$urpm->{provides}{$name} || {}};
+    grep { $_ } map { $urpm->{depslist}[$_] } keys %{$urpm->{provides}{$name} || {}};
+    # FIXME: seems at first look to possibly have other side effects in dependency solving, so let's
+    # postpone this one for now
+#    grep { $_ } map { $urpm->{depslist}[$_] } sort { $a <=> $b } keys %{$urpm->{provides}{$name} || {}};
 }
 
 sub packages_obsoleting {
