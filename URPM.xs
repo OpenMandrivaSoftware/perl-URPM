@@ -1336,21 +1336,19 @@ call_package_callback(SV *urpm, SV *sv_pkg, SV *callback) {
 
 static int
 parse_line(AV *depslist, HV *provides, HV *obsoletes, URPM__Package pkg, char *buff, SV *urpm, SV *callback) {
-  SV *sv_pkg;
-  URPM__Package _pkg;
   char *tag, *data;
-  int data_len;
 
   if (buff[0] == 0)
     return 1;
   else if ((tag = buff)[0] == '@' && (data = strchr(tag+1, '@')) != NULL) {
     *tag++ = *data++ = 0;
-    data_len = 1+strlen(data);
+    int data_len = 1+strlen(data);
     if (!strcmp(tag, "info")) {
       pkg->info = memcpy(malloc(data_len), data, data_len);
       pkg->flag &= ~FLAG_ID;
       pkg->flag |= 1 + av_len(depslist);
-      sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package",
+      URPM__Package _pkg;
+      SV *sv_pkg = sv_setref_pv(newSVpvs(""), "URPM::Package",
 			    _pkg = memcpy(malloc(sizeof(struct s_Package)), pkg, sizeof(struct s_Package)));
       if (call_package_callback(urpm, sv_pkg, callback)) {
 	if (provides) update_provides(_pkg, provides);
