@@ -681,36 +681,47 @@ xpush_simple_list_str(const Header header, rpmTag tag_name) {
 }
 
 static void
-return_list_number(const Header header, rpmTag tag_name) {
+get_header_data(const Header header, rpmTag tag_name) {
   dSP;
-  if (header) {
-    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
+  HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
-    he->tag = tag_name;
-    if (headerGet(header, he, 0)) {
-	switch (he->t) {
-	  case RPM_UINT8_TYPE:
-	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
-	      mXPUSHs(newSViv(he->p.ui8p[he->ix]));
-	    break;
-	  case RPM_UINT16_TYPE:
-	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
-	      mXPUSHs(newSViv(he->p.ui16p[he->ix]));
-	    break;
-	  case RPM_UINT32_TYPE:
-	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
-	      mXPUSHs(newSViv(he->p.ui32p[he->ix]));
-	    break;
-	  case RPM_UINT64_TYPE:
-	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
-	      mXPUSHs(newSViv(he->p.ui64p[he->ix]));
-	    break;
-	  default:
-	    break;
-	}
-      he->p.ptr = _free(he->p.ptr);
-    }
+  he->tag = tag_name;
+
+  if (headerGet(header, he, 0)) {
+    if (tag_name == RPMTAG_ARCH)
+      push_name_only((headerIsEntry(header, RPMTAG_SOURCERPM) ? he->p.str : "src"), 0);
+    else
+      switch (he->t) {
+	case RPM_UINT8_TYPE:
+	  for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	    mXPUSHs(newSViv(he->p.ui8p[he->ix]));
+	  break;
+	case RPM_UINT16_TYPE:
+	  for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	    mXPUSHs(newSViv(he->p.ui16p[he->ix]));
+	  break;
+	case RPM_UINT32_TYPE:
+	  for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	    mXPUSHs(newSViv(he->p.ui32p[he->ix]));
+	  break;
+	case RPM_UINT64_TYPE:
+	  for (he->ix=0; he->ix < (int)he->c; he->ix++)
+	    mXPUSHs(newSViv(he->p.ui64p[he->ix]));
+	  break;
+	case RPM_STRING_TYPE:
+	  push_name_only(he->p.str, 0);
+	  break;
+	case RPM_BIN_TYPE:
+	  break;
+	case RPM_STRING_ARRAY_TYPE:
+	  for (he->ix = 0; he->ix < (int)he->c; he->ix++)
+	    push_name_only(he->p.argv[he->ix], 0);
+	  break;
+	case RPM_I18NSTRING_TYPE:
+	  break;
+      }
   }
+  he->p.ptr = _free(he->p.ptr);
   PUTBACK;
 }
 
@@ -759,42 +770,16 @@ return_list_tag(const URPM__Package pkg, const char *tag_name) {
   dSP;
   rpmTag tag = isdigit(*tag_name) ? (rpmTag)atoi(tag_name) : rpmtag_from_string(tag_name);
 
-  if (pkg->h != NULL) {
-    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
-
-    he->tag = tag;
+  if (pkg->h != NULL)
     if (!strcasecmp(tag_name, "nvra")) {
       const char *nvra = get_nvra(pkg->h);
       push_name_only(nvra, 0);
       _free(nvra);
-    } else if (headerGet(pkg->h, he, 0)) {
-      if (tag == RPMTAG_ARCH)
-	push_name_only((headerIsEntry(pkg->h, RPMTAG_SOURCERPM) ? he->p.str : "src"), 0);
-      else
-	switch (he->t) {
-	  case RPM_UINT8_TYPE:
-	  case RPM_UINT16_TYPE:
-	  case RPM_UINT32_TYPE:
-	    for (he->ix=0; he->ix < (int)he->c; he->ix++)
-	      mXPUSHs(newSViv(he->p.ui32p[he->ix]));
-	    break;
-	  case RPM_STRING_TYPE:
-	    push_name_only(he->p.str, 0);
-	    break;
-	  case RPM_BIN_TYPE:
-	    break;
-	  case RPM_STRING_ARRAY_TYPE:
-	    for (he->ix = 0; he->ix < (int)he->c; he->ix++)
-	      push_name_only(he->p.argv[he->ix], 0);
-	    break;
-	  case RPM_I18NSTRING_TYPE:
-	    break;
-	  case RPM_UINT64_TYPE:
-	    break;
-	}
-      he->p.ptr = _free(he->p.ptr);
+    } else {
+      get_header_data(pkg->h, tag);
+      return;
     }
-  } else {
+  else {
     char *name;
     int epoch;
     char *version;
@@ -2444,7 +2429,7 @@ Pkg_files_mtime(pkg)
        case 6: tag = RPMTAG_CHANGELOGTIME; break;
        default: tag = RPMTAG_FILEMTIMES; break;
        }
-       return_list_number(pkg->h, tag);
+       get_header_data(pkg->h, tag);
   SPAGAIN;
 
 void
