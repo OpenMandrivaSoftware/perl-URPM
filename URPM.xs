@@ -1494,15 +1494,6 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	}
 	(void)rpmtsFree(ts);
       } else if (sig[0] == 0x8e && sig[1] == 0xad && sig[2] == 0xe8 && sig[3] == 0x01) {
-	  /* store package size in header */
-	  HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
-	  he->tag = RPMTAG_PACKAGESIZE;
-	  if (headerGet(header, he, 0)) {
-	    if (he->p.ui64p && *he->p.ui64p) 
-	      headerPut(header, he, 0);
-	    _free(he->p.ptr);
-	  }
-
 	FD_t fd = fdDup(d);
 
 	close(d);
@@ -1517,8 +1508,17 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	    rpmlog(RPMLOG_ERR, "%s: %s: %s\n", "rpmpkgRead", item, msg);
 	  case RPMRC_NOTFOUND:
 	    pkg->h = NULL;
-	  case RPMRC_OK:
+	  case RPMRC_OK: {
+	    /* store package size in header */
+	    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
+	    he->tag = RPMTAG_PACKAGESIZE;
+	    if (headerGet(pkg->h, he, 0)) {
+	      if (he->p.ui64p && *he->p.ui64p) 
+	        headerPut(pkg->h, he, 0);
+	      _free(he->p.ptr);
+	    }
 	    break;
+	    }
 	  }
 	  msg = (const char*)_free(msg);
 
