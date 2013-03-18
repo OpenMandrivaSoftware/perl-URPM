@@ -2410,26 +2410,16 @@ Pkg_buildarchs(pkg)
   PUTBACK;
        rpmTag tag;
        switch (ix) {
-       case 1:
-	    tag = RPMTAG_EXCLUDEARCH; break;
-       case 2:
-            tag = RPMTAG_EXCLUSIVEARCH; break;
-       case 3:
-            tag = RPMTAG_DIRNAMES; break;
-       case 4:
-            tag = RPMTAG_FILELINKTOS; break;
-       case 5:
-            tag = RPMTAG_FILEDIGESTS; break;
-       case 6:
-            tag = RPMTAG_FILEUSERNAME; break;
-       case 7:
-            tag = RPMTAG_FILEGROUPNAME; break;
-       case 8:
-            tag = RPMTAG_CHANGELOGNAME; break;
-       case 9:
-            tag = RPMTAG_CHANGELOGTEXT; break;
-       default:
-            tag = RPMTAG_BUILDARCHS; break;
+       case 1: tag = RPMTAG_EXCLUDEARCH; break;
+       case 2: tag = RPMTAG_EXCLUSIVEARCH; break;
+       case 3: tag = RPMTAG_DIRNAMES; break;
+       case 4: tag = RPMTAG_FILELINKTOS; break;
+       case 5: tag = RPMTAG_FILEDIGESTS; break;
+       case 6: tag = RPMTAG_FILEUSERNAME; break;
+       case 7: tag = RPMTAG_FILEGROUPNAME; break;
+       case 8: tag = RPMTAG_CHANGELOGNAME; break;
+       case 9: tag = RPMTAG_CHANGELOGTEXT; break;
+       default: tag = RPMTAG_BUILDARCHS; break;
        }
       xpush_simple_list_str(pkg->h, tag);
 
