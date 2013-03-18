@@ -153,12 +153,6 @@ typedef struct s_Package* URPM__Package;
 #define FILTER_MODE_DOC_FILES     1
 #define FILTER_MODE_CONF_FILES    2
 
-#if BYTE_ORDER == LITTLE_ENDIAN
-#define bswap32(x) htobe32(x)
-#elif __BYTE_ORDER == BIG_ENDIAN
-#define bswap32(x) htole32(x)
-#endif
-
 static ssize_t
 write_nocheck(int fd, const void *buf, size_t count) {
   return write(fd, buf, count);
