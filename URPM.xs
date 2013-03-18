@@ -2450,20 +2450,13 @@ Pkg_files_mtime(pkg)
   PUTBACK;
        rpmTag tag;
        switch (ix) {
-       case 1:
-            tag = RPMTAG_FILESIZES; break;
-       case 2:
-            tag = RPMTAG_FILEUIDS; break;
-       case 3:
-            tag = RPMTAG_FILEGIDS; break;
-       case 4:
-            tag = RPMTAG_FILEMODES; break;
-       case 5:
-            tag = RPMTAG_FILEFLAGS; break;
-       case 6:
-            tag = RPMTAG_CHANGELOGTIME; break;
-       default:
-            tag = RPMTAG_FILEMTIMES; break;
+       case 1: tag = RPMTAG_FILESIZES; break;
+       case 2: tag = RPMTAG_FILEUIDS; break;
+       case 3: tag = RPMTAG_FILEGIDS; break;
+       case 4: tag = RPMTAG_FILEMODES; break;
+       case 5: tag = RPMTAG_FILEFLAGS; break;
+       case 6: tag = RPMTAG_CHANGELOGTIME; break;
+       default: tag = RPMTAG_FILEMTIMES; break;
        }
        return_list_number(pkg->h, tag);
   SPAGAIN;
