@@ -5,6 +5,8 @@ package URPM;
 use strict;
 use warnings;
 
+# perl_checker: require URPM
+
 sub _get_tmp_dir () {
     my $t = $ENV{TMPDIR};
     $t && -w $t or $t = '/tmp';
@@ -424,7 +426,7 @@ sub build_synthesis {
     @idlist = $urpm->build_listid($options{start}, $options{end}, $options{idlist});
 
     $ratio = $options{ratio} || 9;
-    $filter = $options{filter} ? $options{filter} : "gzip -$ratio";
+    $filter = $options{filter} || "gzip -$ratio";
     $options{synthesis} || defined $options{fd} or die "invalid parameters given";
 
     #- first pass: traverse provides to find files provided.

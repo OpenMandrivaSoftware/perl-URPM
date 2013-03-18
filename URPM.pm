@@ -26,7 +26,9 @@ sub new {
     $self;
 }
 
-sub set_nofatal { $_[0]{nofatal} = $_[1] }
+sub set_nofatal {
+    my ($urpm, $bool) = @_;
+    $urpm->{nofatal} = $bool }
 
 sub packages_providing {
     my ($urpm, $name) = @_;

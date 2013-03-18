@@ -2,6 +2,7 @@ package URPM;
 
 use strict;
 use warnings;
+# perl_checker: require URPM
 
 #- parse from rpmlib db.
 #-
@@ -30,7 +31,7 @@ sub parse_pubkeys_ {
             my $found_blank = 0;
 	    foreach (split "\n", $p->description) {
 		if ($block) {
-                    if (/^$/ and not $found_blank) {
+                    if (/^$/ && !$found_blank) {
                         # All content until now were the encapsulated pem
                         # headers...
                         $content = '';
@@ -58,7 +59,7 @@ sub parse_pubkeys_ {
 }
 
 #- obsoleted
-sub import_needed_pubkeys {
+sub import_needed_pubkeys() {
     warn "import_needed_pubkeys prototype has changed, please give a file directly\n";
     return;
 }
@@ -85,7 +86,7 @@ sub import_needed_pubkeys_from_file {
 
     #- let the caller know about what has been found.
     #- this is an error if the key is not found.
-    $o_callback and $o_callback->($kv?$kv->{id}:undef, $imported);
+    $o_callback and $o_callback->($kv ? $kv->{id} : undef, $imported);
 }
 
 1;

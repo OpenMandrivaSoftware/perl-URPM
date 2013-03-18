@@ -8,6 +8,7 @@ use strict;
 use warnings;
 use Config;
 
+# perl_checker: require URPM
 
 #- a few functions from MDK::Common copied here:
 sub any(&@) {
@@ -1650,7 +1651,7 @@ sub compute_flags {
 	my $re = qr/$large_re_s/;
 
 	foreach my $pkg (@{$urpm->{depslist}}) {
-	    if ($pkg->fullname =~ $re){
+	    if ($pkg->fullname =~ $re) {
 		compute_flag($urpm, $pkg, %options);
 	    }
 	}
