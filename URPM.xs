@@ -689,6 +689,12 @@ xpush_simple_list_str(const Header header, rpmTag tag_name) {
   } else return 0;
 }
 
+static size_t
+get_filesize(const Header h) {
+  size_t size = get_int_flags(h, RPMTAG_PACKAGESIZE, HEADERGET_NOEXTENSION);
+  return size ? size : get_int(h, RPMTAG_SIGSIZE) + 440; /* 440 is the rpm header size (?) empirical, but works */
+}
+
 static void
 get_header_data(const Header header, rpmTag tag_name) {
   dSP;
@@ -1088,7 +1094,7 @@ pack_header(const URPM__Package pkg) {
       _free(group);
       _free(nvra);
     }
-    if (pkg->filesize == 0) pkg->filesize = get_int_flags(pkg->h, RPMTAG_PACKAGESIZE, HEADERGET_NOEXTENSION);
+    if (pkg->filesize == 0) pkg->filesize = get_filesize(pkg->h);
     if (pkg->requires == NULL && pkg->suggests == NULL)
       has_old_suggests = 0;
       pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_old_suggests);
@@ -1519,17 +1525,8 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	    rpmlog(RPMLOG_ERR, "%s: %s: %s\n", "rpmpkgRead", item, msg);
 	  case RPMRC_NOTFOUND:
 	    pkg->h = NULL;
-	  case RPMRC_OK: {
-	    /* store package size in header */
-	    HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
-	    he->tag = RPMTAG_PACKAGESIZE;
-	    if (headerGet(pkg->h, he, 0)) {
-	      if (he->p.ui64p && *he->p.ui64p) 
-	        headerPut(pkg->h, he, 0);
-	      _free(he->p.ptr);
-	    }
+	  case RPMRC_OK:
 	    break;
-	    }
 	  }
 	  msg = (const char*)_free(msg);
 
@@ -2225,7 +2222,7 @@ Pkg_filesize(pkg)
   if (pkg->filesize)
     RETVAL = pkg->filesize;
   else if (pkg->h)
-    RETVAL = get_int_flags(pkg->h, RPMTAG_PACKAGESIZE, HEADERGET_NOEXTENSION);
+    RETVAL = get_filesize(pkg->h);
   else RETVAL = 0;
   OUTPUT:
   RETVAL
