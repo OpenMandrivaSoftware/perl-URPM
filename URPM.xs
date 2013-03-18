@@ -347,15 +347,31 @@ get_name_flags(const Header header, rpmTag tag, unsigned int flags) {
 }
 
 #define get_int(header, tag) get_int_flags(header, tag, 0)
-static int
+static int64_t
 get_int_flags(const Header header, rpmTag tag, unsigned int flags) {
-  HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
-  int ret = 0;
+  HE_t he = (HE_t)memset(alloca(sizeof(*he)), 0, sizeof(*he));
+  int64_t ret = 0;
 
-  val->tag = tag;
-  if(headerGet(header, val, flags)) {
-    ret = (val->t == RPM_UINT32_TYPE) ? val->p.ui32p[val->ix >= 0 ? val->ix : 0] : 0;
-    val->p.ui32p = _free(val->p.ui32p);
+  he->tag = tag;
+  if(headerGet(header, he, flags)) {
+      switch (he->t) {
+	case RPM_UINT8_TYPE:
+	  ret = (he->t == RPM_UINT8_TYPE) ? he->p.ui8p[he->ix >= 0 ? he->ix : 0] : 0;
+	  break;
+	case RPM_UINT16_TYPE:
+	  ret = (he->t == RPM_UINT16_TYPE) ? he->p.ui16p[he->ix >= 0 ? he->ix : 0] : 0;
+	  break;
+	case RPM_UINT32_TYPE:
+	  ret = (he->t == RPM_UINT32_TYPE) ? he->p.ui32p[he->ix >= 0 ? he->ix : 0] : 0;
+	  break;
+	case RPM_UINT64_TYPE:
+	  ret = (he->t == RPM_UINT64_TYPE) ? he->p.ui64p[he->ix >= 0 ? he->ix : 0] : 0;
+	  break;
+	default:
+	  break;
+      }
+
+    _free(he->p.ptr);
   }
   return ret;
 }
@@ -427,11 +443,6 @@ get_fullname_parts(const URPM__Package pkg, char **name, int *epoch, char **vers
       }
     }
   }
-}
-
-static size_t
-get_filesize(const Header h) {
-  return get_int(h, RPMTAG_SIGSIZE) + 440; /* 440 is the rpm header size (?) empirical, but works */
 }
 
 static int
@@ -1057,8 +1068,8 @@ pack_header(const URPM__Package pkg) {
       const char *disttag = get_name(pkg->h, RPMTAG_DISTTAG);
       const char *distepoch = get_name(pkg->h, RPMTAG_DISTEPOCH);
 
-      p += snprintf(buff, sizeof(buff), "%s@%d@%d@%s", nvra,
-		    get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
+      p += snprintf(buff, sizeof(buff), "%s@%d@%ld@%s", nvra,
+		    (int)get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
 		    group);
       if (disttag || distepoch) {
 	p = stpcpy(p, "@");
@@ -1077,7 +1088,7 @@ pack_header(const URPM__Package pkg) {
       _free(group);
       _free(nvra);
     }
-    if (pkg->filesize == 0) pkg->filesize = get_filesize(pkg->h);
+    if (pkg->filesize == 0) pkg->filesize = get_int_flags(pkg->h, RPMTAG_PACKAGESIZE, HEADERGET_NOEXTENSION);
     if (pkg->requires == NULL && pkg->suggests == NULL)
       has_old_suggests = 0;
       pkg->requires = pack_list(pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION, is_not_old_suggests);
@@ -2214,7 +2225,7 @@ Pkg_filesize(pkg)
   if (pkg->filesize)
     RETVAL = pkg->filesize;
   else if (pkg->h)
-    RETVAL = get_filesize(pkg->h);
+    RETVAL = get_int_flags(pkg->h, RPMTAG_PACKAGESIZE, HEADERGET_NOEXTENSION);
   else RETVAL = 0;
   OUTPUT:
   RETVAL
