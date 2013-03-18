@@ -331,12 +331,13 @@ static unsigned mask_from_string(char *name) {
   return mask;
 }
 
+#define get_name(header, tag) get_name_flags(header, tag, 0)
 static const char *
-get_name(const Header header, rpmTag tag) {
+get_name_flags(const Header header, rpmTag tag, unsigned int flags) {
   HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
 
   val->tag = tag;
-  if(headerGet(header, val, 0)) {
+  if(headerGet(header, val, flags)) {
     if (val->t == RPM_STRING_TYPE)
       return val->p.str;
     else if(val->t == RPM_STRING_ARRAY_TYPE || val->t == RPM_I18NSTRING_TYPE)
@@ -345,13 +346,14 @@ get_name(const Header header, rpmTag tag) {
   return NULL;
 }
 
+#define get_int(header, tag) get_int_flags(header, tag, 0)
 static int
-get_int(const Header header, rpmTag tag) {
+get_int_flags(const Header header, rpmTag tag, unsigned int flags) {
   HE_t val = (HE_t)memset(alloca(sizeof(*val)), 0, sizeof(*val));
   int ret = 0;
 
   val->tag = tag;
-  if(headerGet(header, val, 0)) {
+  if(headerGet(header, val, flags)) {
     ret = (val->t == RPM_UINT32_TYPE) ? val->p.ui32p[val->ix >= 0 ? val->ix : 0] : 0;
     val->p.ui32p = _free(val->p.ui32p);
   }
