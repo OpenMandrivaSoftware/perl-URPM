@@ -2401,11 +2401,11 @@ Pkg_buildarchs(pkg)
     exclusivearchs = 2
     dirnames       = 3
     filelinktos    = 4
-    files_md5sum   = 6
-    files_owner    = 7
-    files_group    = 8
-    changelog_name = 9
-    changelog_text = 10
+    files_digest   = 5
+    files_owner    = 6
+    files_group    = 7
+    changelog_name = 8
+    changelog_text = 9
   PPCODE:
   PUTBACK;
        rpmTag tag;
@@ -2418,15 +2418,15 @@ Pkg_buildarchs(pkg)
             tag = RPMTAG_DIRNAMES; break;
        case 4:
             tag = RPMTAG_FILELINKTOS; break;
+       case 5:
+            tag = RPMTAG_FILEDIGESTS; break;
        case 6:
-            tag = RPMTAG_FILEMD5S; break;
-       case 7:
             tag = RPMTAG_FILEUSERNAME; break;
-       case 8:
+       case 7:
             tag = RPMTAG_FILEGROUPNAME; break;
-       case 9:
+       case 8:
             tag = RPMTAG_CHANGELOGNAME; break;
-       case 10:
+       case 9:
             tag = RPMTAG_CHANGELOGTEXT; break;
        default:
             tag = RPMTAG_BUILDARCHS; break;
