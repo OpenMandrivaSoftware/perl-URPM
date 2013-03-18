@@ -1994,22 +1994,14 @@ Pkg_sourcerpm(pkg)
   if (pkg->h) {
        rpmTag tag;
         switch (ix) {
-        case 1:
-        tag = RPMTAG_BUILDHOST; break;
-        case 2:
-        tag = RPMTAG_URL; break;
-        case 3:
-        tag = RPMTAG_LICENSE; break;
-        case 4:
-        tag = RPMTAG_DISTRIBUTION; break;
-        case 5:
-        tag = RPMTAG_VENDOR; break;
-        case 6:
-        tag = RPMTAG_OS; break;
-        case 7:
-        tag = RPMTAG_PAYLOADFORMAT; break;
-        default:
-        tag = RPMTAG_SOURCERPM; break;
+        case 1: tag = RPMTAG_BUILDHOST; break;
+        case 2: tag = RPMTAG_URL; break;
+        case 3: tag = RPMTAG_LICENSE; break;
+        case 4: tag = RPMTAG_DISTRIBUTION; break;
+        case 5: tag = RPMTAG_VENDOR; break;
+        case 6: tag = RPMTAG_OS; break;
+        case 7: tag = RPMTAG_PAYLOADFORMAT; break;
+        default: tag = RPMTAG_SOURCERPM; break;
         }
         mXPUSHs(newSVpv(get_name(pkg->h, tag), 0));
   }
