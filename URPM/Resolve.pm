@@ -501,14 +501,14 @@ sub unsatisfied_requires {
 	    #- check on installed system if a package which is not obsoleted is satisfying the require.
 	    my $satisfied = 0;
 	    if ($n =~ m!^/!) {
-		$db->traverse_tag_find('basenames', [ $n ], sub {
+		$db->traverse_tag('basenames', [ $n ], sub {
 		    my ($p) = @_;
 		    exists $state->{rejected}{$p->fullname} and return;
 		    $state->{cached_installed}{$n}{$p->fullname} = undef;
 		    ++$satisfied;
 		});
 	    } else {
-		$db->traverse_tag_find('providename', [ $n ], sub {
+		$db->traverse_tag('providename', [ $n ], sub {
 		    my ($p) = @_;
 		    exists $state->{rejected}{$p->fullname} and return;
 		    foreach ($p->provides) {
