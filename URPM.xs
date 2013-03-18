@@ -158,10 +158,6 @@ write_nocheck(int fd, const void *buf, size_t count) {
   return write(fd, buf, count);
 }
 
-static inline void
-unused_variable(__attribute__((unused)) const void *p) {
-}
-
 static int rpmError_callback_data;
 
 static int
@@ -3761,15 +3757,6 @@ Urpm_import_pubkey_file(db, filename)
     (void)rpmtsFree(ts);
     OUTPUT:
     RETVAL
-
-int
-Urpm_import_pubkey(...)
-  CODE:
-  unused_variable(&items);
-  croak("import_pubkey() is dead. use import_pubkey_file() instead");
-  RETVAL = 1;
-  OUTPUT:
-  RETVAL
 
 int
 Urpm_archscore(param)
