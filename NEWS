@@ -1,5 +1,6 @@
-Version 4.45 - 17 March 2013, by Per Øyvind Karlsen
+Version 4.45 - 18 March 2013, by Per Øyvind Karlsen
 
+- store RPMTAG_PACKAGESIZE in headers
 - add an alias to Pkg_files to only list doc files. This avoids pushing more 
   than 50k strings on the stack to check if texmf has a README.urpmi
 - implement use of new start & stop callbacks in rpm
