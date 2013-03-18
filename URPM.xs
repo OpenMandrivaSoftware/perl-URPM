@@ -1602,13 +1602,11 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
       callback = td->callback_inst;
       callback_type = "inst";
       break;
-    // TODO: implement in rpm
-    /*
     case RPMCALLBACK_SCRIPT_START:
     case RPMCALLBACK_SCRIPT_STOP:
       callback = td->callback_inst;
       callback_type = "script";
-      break;*/
+      break;
     case RPMCALLBACK_CPIO_ERROR:
     case RPMCALLBACK_SCRIPT_ERROR:
     case RPMCALLBACK_UNPACK_ERROR:
