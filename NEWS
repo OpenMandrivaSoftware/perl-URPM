@@ -1,3 +1,5 @@
+- fix selecting right DKMS flavor (mga#9172)
+
 Version 4.45 - 18 March 2013, by Per Øyvind Karlsen
 
 - store RPMTAG_PACKAGESIZE in headers
