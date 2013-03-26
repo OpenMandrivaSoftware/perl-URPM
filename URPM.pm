@@ -593,7 +593,7 @@ This is only used when faking a URPM::DB: $urpm can be used as-a $db
 
 =item $package->epoch()
 
-=item $package->evr()
+=item $package->EVR()
 
 =item $package->excludearchs()
 

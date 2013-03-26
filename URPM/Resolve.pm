@@ -1153,7 +1153,7 @@ sub _handle_conflicts {
 sub _unselect_package_deprecated_by {
     my ($urpm, $db, $state, $diff_provides_h, $pkg) = @_;
 
-    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, $diff_provides_h, $pkg->name, '<', $pkg->evr);
+    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, $diff_provides_h, $pkg->name, '<', $pkg->EVR);
 
     foreach ($pkg->obsoletes) {
 	my ($n, $o, $v) = property2name_op_version($_) or next;
@@ -1265,7 +1265,7 @@ sub _find_packages_obsoleting {
 	!$_->flag_skip
 	  && $_->is_arch_compat
 	    && !exists $state->{rejected}{$_->fullname}
-	      && $_->obsoletes_overlap($p->name . " == " . $p->evr)
+	      && $_->obsoletes_overlap($p->name . " == " . $p->EVR)
 		&& $_->fullname ne $p->fullname
 		  && (!strict_arch($urpm) || strict_arch_check($p, $_));
     } $urpm->packages_obsoleting($p->name);
@@ -1288,7 +1288,7 @@ sub _handle_diff_provides {
 	my @packages = find_candidate_packages($urpm, $p->name, $state->{rejected});
 	@packages = 
 	  grep { ($_->name eq $p->name ? $p->compare_pkg($_) < 0 :
-		    $_->obsoletes_overlap($p->name . " == " . $p->evr))
+		    $_->obsoletes_overlap($p->name . " == " . $p->EVR))
 		   && (!strict_arch($urpm) || strict_arch_check($p, $_));
 	     } @packages;
 
@@ -1343,7 +1343,7 @@ sub _handle_conflict {
 
     #- the existing package will conflict with the selection; check
     #- whether a newer version will be ok, else ask to remove the old.
-    my $need_deps = $p->name . " > " . $p->evr;
+    my $need_deps = $p->name . " > " . $p->EVR;
     my @packages = grep { $_->name eq $p->name } find_candidate_packages($urpm, $need_deps, $state->{rejected});
     @packages = grep { ! $_->provides_overlap($property) } @packages;
 

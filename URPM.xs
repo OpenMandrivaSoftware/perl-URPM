@@ -2024,7 +2024,7 @@ Pkg_buildtime(pkg)
   RETVAL
 
 void
-Pkg_evr(pkg)
+Pkg_EVR(pkg)
   URPM::Package pkg
   PREINIT:
   const char *evr;

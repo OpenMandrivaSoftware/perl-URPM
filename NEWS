@@ -1,5 +1,6 @@
 Version 4.46 - 26 March 2013, by Per Øyvind Karlsen
 
+- rename URPM::Package->evr to URPM::Package->EVR for API compatibility with Mageia
 - fix selecting right DKMS flavor (mga#9172)
 
 Version 4.45 - 18 March 2013, by Per Øyvind Karlsen

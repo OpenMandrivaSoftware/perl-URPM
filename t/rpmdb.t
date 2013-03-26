@@ -161,8 +161,8 @@ $db2->traverse( sub {
 	if ($pkg->name ne "gpg-pubkey") {
 
 	    my $expectedevr = $pkg->version . "-" . $pkg->release . ($pkg->distepoch ? ":" . $pkg->distepoch : "");
-	    if ($expectedevr ne $pkg->evr and "$epoch:$expectedevr" ne $pkg->evr) {
-		print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->evr . "\n";
+	    if ($expectedevr ne $pkg->EVR and "$epoch:$expectedevr" ne $pkg->EVR) {
+		print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->EVR . "\n";
 		$errors++;
 	    }
 

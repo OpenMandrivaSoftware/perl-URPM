@@ -237,8 +237,8 @@ sub syntcheck {
 	    if ($pkg->name ne "gpg-pubkey") {
 
 		my $expectedevr = $pkg->version . "-" . $pkg->release . ($pkg->distepoch ? ":" . $pkg->distepoch : "");
-		if ($expectedevr ne $pkg->evr and "$epoch:$expectedevr" ne $pkg->evr and $pkg->name ne "gpg-pubkey") {
-		    print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->evr . "\n";
+		if ($expectedevr ne $pkg->EVR and "$epoch:$expectedevr" ne $pkg->EVR and $pkg->name ne "gpg-pubkey") {
+		    print "evr[" . $pkg->fullname . "]: $expectedevr != " . $pkg->EVR . "\n";
 		    $errors++;
 		}
 
