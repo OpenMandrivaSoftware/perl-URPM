@@ -1,3 +1,7 @@
+Version 4.47 - 30 March 2013, by Per Øyvind Karlsen
+
+- add support for --force-req-updates & --no-force-req-updates (Denis Silakov)
+
 Version 4.46 - 26 March 2013, by Per Øyvind Karlsen
 
 - rename URPM::Package->evr to URPM::Package->EVR for API compatibility with Mageia
