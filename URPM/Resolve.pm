@@ -1388,7 +1388,7 @@ sub _handle_diff_provides {
 	    }
 
 	    if (@best == @unsatisfied) {
-		$urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, @best)) . " because of conflict above") if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, map { split('\|', $_) } @best)) . " because of conflict above") if $urpm->{debug_URPM};
 		push @$properties, map { +{ required => $_, promote => $n, psel => $pkg } } @best;
 	    } else {
 		if ($from_state) {
