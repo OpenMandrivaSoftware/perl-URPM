@@ -238,6 +238,7 @@ sub find_required_package {
 
     # If there are multiple possibilities, collect those that are already installed 
     my @installed = ();
+    my @installed_names = ();
 
     if (@packages > 1) {
 	#- packages should be preferred if one of their provides is referenced
@@ -250,7 +251,8 @@ sub find_required_package {
 	foreach my $pkg (@packages) {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
 	    if( !$pkg->flag_upgrade ) {
-		push @installed, "".$pkg->fullname."";
+		push @installed_names, "".$pkg->fullname."";
+		push @installed, $pkg;
 	    }
 	}
 
@@ -264,8 +266,9 @@ sub find_required_package {
 	}
 
 	if( @installed ) {
-	    $urpm->{debug_URPM}("The newest versions of the following packages are already installed: " . join(" ; ", @installed) ) if $urpm->{debug_URPM};
+	    $urpm->{debug_URPM}("The newest versions of the following packages are already installed: " . join(" ; ", @installed_names) ) if $urpm->{debug_URPM};
 	    undef @packages;
+	    push @packages, $installed[0];
 	    return \@packages;
 	}
 
