@@ -236,6 +236,9 @@ sub find_required_package {
     }
     my @packages = values %packages;
 
+    # If there are multiple possibilities, collect those that are already installed 
+    my @installed = ();
+
     if (@packages > 1) {
 	#- packages should be preferred if one of their provides is referenced
 	#- in the "requested" hash, or if the package itself is requested (or
@@ -246,6 +249,9 @@ sub find_required_package {
 	#- Puts the results in @chosen. Other are left unordered.
 	foreach my $pkg (@packages) {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
+	    if( !$pkg->flag_upgrade ) {
+		push @installed, "".$pkg->fullname."";
+	    }
 	}
 
 	if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@packages)) {
@@ -255,6 +261,12 @@ sub find_required_package {
 	if (my @kmod = _find_required_package__kmod($urpm, $db, \@packages)) {
 	    $urpm->{debug_URPM}("packageCallbackChoices: kmod packages " . join(",", map { $_->name } @kmod) . " in " . join(",", map { $_->name } @packages)) if $urpm->{debug_URPM};
 	    return \@kmod, \@kmod;
+	}
+
+	if( @installed ) {
+	    $urpm->{debug_URPM}("The newest versions of the following packages are already installed: " . join(" ; ", @installed) ) if $urpm->{debug_URPM};
+	    undef @packages;
+	    return \@packages;
 	}
 
 	_find_required_package__sort($urpm, $db, \@packages, \%provided_version);
