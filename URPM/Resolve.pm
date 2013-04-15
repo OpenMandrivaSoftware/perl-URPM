@@ -236,6 +236,10 @@ sub find_required_package {
     }
     my @packages = values %packages;
 
+    # If there are multiple possibilities, collect those that are already installed 
+    my @installed = ();
+    my @installed_names = ();
+
     if (@packages > 1) {
 	#- packages should be preferred if one of their provides is referenced
 	#- in the "requested" hash, or if the package itself is requested (or
@@ -246,6 +250,10 @@ sub find_required_package {
 	#- Puts the results in @chosen. Other are left unordered.
 	foreach my $pkg (@packages) {
 	    _set_flag_installed_and_upgrade_if_no_newer($db, $pkg);
+	    if( !$pkg->flag_upgrade ) {
+		push @installed_names, "".$pkg->fullname."";
+		push @installed, $pkg;
+	    }
 	}
 
 	if (my @kernel_source = _find_required_package__kernel_source($urpm, $db, \@packages)) {
@@ -255,6 +263,13 @@ sub find_required_package {
 	if (my @kmod = _find_required_package__kmod($urpm, $db, \@packages)) {
 	    $urpm->{debug_URPM}("packageCallbackChoices: kmod packages " . join(",", map { $_->name } @kmod) . " in " . join(",", map { $_->name } @packages)) if $urpm->{debug_URPM};
 	    return \@kmod, \@kmod;
+	}
+
+	if( @installed ) {
+	    $urpm->{debug_URPM}("The newest versions of the following packages are already installed: " . join(" ; ", @installed_names) ) if $urpm->{debug_URPM};
+	    undef @packages;
+	    push @packages, $installed[0];
+	    return \@packages;
 	}
 
 	_find_required_package__sort($urpm, $db, \@packages, \%provided_version);
@@ -473,6 +488,7 @@ sub unsatisfied_requires {
     my ($urpm, $db, $state, $pkg, %options) = @_;
     my %unsatisfied;
 
+    my $choosen_force_req_update = $urpm->{options}{'force-req-update'};
     #- all requires should be satisfied according to selected packages or installed packages,
     #- or the package itself.
   REQUIRES: foreach my $prop ($pkg->requires) {
@@ -500,70 +516,16 @@ sub unsatisfied_requires {
 
 	    #- check on installed system if a package which is not obsoleted is satisfying the require.
 	    my $satisfied = 0;
-	    if ($n =~ m!^/!) {
-		$db->traverse_tag('basenames', [ $n ], sub {
-		    my ($p) = @_;
-		    exists $state->{rejected}{$p->fullname} and return;
-		    $state->{cached_installed}{$n}{$p->fullname} = undef;
-		    ++$satisfied;
-		});
-	    } else {
-		$db->traverse_tag('providename', [ $n ], sub {
-		    my ($p) = @_;
-		    exists $state->{rejected}{$p->fullname} and return;
-		    foreach ($p->provides) {
-			if (my ($pn, $ps) = property2name_range($_)) {
-			    $ps or $state->{cached_installed}{$pn}{$p->fullname} = undef;
-			    $pn eq $n or next;
-			    URPM::ranges_overlap($ps, $s) and ++$satisfied;
-			}
+	    my @available_pkgs;
+	    if ($choosen_force_req_update) {
+		foreach ( find_candidate_packages_($urpm, $n) ) {
+		    if (is_package_installed($db, $_)) {
+			push @available_pkgs, $_;
 		    }
-		});
+		}
 	    }
-	    #- if nothing can be done, the require should be resolved.
-	    $satisfied or $unsatisfied{$prop} = undef;
-	}
-    }
-
-    keys %unsatisfied;
-}
-
-sub unsatisfied_requires_skip_installed {
-    my ($urpm, $db, $state, $pkg, %options) = @_;
-    my %unsatisfied;
-
-    #- Similar to unsatisfied_requires, but don't take installed package into account.
-    #- This will force urpmi to try to update all packages that satisfies package requires.
-  REQUIRES: foreach my $prop ($pkg->requires) {
-	my ($n, $s) = property2name_range($prop) or next;
-
-	if (defined $options{name} && $n ne $options{name}) {
-	    #- allow filtering on a given name (to speed up some search).
-	} elsif (exists $unsatisfied{$prop}) {
-	    #- avoid recomputing the same all the time.
-	} else {
-	    #- check for installed packages in the installed cache.
-	    foreach (keys %{$state->{cached_installed}{$n} || {}}) {
-		exists $state->{rejected}{$_} and next;
-		next REQUIRES;
-	    }
-
-	    #- check on the selected package if a provide is satisfying the resolution (need to do the ops).
-	    foreach (grep { exists $state->{selected}{$_} } keys %{$urpm->{provides}{$n} || {}}) {
-		my $p = $urpm->{depslist}[$_];
-		!$urpm->{provides}{$n}{$_} || $p->provides_overlap($prop, 1) and next REQUIRES;
-	    }
-
-	    #- check if the package itself provides what is necessary.
-	    $pkg->provides_overlap($prop) and next REQUIRES;
-
-	    #- check if there is any package in repositories that satisfies the require, and if no,
-	    #- then check on installed system if a package which is not obsoleted is satisfying the require.
-	    my $satisfied = 0;
-	    my @available_pkgs = find_candidate_packages_($urpm, $n);
-	    if( !@available_pkgs ) {
-	        print "FAILED!\n";
-		if ($n =~ m!^/!) {
+	    if (!@available_pkgs) {
+    		if ($n =~ m!^/!) {
 		    $db->traverse_tag('basenames', [ $n ], sub {
 			my ($p) = @_;
 			exists $state->{rejected}{$p->fullname} and return;
@@ -584,12 +546,8 @@ sub unsatisfied_requires_skip_installed {
 		    });
 		}
 	    }
-	    else {
-		print "Skipping check for $n\n";
-	    }
 	    #- if nothing can be done, the require should be resolved.
 	    $satisfied or $unsatisfied{$prop} = undef;
-
 	}
     }
 
@@ -1097,15 +1055,7 @@ sub resolve_requested__no_suggests_ {
 	    }
 
 	    #- all requires should be satisfied according to selected package, or installed packages.
-	    my @l = ();
-	    if( $options{'force_req_update'} ) {
-	        @l = unsatisfied_requires_skip_installed($urpm, $db, $state, $pkg);
-	    }
-	    else {
-		@l = unsatisfied_requires($urpm, $db, $state, $pkg);
-	    }
-
-	    if (@l) {
+	    if (my @l = unsatisfied_requires($urpm, $db, $state, $pkg)) {
 		$urpm->{debug_URPM}("requiring " . join(',', sort @l) . " for " . $pkg->fullname) if $urpm->{debug_URPM};
 		unshift @properties, map { +{ required => $_, from => $pkg,
 					  exists $dep->{promote} ? (promote => $dep->{promote}) : @{[]},
