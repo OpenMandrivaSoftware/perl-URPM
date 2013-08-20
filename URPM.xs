@@ -971,7 +971,7 @@ pack_list(const Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_ver
 	list_evr = he->p.argv;
     }
     for(he->ix = 0; he->ix < count; he->ix++) {
-      if (check_flag && !check_flag(flags[he->ix])) continue;
+      if (check_flag && (flags == NULL || !check_flag(flags[he->ix]))) continue;
       int len = print_list_entry(p, sizeof(buff)-(p-buff)-1, list[he->ix], flags ? flags[he->ix] : 0, list_evr ? list_evr[he->ix] : NULL);
       if (len < 0) continue;
       p += len;
@@ -1056,7 +1056,7 @@ get_evr(const URPM__Package pkg) {
 
       evr = strstr(pkg->provides, needle);
     }
-    if(strlen(evr) != len)
+    if(evr && strlen(evr) != len)
       backup_char((char*)&evr[len]);
     ds = rpmdsFree(ds);
   }
@@ -1278,6 +1278,7 @@ open_archive(char *filename, pid_t *pid, int *empty_archive) {
       lseek(fd, 0, SEEK_SET);
     else if (pos == 0) {
       *empty_archive = 1;
+      if (fd >= 0) close(fd);
       fd = -1;
     } else {
       /* this is an archive, create a pipe and fork for reading with uncompress defined inside */
@@ -1321,8 +1322,9 @@ open_archive(char *filename, pid_t *pid, int *empty_archive) {
 	  dup2(fdno[1], STDOUT_FILENO); close(fdno[1]);
 
 	  /* get rid of "decompression OK, trailing garbage ignored" */
-	  fd = open("/dev/null", O_WRONLY);
-	  dup2(fd, STDERR_FILENO); close(fd);
+          if ((fd = open("/dev/null", O_WRONLY)) >= 0) {
+	    dup2(fd, STDERR_FILENO); close(fd);
+          }
 
 	  execvp(unpacker[0], unpacker);
 	  exit(1);
@@ -1487,7 +1489,7 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	Header header;
 	rpmts ts;
 
-	close(d);
+	close(d); d = -1;
 	ts = rpmtsCreate();
 	rpmtsSetVSFlags(ts, _RPMVSF_NOSIGNATURES | vsflags);
 	if (fd != NULL && rpmReadPackageFile(ts, fd, filename, &header) == 0 && header) {
@@ -1514,7 +1516,7 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
       } else if (sig[0] == 0x8e && sig[1] == 0xad && sig[2] == 0xe8 && sig[3] == 0x01) {
 	FD_t fd = fdDup(d);
 
-	close(d);
+	close(d); d = -1;
 	if (fd != NULL) {
 	  _header_free(pkg);
 	  const char item[] = "Header";
@@ -1537,6 +1539,7 @@ update_header(char *filename, URPM__Package pkg, __attribute__((unused)) int kee
 	}
       }
     }
+    if (d >= 0) close(d);
   }
   return 0;
 }
@@ -1683,7 +1686,7 @@ rpmRunTransactions_callback(__attribute__((unused)) const void *h,
 	fd = fdDup(i);
 	if (fd) {
 	  fd = fdLink(fd, "persist perl-URPM");
-	  Fcntl(fd, F_SETFD, (void *)1); /* necessary to avoid forked/execed process to lock removable */
+	  (void) Fcntl(fd, F_SETFD, (void *)1); /* necessary to avoid forked/execed process to lock removable */
 	}
 	PUTBACK;
       } else if (callback == td->callback_close) {
@@ -1710,19 +1713,21 @@ bdb_log_archive(DB_ENV *dbenv, char ***list, uint32_t flags) {
 
 static bool detectXZ(const char *path) {
     struct stat sb;
+    bool ret = false;
 
     if (Stat(path, &sb) >= 0 && sb.st_size > 8) {
       unsigned char buf[8];
-      FILE *f = fopen(path, "r");
+      FD_t fd;
 
-      fread(buf, 8, 1, f);
-
-      if (buf[0] == 0xFD && buf[1] == 0x37 && buf[2] == 0x7A &&
-	  buf[3] == 0x58 && buf[4] == 0x5A)
-	return true;
+      if ((fd = Fopen(path, "r")) != NULL
+       && Fread(buf, 1, sizeof(buf), fd) == sizeof(buf)
+       && (buf[0] == 0xFD && buf[1] == 0x37 && buf[2] == 0x7A &&
+	   buf[3] == 0x58 && buf[4] == 0x5A))
+	ret = true;
+      if (fd) (void) Fclose(fd);
     }
 
-    return false;
+    return ret;
 }
 
 static FD_t xOpen(const char *path) {
@@ -2040,7 +2045,13 @@ Pkg_fullname(pkg)
   I32 gimme = GIMME_V;
   PPCODE:
   if (gimme == G_ARRAY) {
-    char *name, *version, *release, *disttag, *distepoch, *arch, *eos;
+    char *name = NULL;
+    char *version = NULL;
+    char *release = NULL;
+    char *disttag = NULL;
+    char *distepoch = NULL;
+    char *arch = NULL;
+    char *eos = NULL;
     int items = 6;
 
     if (pkg->info)
@@ -2111,11 +2122,11 @@ Pkg_compare_pkg(lpkg, rpkg)
   if (lpkg == rpkg) RETVAL = 0;
   else {
     tmp = (char*)get_evr(lpkg);
-    levr = alloca(strlen(tmp));
+    levr = alloca(strlen(tmp)+1);
     stpcpy(levr, tmp);
 
     revr = (char*)get_evr(rpkg);
-    if(levr == NULL || revr == NULL) {
+    if(revr == NULL) {
       restore_chars();
       croak("undefined package");
     }
@@ -2128,6 +2139,7 @@ Pkg_compare_pkg(lpkg, rpkg)
 	get_fullname_parts(lpkg, NULL, NULL, NULL, NULL, NULL, NULL, &larch, NULL);
       else
 	larch = (char*)get_name(lpkg->h, RPMTAG_ARCH);
+
       if (rpkg->info)
 	get_fullname_parts(rpkg, NULL, NULL, NULL, NULL, NULL, NULL, &rarch, NULL);
       else
@@ -2135,11 +2147,11 @@ Pkg_compare_pkg(lpkg, rpkg)
 
       read_config_files(0);
 
-      platform = rpmExpand(larch ? larch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+      platform = rpmExpand(larch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
       lscore = rpmPlatformScore(platform, NULL, 0);
       platform = _free(platform);
 
-      platform = rpmExpand(rarch ? rarch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+      platform = rpmExpand(rarch, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
       rscore = rpmPlatformScore(platform, NULL, 0);
       platform = _free(platform);
 
@@ -2150,7 +2162,7 @@ Pkg_compare_pkg(lpkg, rpkg)
 	   * hu ?? what is the goal of strcmp, some of arch are equivalent */
 	  compare = 0
 #endif
-	    compare = strcmp(larch, rarch);
+	    compare = (larch && rarch ? strcmp(larch, rarch) : 0);
 	else
 	  compare = -1;
       } else {
@@ -3022,7 +3034,7 @@ Trans_add(trans, pkg, ...)
   if ((pkg->flag & FLAG_ID_MASK) <= FLAG_ID_MAX && pkg->h != NULL) {
     int update = 0;
     int rc;
-    rpmRelocation  relocations = NULL;
+    rpmRelocation relocations = NULL;
     /* compability mode with older interface of add */
     if (items == 3)
       update = SvIV(ST(2));
@@ -3039,7 +3051,6 @@ Trans_add(trans, pkg, ...)
 	    AV *excludepath = (AV*)SvRV(ST(i+1));
 	    I32 j = 1 + av_len(excludepath);
 	    int relno = 0;
-	    relocations = malloc(sizeof(rpmRelocation));
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
 	      if (e != NULL && *e != NULL)
@@ -3482,13 +3493,16 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
       FD_t fd;
 
       d = open_archive(filename, &pid, &empty_archive);
-      fd = fdDup(d);
-      close(d);
+      if (d >= 0) {
+        fd = fdDup(d);
+        close(d);
+      } else
+        fd = NULL;
 
       if (empty_archive) {
 	mXPUSHs(newSViv(1 + av_len(depslist)));
 	mXPUSHs(newSViv(av_len(depslist)));
-      } else if (d >= 0 && fd) {
+      } else if (fd) {
 	rpmts ts = NULL;
 	rpmgi gi = NULL;
 	rpmRC rc = RPMRC_NOTFOUND;
@@ -3662,7 +3676,7 @@ Urpm_verify_rpm(filename, ...)
     read_config_files(0);
     ts = rpmtsCreate();
     rpmtsSetRootDir(ts, NULL);
-    rpmtsOpenDB(ts, O_RDONLY);
+    (void)rpmtsOpenDB(ts, O_RDONLY);
     RETVAL = rpmVerifySignatures(&qva, ts, fd, filename) ? 0 : 1;
     Fclose(fd);
     (void)rpmtsFree(ts);
@@ -3719,7 +3733,7 @@ Urpm_verify_signature(filename, prefix=NULL)
     read_config_files(0);
     ts = rpmtsCreate();
     rpmtsSetRootDir(ts, prefix);
-    rpmtsOpenDB(ts, O_RDONLY);
+    (void)rpmtsOpenDB(ts, O_RDONLY);
     rpmtsSetVSFlags(ts, RPMVSF_DEFAULT);
     rc = rpmReadPackageFile(ts, fd, filename, &h);
     Fclose(fd);
