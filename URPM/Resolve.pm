@@ -84,8 +84,19 @@ sub find_candidate_packages {
 	    push @packages, $pkg;
 	} elsif (my $name = property2name($_)) {
 	    my $property = $_;
-	    foreach (keys %{$urpm->{provides}{$name} || {}}) {
+	    foreach (sort {$a <=> $b} keys %{$urpm->{provides}{$name} || {}}) {
 		my $pkg = $urpm->{depslist}[$_];
+
+                # Do not select packages if newer version of it is already installed
+                my $should_select = 1;
+                $db->traverse_tag('name', [ $pkg->name ], sub {
+                    my ($p) = @_;
+                    if( URPM::rpmEVRcompare($p->evr, $pkg->evr) > 0 ) {
+                        $should_select = 0;
+                    }
+                });
+
+                $should_select or next;
 		$pkg->flag_skip and next;
 		$pkg->is_arch_compat or next;
 		$o_rejected && exists $o_rejected->{$pkg->fullname} and next;
@@ -204,6 +215,12 @@ sub find_required_package {
 	    $pkg->flag_requested > $p->flag_requested ||
 	      $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
 	} else {
+	    foreach my $altpkg ($urpm->packages_providing($pkg->name)) {
+	        if( URPM::rpmEVRcompare($altpkg->evr, $pkg->evr) > 0 ) {
+ 		    $urpm->{debug_URPM}("Skipping ".$pkg->fullname." since newer version of the package exists in repositories" ) if $urpm->{debug_URPM};
+	    	    return;
+	        }
+	    }
 	    $packages{$pkg->name} = $pkg;
 	}
     };
@@ -265,12 +282,30 @@ sub find_required_package {
 	    return \@kmod, \@kmod;
 	}
 
-	if( @installed ) {
-	    $urpm->{debug_URPM}("The newest versions of the following packages are already installed: " . join(" ; ", @installed_names) ) if $urpm->{debug_URPM};
-	    undef @packages;
-	    push @packages, $installed[0];
-	    return \@packages;
-	}
+        if( @installed ) {
+            $urpm->{debug_URPM}("The newest versions of the following packages are already installed: " . join(" ; ", @installed_names) ) if $urpm->{debug_URPM};
+            undef @packages;
+            my $configArch = $Config{archname};
+            $configArch =~ s/-.+$//;
+            $configArch =~ s/i[3456]/i5/;
+            my $freshest_pkg = pop @installed;
+            my $highest_score = _score_for_locales($urpm, $db, $freshest_pkg);
+            foreach my $installed_pkg (@installed) {
+                my $locales_score = _score_for_locales($urpm, $db, $installed_pkg);
+                if( $installed_pkg->arch eq $configArch and $freshest_pkg->arch ne $configArch ) {
+                    $freshest_pkg = $installed_pkg;
+                }
+                if( $locales_score > $highest_score ) {
+                    $freshest_pkg = $installed_pkg;
+                    $highest_score = $locales_score;
+                }
+                elsif( $locales_score == $highest_score and URPM::rpmEVRcompare($installed_pkg->evr, $freshest_pkg->evr) > 0 ) {
+                    $freshest_pkg = $installed_pkg;
+                }
+            }
+            push @packages, $freshest_pkg;
+            return \@packages;
+        }
 
 	_find_required_package__sort($urpm, $db, \@packages, \%provided_version);
     } else {
