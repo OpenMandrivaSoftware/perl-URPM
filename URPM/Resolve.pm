@@ -553,7 +553,7 @@ sub unsatisfied_requires {
 	    my $satisfied = 0;
 	    my @available_pkgs;
 	    if ($choosen_force_req_update) {
-		foreach ( find_candidate_packages_($urpm, $n) ) {
+		foreach ( find_candidate_packages($urpm, $n) ) {
 		    if (is_package_installed($db, $_)) {
 			push @available_pkgs, $_;
 		    }
