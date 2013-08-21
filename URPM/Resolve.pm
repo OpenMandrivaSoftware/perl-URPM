@@ -1202,7 +1202,7 @@ sub _handle_conflicts {
 		$keep && @$keep and return;
 		my ($p) = @_;
 		if ($p->provides_overlap($property)) {
-		    _handle_conflict($urpm, $state, $pkg, $p, $property, scalar($pkg->fullname), $properties, $diff_provides_h, $keep);
+		    _handle_conflict($urpm, $db, $state, $pkg, $p, $property, scalar($pkg->fullname), $properties, $diff_provides_h, $keep);
 		}
 	    });
 	}
