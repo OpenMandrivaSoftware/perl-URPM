@@ -91,7 +91,7 @@ sub find_candidate_packages {
                 my $should_select = 1;
                 $db->traverse_tag('name', [ $pkg->name ], sub {
                     my ($p) = @_;
-                    if( URPM::rpmEVRcompare($p->evr, $pkg->evr) > 0 ) {
+                    if( URPM::rpmEVRcompare($p->EVR, $pkg->EVR) > 0 ) {
                         $should_select = 0;
                     }
                 });
@@ -216,7 +216,7 @@ sub find_required_package {
 	      $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
 	} else {
 	    foreach my $altpkg ($urpm->packages_providing($pkg->name)) {
-	        if( URPM::rpmEVRcompare($altpkg->evr, $pkg->evr) > 0 ) {
+	        if( URPM::rpmEVRcompare($altpkg->EVR, $pkg->EVR) > 0 ) {
  		    $urpm->{debug_URPM}("Skipping ".$pkg->fullname." since newer version of the package exists in repositories" ) if $urpm->{debug_URPM};
 	    	    return;
 	        }
@@ -299,7 +299,7 @@ sub find_required_package {
                     $freshest_pkg = $installed_pkg;
                     $highest_score = $locales_score;
                 }
-                elsif( $locales_score == $highest_score and URPM::rpmEVRcompare($installed_pkg->evr, $freshest_pkg->evr) > 0 ) {
+                elsif( $locales_score == $highest_score and URPM::rpmEVRcompare($installed_pkg->EVR, $freshest_pkg->EVR) > 0 ) {
                     $freshest_pkg = $installed_pkg;
                 }
             }
