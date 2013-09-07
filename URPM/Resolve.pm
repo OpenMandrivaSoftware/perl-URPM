@@ -72,7 +72,7 @@ sub removed_or_obsoleted_packages {
 #-
 #- side-effects: none
 sub find_candidate_packages {
-    my ($urpm, $db, $id_prop, $o_rejected) = @_;
+    my ($urpm, $id_prop, $o_rejected) = @_;
     my @packages;
 
     foreach (split /\|/, $id_prop // '') {
@@ -89,7 +89,7 @@ sub find_candidate_packages {
 
                 # Do not select packages if newer version of it is already installed
                 my $should_select = 1;
-                $db->traverse_tag('name', [ $pkg->name ], sub {
+                my $db->traverse_tag('name', [ $pkg->name ], sub {
                     my ($p) = @_;
                     if( URPM::rpmEVRcompare($p->EVR, $pkg->EVR) > 0 ) {
                         $should_select = 0;
