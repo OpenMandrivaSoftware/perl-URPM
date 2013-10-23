@@ -32,10 +32,10 @@ sub set_nofatal {
 
 sub packages_providing {
     my ($urpm, $name) = @_;
-#    grep { $_ } map { $urpm->{depslist}[$_] } keys %{$urpm->{provides}{$name} || {}};
+    grep { $_ } map { $urpm->{depslist}[$_] } keys %{$urpm->{provides}{$name} || {}};
     # NOTE: there was a comment indicating that there might be side effects in dependency solving;
     # however, this patch is used in ROSA Desktop Fresh and doesn't seem to lead to any issues
-    grep { $_ } map { $urpm->{depslist}[$_] } sort { $a <=> $b } keys %{$urpm->{provides}{$name} || {}};
+#    grep { $_ } map { $urpm->{depslist}[$_] } sort { $a <=> $b } keys %{$urpm->{provides}{$name} || {}};
 }
 
 sub packages_obsoleting {
