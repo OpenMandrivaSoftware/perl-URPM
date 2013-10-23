@@ -1074,7 +1074,7 @@ pack_header(const URPM__Package pkg) {
       const char *disttag = get_name(pkg->h, RPMTAG_DISTTAG);
       const char *distepoch = get_name(pkg->h, RPMTAG_DISTEPOCH);
 
-      p += snprintf(buff, sizeof(buff), "%s@%d@%ld@%s", nvra,
+      p += snprintf(buff, sizeof(buff), "%s@%d@%lld@%s", nvra,
 		    (int)get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
 		    group);
       if (disttag || distepoch) {
