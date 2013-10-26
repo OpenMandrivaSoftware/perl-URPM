@@ -19,7 +19,7 @@ sub _find_candidate_packages {
     my ($urpm, $id_prop, $o_rejected) = @_;
 
     my %packages;
-    foreach ($urpm->find_candidate_packages($db, $id_prop, $o_rejected)) {
+    foreach ($urpm->find_candidate_packages_with_db($db, $id_prop, $o_rejected)) {
 	push @{$packages{$_->name}}, $_;
     }
     \%packages;
