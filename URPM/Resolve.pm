@@ -66,12 +66,22 @@ sub removed_or_obsoleted_packages {
     } keys %{$state->{rejected} || {}};
 }
 
+# - Same as find_candidate_packages but uses the default db
+sub find_candidate_packages {
+    my ($urpm, $id_prop, $o_rejected) = @_;
+
+    my $db = URPM::DB::open();
+
+    my @packages = find_candidate_packages_with_db($urpm, $db, $id_prop, $o_rejected);
+    @packages;
+}
+
 #- Find candidates packages from a require string (or id).
 #- Takes care of choices using the '|' separator.
 #- (nb: see also find_required_package())
 #-
 #- side-effects: none
-sub find_candidate_packages {
+sub find_candidate_packages_with_db {
     my ($urpm, $db, $id_prop, $o_rejected) = @_;
     my @packages;
 
@@ -553,7 +563,7 @@ sub unsatisfied_requires {
 	    my $satisfied = 0;
 	    my @available_pkgs;
 	    if ($choosen_force_req_update) {
-		foreach ( find_candidate_packages($urpm, $db, $n) ) {
+		foreach ( find_candidate_packages_with_db($urpm, $db, $n) ) {
 		    if (is_package_installed($db, $_)) {
 			push @available_pkgs, $_;
 		    }
@@ -644,7 +654,7 @@ sub backtrack_selected {
 
 	    #- search for all possible packages, first is to try the selection, then if it is
 	    #- impossible, backtrack the origin.
-	    my @packages = find_candidate_packages($urpm, $db, $dep->{required});
+	    my @packages = find_candidate_packages_with_db($urpm, $db, $dep->{required});
 
 	    foreach (@packages) {
 		    #- avoid dead loop.
@@ -1012,7 +1022,7 @@ sub resolve_requested__no_suggests {
 
     foreach (keys %$requested) {
 	#- keep track of requested packages by propating the flag.
-	foreach (find_candidate_packages($urpm, $db, $_)) {
+	foreach (find_candidate_packages_with_db($urpm, $db, $_)) {
 	    $_->set_flag_requested;
 	}
     }
@@ -1346,7 +1356,7 @@ sub _handle_diff_provides {
 	#- try if upgrading the package will be satisfying all the requires...
 	#- there is no need to avoid promoting epoch as the package examined is not
 	#- already installed.
-	my @packages = find_candidate_packages($urpm, $db, $p->name, $state->{rejected});
+	my @packages = find_candidate_packages_with_db($urpm, $db, $p->name, $state->{rejected});
 	@packages = 
 	  grep { ($_->name eq $p->name ? $p->compare_pkg($_) < 0 :
 		    $_->obsoletes_overlap($p->name . " == " . $p->EVR))
@@ -1366,7 +1376,7 @@ sub _handle_diff_provides {
 	    #- there exists enough packages that provided the unsatisfied requires.
 	    my @best;
 	    foreach (@unsatisfied) {
-		my @packages = find_candidate_packages($urpm, $db, $_, $state->{rejected});
+		my @packages = find_candidate_packages_with_db($urpm, $db, $_, $state->{rejected});
 		if (@packages = grep { $_->fullname ne $p->fullname } @packages) {
 		    push @best, join('|', map { $_->id } @packages);
 		}
@@ -1405,7 +1415,7 @@ sub _handle_conflict {
     #- the existing package will conflict with the selection; check
     #- whether a newer version will be ok, else ask to remove the old.
     my $need_deps = $p->name . " > " . $p->EVR;
-    my @packages = grep { $_->name eq $p->name } find_candidate_packages($urpm, $db, $need_deps, $state->{rejected});
+    my @packages = grep { $_->name eq $p->name } find_candidate_packages_with_db($urpm, $db, $need_deps, $state->{rejected});
     @packages = grep { ! $_->provides_overlap($property) } @packages;
 
     if (!@packages) {
