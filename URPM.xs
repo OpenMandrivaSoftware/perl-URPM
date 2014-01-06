@@ -2859,7 +2859,7 @@ Db_verify(prefix=NULL)
   ts = rpmtsCreate();
   rpmtsSetRootDir(ts, prefix);
   RETVAL = rpmtsVerifyDB(ts) == 0;
-  ts = rpmtsFree(ts);
+  rpmtsFree(ts);
   OUTPUT:
   RETVAL
 
@@ -3156,7 +3156,7 @@ Trans_check(trans, ...)
   if(r == 1)
     mXPUSHs(newSVpvs("error while checking dependencies"));
 
-  ps = rpmpsFree(ps);
+  rpmpsFree(ps);
 
 void
 Trans_order(trans)
@@ -3296,7 +3296,7 @@ Trans_run(trans, data, ...)
     PUTBACK;
     return_problems(ps, translate_message, raw_message || !translate_message);
     SPAGAIN;
-    ps = rpmpsFree(ps);
+    rpmpsFree(ps);
   }
   rpmtsEmpty(trans->ts);
   (void)rpmtsFree(trans->ts);
@@ -3767,7 +3767,7 @@ Urpm_verify_signature(filename, prefix=NULL)
 	break;
     }
     RETVAL = result;
-    if (h) h = headerFree(h);
+    if (h) headerFree(h);
     (void)rpmtsFree(ts);
   }
 
@@ -3796,7 +3796,7 @@ Urpm_import_pubkey_file(db, filename)
         RETVAL = 0;
     else
         RETVAL = 1;
-    pkt = _free(pkt);
+    _free(pkt);
     (void)rpmtsFree(ts);
     OUTPUT:
     RETVAL
