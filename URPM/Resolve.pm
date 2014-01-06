@@ -241,6 +241,17 @@ sub find_required_package {
     foreach (split /\|/, $id_prop) {
 	if (/^\d+$/) {
 	    my $pkg = $urpm->{depslist}[$_];
+
+		# Do not select packages if newer version of it is already installed
+		my $should_select = 1;
+	        $db->traverse_tag('name', [ $pkg->name ], sub {
+		    my ($p) = @_;
+		    if( URPM::rpmEVRcompare($p->evr, $pkg->evr) > 0 ) {
+			$should_select = 0;
+		    }
+		});
+		$should_select or next;
+
 	    $pkg->arch eq 'src' || $pkg->is_arch_compat or next;
 	    $pkg->flag_skip || $state->{rejected}{$pkg->fullname} and next;
 	    #- determine if this package is better than a possibly previously chosen package.
