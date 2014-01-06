@@ -246,7 +246,7 @@ sub find_required_package {
 		my $should_select = 1;
 	        $db->traverse_tag('name', [ $pkg->name ], sub {
 		    my ($p) = @_;
-		    if( URPM::rpmEVRcompare($p->evr, $pkg->evr) > 0 ) {
+		    if( URPM::rpmEVRcompare($p->EVR, $pkg->EVR) > 0 ) {
 			$should_select = 0;
 		    }
 		});
