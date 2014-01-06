@@ -1,3 +1,9 @@
+Version 4.48.3 - 06 January 2014, by Tomasz Paweł Gajc
+
+- new version
+- add few fixes found by coverity analizer
+- merge patches
+
 Version 4.47 - 30 March 2013, by Per Øyvind Karlsen
 
 - add support for --force-req-updates & --no-force-req-updates (Denis Silakov)
