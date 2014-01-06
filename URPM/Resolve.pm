@@ -225,10 +225,12 @@ sub find_required_package {
 	    $pkg->flag_requested > $p->flag_requested ||
 	      $pkg->flag_requested == $p->flag_requested && $pkg->compare_pkg($p) > 0 and $packages{$pkg->name} = $pkg;
 	} else {
-	    foreach my $altpkg ($urpm->packages_providing($pkg->name)) {
-	        if( URPM::rpmEVRcompare($altpkg->EVR, $pkg->EVR) > 0 ) {
- 		    $urpm->{debug_URPM}("Skipping ".$pkg->fullname." since newer version of the package exists in repositories" ) if $urpm->{debug_URPM};
-	    	    return;
+	    if ($pkg->fullname !~ /\.src$/) {
+	        foreach my $altpkg ($urpm->packages_providing($pkg->name)) {
+	            if( URPM::rpmEVRcompare($altpkg->EVR, $pkg->EVR) > 0 ) {
+ 		        $urpm->{debug_URPM}("Skipping ".$pkg->fullname." since newer version of the package exists in repositories" ) if $urpm->{debug_URPM};
+	    	        return;
+	            }
 	        }
 	    }
 	    $packages{$pkg->name} = $pkg;
