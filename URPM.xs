@@ -166,12 +166,17 @@ rpmError_callback() {
   return RPMLOG_DEFAULT;
 }
 
+static void
+pack_header(const URPM__Package pkg);
+
 static inline int _run_cb_while_traversing(SV *callback, Header header, VOL I32 flags) {
      dSP;
      URPM__Package pkg = calloc(1, sizeof(struct s_Package));
 
      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
      pkg->h = header;
+
+     pack_header(pkg);
 
      PUSHMARK(SP);
      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
