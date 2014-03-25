@@ -1916,7 +1916,10 @@ Pkg_is_arch_compat__XS(pkg)
   const char * platform;
   CODE:
   read_config_files(0);
-  if (pkg->info) {
+  if (nplatpat <= 1) {
+     RETVAL = 1;
+  }
+  else if (pkg->info) {
     char *arch;
 
     get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
@@ -1952,7 +1955,12 @@ Pkg_is_platform_compat(pkg)
   CODE:
   read_config_files(0);
   RETVAL = 0;
-  if (pkg->h && headerIsEntry(pkg->h, RPMTAG_PLATFORM)) {
+
+  if (nplatpat <= 1)
+  {
+    RETVAL = 1;
+  }
+  else if (pkg->h && headerIsEntry(pkg->h, RPMTAG_PLATFORM)) {
     val->tag = RPMTAG_PLATFORM;
     if(headerGet(pkg->h, val, 0)) {
       platform = val->p.str;
@@ -3816,12 +3824,18 @@ Urpm_archscore(param)
   CODE:
 
   read_config_files(0);
-  if (ix == 0)
-    platform = rpmExpand(param, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
-  else
-    platform = rpmExpand("%{_target_cpu}-%{_target_vendor}-", param, "%{?_gnu}", NULL);
-  RETVAL=rpmPlatformScore(platform, NULL, 0);
-  _free(platform);
+
+  if(nplatpat <= 1) {
+      RETVAL=1;
+  }
+  else {
+    if (ix == 0)
+      platform = rpmExpand(param, "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+    else
+      platform = rpmExpand("%{_target_cpu}-%{_target_vendor}-", param, "%{?_gnu}", NULL);
+    RETVAL=rpmPlatformScore(platform, NULL, 0);
+    _free(platform);
+  }
   OUTPUT:
   RETVAL
 
@@ -3830,7 +3844,12 @@ Urpm_platformscore(platform)
   const char * platform
   CODE:
   read_config_files(0);
-  RETVAL=rpmPlatformScore(platform, NULL, 0);
+  if(nplatpat <= 1) {
+    RETVAL=1;
+  }
+  else {
+    RETVAL=rpmPlatformScore(platform, NULL, 0);
+  }
   OUTPUT:
   RETVAL
 
