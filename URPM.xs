@@ -176,8 +176,6 @@ static inline int _run_cb_while_traversing(SV *callback, Header header, VOL I32 
      pkg->flag = FLAG_ID_INVALID | FLAG_NO_HEADER_FREE;
      pkg->h = header;
 
-     pack_header(pkg);
-
      PUSHMARK(SP);
      mXPUSHs(sv_setref_pv(newSVpvs(""), "URPM::Package", pkg));
      PUTBACK;
@@ -542,6 +540,23 @@ callback_list_str_xpush_old_suggests(char *s, int slen, const char *name, rpmsen
   if (s)
     push_name_only(s, slen);
   else if (is_old_suggests(flags)) {
+    char buff[BUFSIZ];
+    char *buf = buff;
+    int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
+    if (len >= 0)
+      push_name_only(buf, len);
+  }
+  PUTBACK;
+  /* returning zero indicates to continue processing */
+  return 0;
+}
+
+static int
+callback_list_str_xpush_no_old_suggests(char *s, int slen, const char *name, rpmsenseFlags flags, const char *evr, __attribute__((unused)) void *param) {
+  dSP;
+  if (s)
+    push_name_only(s, slen);
+  else if (is_not_old_suggests(flags)) {
     char buff[BUFSIZ];
     char *buf = buff;
     int len = print_list_entry(buff, sizeof(buff)-1, name, flags, evr);
@@ -2260,6 +2275,7 @@ Pkg_group(pkg)
   if (pkg->info) {
     char *s;
 
+    printf("We have info info for group %s", pkg->info);
     if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
       char *eos = strchr(s+1, '@');
       push_utf8_name_only(s+1, eos != NULL ? eos-s-1 : 0);
@@ -2324,12 +2340,20 @@ Pkg_suggests(pkg)
   SPAGAIN;
 
 void
+Pkg_requires(pkg)
+  URPM::Package pkg
+  PPCODE:
+  PUTBACK;
+  return_list_str(pkg->requires, pkg->h, RPMTAG_REQUIRENAME, RPMTAG_REQUIREFLAGS, RPMTAG_REQUIREVERSION,
+                    callback_list_str_xpush_no_old_suggests, NULL);
+  SPAGAIN;
+
+void
 Pkg_obsoletes(pkg)
   URPM::Package pkg
   ALIAS:
       conflicts = 1
       provides  = 2
-      requires  = 3
   PPCODE:
   PUTBACK;
   rpmTag tag, flags, tag_version;
@@ -2337,7 +2361,6 @@ Pkg_obsoletes(pkg)
   switch (ix) {
   case 1:  tag = RPMTAG_CONFLICTNAME; s = pkg->conflicts; flags = RPMTAG_CONFLICTFLAGS; tag_version = RPMTAG_CONFLICTVERSION; break;
   case 2:  tag = RPMTAG_PROVIDENAME;  s = pkg->provides;  flags = RPMTAG_PROVIDEFLAGS;  tag_version = RPMTAG_PROVIDEVERSION;  break;
-  case 3:  tag = RPMTAG_REQUIRENAME;  s = pkg->requires;  flags = RPMTAG_REQUIREFLAGS;  tag_version = RPMTAG_REQUIREVERSION;  break;
   default: tag = RPMTAG_OBSOLETENAME; s = pkg->obsoletes; flags = RPMTAG_OBSOLETEFLAGS; tag_version = RPMTAG_OBSOLETEVERSION; break;
   }
   return_list_str(s, pkg->h, tag, flags, tag_version, callback_list_str_xpush, NULL);
