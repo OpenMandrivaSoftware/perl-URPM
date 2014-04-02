@@ -2275,7 +2275,6 @@ Pkg_group(pkg)
   if (pkg->info) {
     char *s;
 
-    printf("We have info info for group %s", pkg->info);
     if ((s = strchr(pkg->info, '@')) != NULL && (s = strchr(s+1, '@')) != NULL && (s = strchr(s+1, '@')) != NULL) {
       char *eos = strchr(s+1, '@');
       push_utf8_name_only(s+1, eos != NULL ? eos-s-1 : 0);
