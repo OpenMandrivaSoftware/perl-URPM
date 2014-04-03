@@ -10,6 +10,12 @@ use Config;
 
 # perl_checker: require URPM
 
+# a short language name used in _score_for_locale
+use Env qw(LANG);
+my $LANGSHORT = $LANG;
+$LANGSHORT="en" if(!$LANGSHORT);
+$LANGSHORT =~ s/_.*$//;
+
 #- a few functions from MDK::Common copied here:
 sub any(&@) {
     my $f = shift;
@@ -227,7 +233,7 @@ sub find_required_package {
 	} else {
 	    if ($pkg->fullname !~ /\.src$/) {
 	        foreach my $altpkg ($urpm->packages_providing($pkg->name)) {
-	            if( URPM::rpmEVRcompare($altpkg->EVR, $pkg->EVR) > 0 ) {
+	            if( URPM::rpmEVRcompare($altpkg->EVR, $pkg->EVR) > 0 and $altpkg->arch eq $pkg->arch ) {
  		        $urpm->{debug_URPM}("Skipping ".$pkg->fullname." since newer version of the package exists in repositories" ) if $urpm->{debug_URPM};
 	    	        return;
 	            }
@@ -383,7 +389,7 @@ sub _find_required_package__sort {
 	}
     }
     # propose to select all packages for installed locales
-    my @prefered = grep { $_->[1] == 3 } @chosen_with_score;
+    my @prefered = grep { $_->[1] >= 3 } @chosen_with_score;
 
     @chosen = map { $_->[0] } @chosen_with_score;
     if (%$provided_version) {
@@ -450,7 +456,10 @@ sub _score_for_locales {
     my @r = $pkg->requires_nosense;
 
     if (my ($specific_locales) = grep { /locales-(?!en)/ } @r) {
-	if (_is_selected_or_installed($urpm, $db, $specific_locales)) {
+        if ( $specific_locales eq "locales-$LANGSHORT" ) {
+            4; # very good locale - LANG is set to it
+        }
+	elsif (_is_selected_or_installed($urpm, $db, $specific_locales)) {
 	      3; # good locale
 	  } else {
 	      0; # bad locale
@@ -648,7 +657,6 @@ sub with_any_unsatisfied_requires {
     with_db_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 0, @l) });
     with_state_unsatisfied_requires($urpm, $db, $state, $name, sub { my ($p, @l) = @_; $do->($p, 1, @l) });
 }
-
 
 # used when a require is not available
 #
