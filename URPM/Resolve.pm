@@ -1253,6 +1253,7 @@ sub _unselect_package_deprecated_by {
 	#- ignore if this package obsoletes itself
 	#- otherwise this can cause havoc if: to_install=v3, installed=v2, v3 obsoletes < v2
 	if ($n ne $pkg->name) {
+ 	    $urpm->{debug_URPM}("Will unselect ".$n." ".$o." ".$v." as obsoleted by ".$pkg->fullname) if $urpm->{debug_URPM};
 	    _unselect_package_deprecated_by_property($urpm, $db, $state, $pkg, $diff_provides_h, $n, $o, $v);
 	}
     }
