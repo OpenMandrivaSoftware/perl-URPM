@@ -969,7 +969,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 
 static char *
 pack_list(const Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, rpmsenseFlags (*check_flag)(rpmsenseFlags)) {
-  char buff[8*BUFSIZ];
+  char buff[16*BUFSIZ];
   char *p = buff;
   HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
