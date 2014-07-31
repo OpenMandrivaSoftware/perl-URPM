@@ -3440,7 +3440,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
     HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
 
     if (depslist != NULL) {
-      char buff[8*BUFSIZ];
+      char buff[16*BUFSIZ];
       char *p, *eol;
       int buff_len;
       struct s_Package pkg;
