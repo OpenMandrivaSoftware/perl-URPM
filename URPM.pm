@@ -738,6 +738,8 @@ Full requires tags
 
 Just the required package name.
 
+=item $package->suggests()
+
 =item $package->rflags()
 
 =item $package->filesize()
