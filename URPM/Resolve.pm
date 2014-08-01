@@ -1384,7 +1384,7 @@ sub _handle_diff_provides {
 
 	if (@packages) {
 	    my $best = join('|', map { $_->id } @packages);
-	    $urpm->{debug_URPM}("promoting " . $urpm->{depslist}[$best]->fullname . " because of conflict above") if $urpm->{debug_URPM};
+		$urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, split('\|', $best))) . " because of conflict above") if $urpm->{debug_URPM};
 	    push @$properties, { required => $best, promote => $n, psel => $pkg };
 	} else {
 	    #- no package have been found, we may need to remove the package examined unless
