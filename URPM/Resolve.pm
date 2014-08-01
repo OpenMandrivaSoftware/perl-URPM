@@ -22,10 +22,7 @@ sub any(&@) {
     $f->($_) and return 1 foreach @_;
     0;
 }
-sub listlength {
-    my (@l) = @_;
-    scalar @l;
-}
+
 sub uniq {
     my (@l) = @_;
     my %l;
@@ -2084,7 +2081,7 @@ sub build_transaction_set {
 	#- check that the transaction set has been correctly created.
 	#- (ie that no other package was removed)
 	if (keys(%{$state->{selected}}) == keys(%{$state->{transaction_state}{selected}}) &&
-	    listlength(packages_to_remove($state)) == listlength(packages_to_remove($state->{transaction_state}))
+	    scalar(packages_to_remove($state)) == scalar(packages_to_remove($state->{transaction_state}))
 	) {
 	    foreach (keys(%{$state->{selected}})) {
 		exists $state->{transaction_state}{selected}{$_} and next;
