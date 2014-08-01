@@ -407,16 +407,11 @@ sub _find_required_package__kernel_source {
     $choices->[0]->name =~ /^kernel-(.*source-|.*-devel-)/ or return;
 
     grep {
-	if ($_->name =~ /^kernel-.*source-stripped-(.*)/) {
-	    my $version = quotemeta($1);
-	    find {
-		$_->name =~ /-$version$/ && ($_->flag_installed || $_->flag_selected);
-	    } $urpm->packages_providing('kernel');
-	} elsif ($_->name =~ /(kernel-.*)-devel-(.*)/) {
+	if ($_->name =~ /(kernel-.*)-devel-(.*)/) {
 	    my $kernel = "$1-$2";
 	    _is_selected_or_installed($urpm, $db, $kernel);
 	} elsif ($_->name =~ /^kernel-.*source-/) {
-	    #- hopefully we don't have a media with kernel-source but not kernel-source-stripped nor kernel-.*-devel
+	    #- hopefully we don't have a media with kernel-source but not kernel-.*-devel
 	    0;
 	} else {
 	    $urpm->{debug_URPM}("unknown kernel-source package " . $_->fullname) if $urpm->{debug_URPM};
