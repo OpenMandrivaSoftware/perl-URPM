@@ -65,4 +65,7 @@ WriteMakefile(
     INC		=> $includes,
     dist	=> { COMPRESS => "xz -f", SUFFIX => ".xz" },
     realclean	=> { FILES => "t/RPMS/noarch/*" },
+# what locales-foo package to pick is now based on $LANG, so set it to 'en' in
+# order to ensure that this won't change behaviour for these regression tests
+    FULLPERL	=> "RPM_ETCRPM=\"$pwd/t/res/etcrpm\" LANG=en \$(PERL)",
 );
