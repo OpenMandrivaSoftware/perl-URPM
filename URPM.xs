@@ -2580,7 +2580,7 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
   char *provides_files
   CODE:
   if (pkg->info) {
-    char buff[8*BUFSIZ];
+    char buff[16*BUFSIZ];
     size_t size;
 
     /* info line should be the last to be written */
