@@ -731,7 +731,6 @@ sub backtrack_selected {
 	}
     }
 
-    my @properties;
     if (defined $dep->{psel}) {
 	if ($options{keep}) {
 	    backtrack_selected_psel_keep($urpm, $db, $state, $dep->{psel}, $dep->{keep});
@@ -760,7 +759,6 @@ sub backtrack_selected {
 
     #- some packages may have been removed because of selection of this one.
     #- the rejected flags should have been cleaned by disable_selected above.
-    @properties;
 }
 
 #- side-effects:
@@ -1187,7 +1185,7 @@ sub _handle_conflicts_with_selected {
 		    $urpm->{debug_URPM}($pkg->fullname . " conflicts with already selected package " . $p->fullname) if $urpm->{debug_URPM};
 		    _remove_all_rejected_from($state, $pkg);
 		    _set_rejected_from($state, $pkg, $p);
-		    unshift @$properties, backtrack_selected($urpm, $db, $state, $dep, $diff_provides, %options);
+			backtrack_selected($urpm, $db, $state, $dep, $diff_provides, %options);
 		    return;
 		}
 		_set_rejected_from($state, $p, $pkg);
