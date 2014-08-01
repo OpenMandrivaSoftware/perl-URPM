@@ -172,7 +172,7 @@ sub traverse_tag {
 		    }
 		}
 	    } else {
-		die "unknown tag";
+		die "unknown tag: $tag";
 	    }
 	}
     }
