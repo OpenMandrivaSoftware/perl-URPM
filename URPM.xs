@@ -1296,6 +1296,9 @@ open_archive(char *filename, pid_t *pid, int *empty_archive) {
     if (read(fd, &buf, sizeof(buf)) != sizeof(buf) || strncmp(buf.header, "cz[0", 4) || strncmp(buf.trailer, "0]cz", 4))
       /* this is not an archive, open it without magic, but first rewind at begin of file */
       lseek(fd, 0, SEEK_SET);
+	  rfd = fdDup(fd);
+	  close(fd);
+	  return rfd;
     else if (pos == 0) {
       *empty_archive = 1;
       if (fd >= 0) close(fd);
@@ -3901,6 +3904,7 @@ Urpm_stream2header(fp)
 	msg = (const char*)_free(msg);
         if (pkg->h)
             XPUSHs(sv_setref_pv(sv_newmortal(), "URPM::Package", (void*)pkg));
+		else free(pkg);
         Fclose(fd);
     }
 
