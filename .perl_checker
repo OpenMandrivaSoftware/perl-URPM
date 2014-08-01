@@ -4,6 +4,7 @@ Carp
 IO::Handle
 Compress::Zlib
 Encode
+ExtUtils::MakeMaker
 File::GlobMapper
 File::Path
 IO::Compress::Gzip
