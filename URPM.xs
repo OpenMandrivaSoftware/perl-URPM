@@ -3088,6 +3088,7 @@ Trans_add(trans, pkg, ...)
 	  if (SvROK(ST(i+1)) && SvTYPE(SvRV(ST(i+1))) == SVt_PVAV) {
 	    AV *excludepath = (AV*)SvRV(ST(i+1));
 	    I32 j = 1 + av_len(excludepath);
+		if (relocations) free(relocations);
 	    int relno = 0;
 	    while (--j >= 0) {
 	      SV **e = av_fetch(excludepath, j, 0);
