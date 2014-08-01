@@ -995,7 +995,7 @@ sub resolve_requested_suggests {
 	    # workaround: if you do "urpmi virtual_pkg" and one virtual_pkg is already installed,
 	    # it will ask anyway for the other choices
 	    foreach my $suggest (keys %suggests) {
-		$db->traverse_tag('providename', [ $suggest ], sub {
+		$db->traverse_tag_find('whatprovides', $suggest, sub {
 		    delete $suggests{$suggest};
 		});
 	    }
