@@ -2043,7 +2043,7 @@ Pkg_sourcerpm(pkg)
         case 7: tag = RPMTAG_PAYLOADFORMAT; break;
         default: tag = RPMTAG_SOURCERPM; break;
         }
-        mXPUSHs(newSVpv(get_name(pkg->h, tag), 0));
+        push_name(pkg, tag);
   }
 
 int
