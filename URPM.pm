@@ -702,6 +702,18 @@ Just the obsoleted package name.
 
 =item $package->pack_header()
 
+If a header is associated with the package, fill the package fields from
+the header's tags (NEVRA,
+requires/suggests/obsoletes/conflicts/provides/summary)
+then free the header
+
+It's useful when traversing the rpm DB, if one wants to keep around a
+package from the DB
+else the info would not be available outside the traverse_*() function.
+
+It's also useful when creating a URPM_Package from a package file in
+order to shrink memory footprint.
+
 =item $package->packager()
 
 =item $package->payload_format()
