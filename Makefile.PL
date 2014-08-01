@@ -18,7 +18,7 @@ defined $rpm_path or die "Can't find rpm on this system\n";
 
 sub hexversion {
 	my ($major, $minor, $micro) = (@_[0] =~ /(\d+)\.(\d+)\.?(\d+)?/);
-	return int($major<<16) + int($minor<<8) + int($micro<<0)
+	return int($major<<16) + int($minor<<8) + int($micro<<0);
 }
 
 my $version = `pkg-config --modversion rpm`;
