@@ -5,8 +5,6 @@
  * This program is free software; you can redistribute it and/or
  * modify it under the same terms as Perl itself.
  *
- * $Id$
- * 
  */
 #include "EXTERN.h"
 #include "perl.h"
@@ -152,6 +150,9 @@ typedef struct s_Package* URPM__Package;
 #define FILTER_MODE_ALL_FILES     0
 #define FILTER_MODE_DOC_FILES     1
 #define FILTER_MODE_CONF_FILES    2
+
+void setRuntimeRelocPaths(void);
+void rpmtsSetScriptFd(rpmts ts, FD_t scriptFd);
 
 static ssize_t
 write_nocheck(int fd, const void *buf, size_t count) {
@@ -379,6 +380,11 @@ get_int_flags(const Header header, rpmTag tag, unsigned int flags) {
   return ret;
 }
 
+static const char*
+get_arch(const Header header) {
+  return headerIsEntry(header, RPMTAG_SOURCERPM) ? get_name(header, RPMTAG_ARCH) : "src";
+}
+
 #define push_utf8_name(pkg, tag) { \
     const char *str = get_name(pkg->h, tag); \
     mXPUSHs((str && *str) ? newSVpv_utf8(str, 0) : newSVpvs("")); \
@@ -417,7 +423,7 @@ get_fullname_parts(const URPM__Package pkg, char **name, int *epoch, char **vers
 	if (arch != NULL) *arch = pubkey ? "" : _arch;
 	if (distepoch != NULL || disttag != NULL || release != NULL || version != NULL || name != NULL) {
 	  _disttag = _eos;
-	  for (int i = 0; i < 3 && _disttag; i++, _disttag)
+	  for (int i = 0; i < 3 && _disttag; i++)
 	    _disttag = strchr(++_disttag, '@');
 	  if (_disttag && (_distepoch = strchr(++_disttag, '@')))
 	      backup_char(_distepoch++);
@@ -505,12 +511,13 @@ ranges_overlap(rpmsenseFlags aflags, char *sa, rpmsenseFlags bflags, char *sb) {
 }
 
 static int has_old_suggests;
-rpmsenseFlags is_old_suggests(rpmsenseFlags flags) { 
+/* should we even really bother about supporting both? */
+static inline rpmsenseFlags is_old_suggests(rpmsenseFlags flags) { 
   rpmsenseFlags is = flags & RPMSENSE_MISSINGOK;
   if (is) has_old_suggests = is;
   return is;
 }
-rpmsenseFlags is_not_old_suggests(rpmsenseFlags flags) {
+static inline rpmsenseFlags is_not_old_suggests(rpmsenseFlags flags) {
   return !is_old_suggests(flags);
 }
 
@@ -712,7 +719,7 @@ xpush_simple_list_str(const Header header, rpmTag tag_name) {
 static size_t
 get_filesize(const Header h) {
   size_t size = get_int_flags(h, RPMTAG_PACKAGESIZE, HEADERGET_NOEXTENSION);
-  return size ? size : get_int(h, RPMTAG_SIGSIZE) + 440; /* 440 is the rpm header size (?) empirical, but works */
+  return size ? size : (size_t)get_int(h, RPMTAG_SIGSIZE) + 440; /* 440 is the rpm header size (?) empirical, but works */
 }
 
 static void
@@ -724,7 +731,7 @@ get_header_data(const Header header, rpmTag tag_name) {
 
   if (headerGet(header, he, 0)) {
     if (tag_name == RPMTAG_ARCH)
-      push_name_only((headerIsEntry(header, RPMTAG_SOURCERPM) ? he->p.str : "src"), 0);
+      push_name_only(get_arch(header), 0);
     else
       switch (he->t) {
 	case RPM_UINT8_TYPE:
@@ -846,15 +853,15 @@ return_list_tag(const URPM__Package pkg, const char *tag_name) {
 	push_name_only(release, 0);
 	break;
       case RPMTAG_DISTTAG:
-	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &disttag, NULL, NULL);
+	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &disttag, NULL, NULL, NULL);
 	push_name_only(disttag, 0);
 	break;
       case RPMTAG_DISTEPOCH:
-	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL);
+	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL, NULL);
 	push_name_only(distepoch, 0);
 	break;
       case RPMTAG_ARCH:
-	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &arch, NULL, NULL, NULL);
+	get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
 	push_name_only(arch, 0);
 	break;
       case RPMTAG_SUMMARY:
@@ -969,7 +976,7 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 
 static char *
 pack_list(const Header header, rpmTag tag_name, rpmTag tag_flags, rpmTag tag_version, rpmsenseFlags (*check_flag)(rpmsenseFlags)) {
-  char buff[32*BUFSIZ];
+  char buff[64*BUFSIZ];
   char *p = buff;
   HE_t he = memset(alloca(sizeof(*he)), 0, sizeof(*he));
 
@@ -1094,7 +1101,7 @@ pack_header(const URPM__Package pkg) {
       const char *disttag = get_name(pkg->h, RPMTAG_DISTTAG);
       const char *distepoch = get_name(pkg->h, RPMTAG_DISTEPOCH);
 
-      p += snprintf(buff, sizeof(buff), "%s@%d@%lld@%s", nvra,
+      p += snprintf(buff, sizeof(buff), "%s@%d@%"PRId64"@%s", nvra,
 		    (int)get_int(pkg->h, RPMTAG_EPOCH), get_int(pkg->h, RPMTAG_SIZE), 
 		    group);
       if (disttag || distepoch) {
@@ -1296,9 +1303,6 @@ open_archive(char *filename, pid_t *pid, int *empty_archive) {
     if (read(fd, &buf, sizeof(buf)) != sizeof(buf) || strncmp(buf.header, "cz[0", 4) || strncmp(buf.trailer, "0]cz", 4))
       /* this is not an archive, open it without magic, but first rewind at begin of file */
       lseek(fd, 0, SEEK_SET);
-	  rfd = fdDup(fd);
-	  close(fd);
-	  return rfd;
     else if (pos == 0) {
       *empty_archive = 1;
       if (fd >= 0) close(fd);
@@ -1843,88 +1847,51 @@ Pkg_DESTROY(pkg)
 void
 Pkg_name(pkg)
   URPM::Package pkg
-  INIT:
-  char *name;
-  PPCODE:
-  if (pkg->info) {
-    get_fullname_parts(pkg, &name, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-    push_name_only(name, 0);
-    restore_chars();
-  } else if (pkg->h)
-    push_name(pkg, RPMTAG_NAME);
+    ALIAS:
+     version  = 1
+     release  = 2
+     disttag  = 3
+     distepoch = 4
+     arch     = 5
 
-void
-Pkg_version(pkg)
-  URPM::Package pkg
-  INIT:
-  char *version;
   PPCODE:
   if (pkg->info) {
-    get_fullname_parts(pkg, NULL, NULL, &version, NULL, NULL, NULL, NULL, NULL);
-    push_name_only(version, 0);
-    restore_chars();
-  } else if (pkg->h)
-    push_name(pkg, RPMTAG_VERSION);
+    char *name, *version, *release, *disttag, *distepoch, *arch;
+    char *res;
 
-void
-Pkg_release(pkg)
-  URPM::Package pkg
-  INIT:
-  char *release;
-  PPCODE:
-  if (pkg->info) {
-    get_fullname_parts(pkg, NULL, NULL, NULL, &release, NULL, NULL, NULL, NULL);
-    push_name_only(release, 0);
-    restore_chars();
-  } else if (pkg->h)
-    push_name(pkg, RPMTAG_RELEASE);
-
-void
-Pkg_disttag(pkg)
-  URPM::Package pkg
-  INIT:
-  char *disttag;
-  PPCODE:
-  if (pkg->info) {
-    get_fullname_parts(pkg, NULL, NULL, NULL, NULL, &disttag, NULL, NULL, NULL);
-    push_name_only(disttag, 0);
-    restore_chars();
-  } else if (pkg->h)
-    push_name(pkg, RPMTAG_DISTTAG);
-
-void
-Pkg_distepoch(pkg)
-  URPM::Package pkg
-  INIT:
-  char *distepoch;
-  PPCODE:
-  if (pkg->info) {
-    get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, &distepoch, NULL, NULL);
-    push_name_only(distepoch, 0);
-    restore_chars();
-  } else if (pkg->h)
-    push_name(pkg, RPMTAG_DISTEPOCH);
-
-void
-Pkg_arch(pkg)
-  URPM::Package pkg
-  INIT:
-  char *arch;
-  PPCODE:
-  if (pkg->info) {
-    get_fullname_parts(pkg, NULL, NULL, NULL, NULL, NULL, NULL, &arch, NULL);
-    push_name_only(arch, 0);
+    get_fullname_parts(pkg, &name, NULL, &version, &release, &disttag, &distepoch, &arch, NULL);
+    switch (ix) {
+    case 1:  res = version;   break;
+    case 2:  res = release;   break;
+    case 3:  res = disttag;   break;
+    case 4:  res = distepoch; break;
+    case 5:  res = arch;      break;
+    default: res = name;      break;
+    }
+    push_name_only(res, 0);
     restore_chars();
   } else if (pkg->h) {
-    if (headerIsEntry(pkg->h, RPMTAG_ARCH)) {
-      if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
-	push_name(pkg, RPMTAG_ARCH);
-      } else
-	mXPUSHs(newSVpvs("src"));
+    const char *str;
+
+    switch (ix) {
+    case 1:  str = get_name(pkg->h, RPMTAG_VERSION); break;
+    case 2:  str = get_name(pkg->h, RPMTAG_RELEASE); break;
+    case 3:  str = get_name(pkg->h, RPMTAG_DISTTAG); break;
+    case 4:  str = get_name(pkg->h, RPMTAG_DISTEPOCH); break;
+	     /* gpg-pubkey packages has no arch tag */
+    case 5:  if (headerIsEntry(pkg->h, RPMTAG_ARCH)) {
+	       str = get_arch(pkg->h);
+	       break;
+	     } else {
+		mXPUSHs(newSVpvs(""));
+	        return;
+	     }
+    default: str = get_name(pkg->h, RPMTAG_NAME);
     }
-    else
-      /* gpg-pubkey packages has no arch tag */
-      mXPUSHs(newSVpvs(""));
+    push_name_only(str, 0);
+    /* if "src", a constant has been returned, which cannot be free()'ed */
+    if (str && strncmp(str, "src", sizeof("src")-1))
+      _free(str);
   }
 
 int
@@ -1951,10 +1918,8 @@ Pkg_is_arch_compat__XS(pkg)
     restore_chars();
   } else if (pkg->h) {
     if (headerIsEntry(pkg->h, RPMTAG_SOURCERPM)) {
-      const char *arch = get_name(pkg->h, RPMTAG_ARCH);
-      platform = rpmExpand(arch ? arch : "", "-%{_target_vendor}-%{_target_os}%{?_gnu}", NULL);
+      const char *platform = get_name(pkg->h, RPMTAG_PLATFORM);
       RETVAL = rpmPlatformScore(platform, NULL, 0);
-      _free(arch);
       _free(platform);
     } else
       RETVAL = 1;
@@ -2222,6 +2187,8 @@ Pkg_compare(pkg, evr)
   CODE:
     int i;
 
+  if (!strncmp(evr, "URPM::Package=", 14))
+      croak("compare() must not be called with a package reference as argument; use compare_pkg() instead");
     /* This will remove fields from _evr (from the right) that evr is missing
      * so that ie. if only version is given as an argument, it won't compare
      * release etc.
@@ -2583,7 +2550,7 @@ Pkg_build_info(pkg, fileno, provides_files=NULL)
   char *provides_files
   CODE:
   if (pkg->info) {
-    char buff[32*BUFSIZ];
+    char buff[64*BUFSIZ];
     size_t size;
 
     /* info line should be the last to be written */
@@ -2897,7 +2864,7 @@ Db_verify(prefix=NULL)
   ts = rpmtsCreate();
   rpmtsSetRootDir(ts, prefix);
   RETVAL = rpmtsVerifyDB(ts) == 0;
-  rpmtsFree(ts);
+  (void)rpmtsFree(ts);
   OUTPUT:
   RETVAL
 
@@ -2921,7 +2888,7 @@ Db_archive(db, remove=0, data=0, log=0, abs=1)
   int ret;
   DB_ENV *dbenv;
   PPCODE:
-  dbenv  = rpmtsGetRdb(db->ts)->db_dbenv;
+  dbenv = rpmtsGetRdb(db->ts)->db_dbenv;
 
   if(remove)
     flags |= DB_ARCH_REMOVE;
@@ -3024,8 +2991,12 @@ Db_traverse_tag_find(db,tag,name,callback)
       int count = _run_cb_while_traversing(callback, header, 0);
 
       SPAGAIN;
-      if (count == 1 && POPi) {
-	found = 1;
+      if (count == 1) {
+	SV* ret = POPs;
+	found = SvTRUE(ret);
+	PUTBACK;
+      }
+      if (found) {
 	break;
       }
   }
@@ -3195,14 +3166,25 @@ Trans_check(trans, ...)
   if(r == 1)
     mXPUSHs(newSVpvs("error while checking dependencies"));
 
-  rpmpsFree(ps);
+  (void)rpmpsFree(ps);
 
 void
-Trans_order(trans)
+Trans_order(trans, ...)
   URPM::Transaction trans
   PREINIT:
+  rpmdepFlags depFlags = RPMDEPS_FLAG_NONE;
   I32 gimme = GIMME_V;
+  int i;
   PPCODE:
+  for (i = 1; i < items-1; i+=2) {
+    STRLEN len;
+    char *s = SvPV(ST(i), len);
+
+    if (len == 8 && !memcmp(s, "deploops", 8)) {
+      if (SvIV(ST(i+1))) depFlags |= (rpmdepFlags) (rpmtsDFlags(trans->ts) | RPMDEPS_FLAG_DEPLOOPS);
+    }
+  }
+  rpmtsSetDFlags(trans->ts, depFlags);
   if (rpmtsOrder(trans->ts) == 0) {
     if (gimme == G_SCALAR)
       mXPUSHs(newSViv(1));
@@ -3335,7 +3317,7 @@ Trans_run(trans, data, ...)
     PUTBACK;
     return_problems(ps, translate_message, raw_message || !translate_message);
     SPAGAIN;
-    rpmpsFree(ps);
+    (void)rpmpsFree(ps);
   }
   rpmtsEmpty(trans->ts);
   (void)rpmtsFree(trans->ts);
@@ -3343,7 +3325,7 @@ Trans_run(trans, data, ...)
 MODULE = URPM            PACKAGE = URPM                PREFIX = Urpm_
 
 BOOT:
-(void) read_config_files(0);
+setRuntimeRelocPaths();
 Perl_call_atexit(PERL_GET_CONTEXT, (ATEXIT_t)urpm_perl_atexit,0);
 rpmdbCheckSignals();
 
@@ -3354,17 +3336,12 @@ Urpm_bind_rpm_textdomain_codeset()
   bind_textdomain_codeset("rpm", "UTF-8");
 
 int
-Urpm_read_config_files()
+Urpm_read_config_files(reread=1)
+  int reread
   CODE:
-  RETVAL = (read_config_files(1) == 0); /* force re-read of configuration files */
+  RETVAL = (read_config_files(reread) == 0); /* force re-read of configuration files */
   OUTPUT:
   RETVAL
-
-void
-Urpm_list_rpm_tag(urpm=Nullsv)
-   SV *urpm
-   CODE:
-   croak("list_rpm_tag() has been removed from perl-URPM. please report if you need it back");
 
 int
 rpmvercmp(one, two)
@@ -3444,7 +3421,7 @@ Urpm_parse_synthesis__XS(urpm, filename, ...)
     HV *obsoletes = fobsoletes && SvROK(*fobsoletes) && SvTYPE(SvRV(*fobsoletes)) == SVt_PVHV ? (HV*)SvRV(*fobsoletes) : NULL;
 
     if (depslist != NULL) {
-      char buff[32*BUFSIZ];
+      char buff[64*BUFSIZ];
       char *p, *eol;
       int buff_len;
       struct s_Package pkg;
@@ -3535,8 +3512,10 @@ Urpm_parse_hdlist__XS(urpm, filename, ...)
       if (d >= 0) {
         fd = fdDup(d);
         close(d);
-      } else
+      } else {
         fd = NULL;
+        errno = EBADF;
+      }
 
       if (empty_archive) {
 	mXPUSHs(newSViv(1 + av_len(depslist)));
@@ -3806,7 +3785,7 @@ Urpm_verify_signature(filename, prefix=NULL)
 	break;
     }
     RETVAL = result;
-    if (h) headerFree(h);
+    if (h) (void)headerFree(h);
     (void)rpmtsFree(ts);
   }
 
@@ -3905,7 +3884,7 @@ Urpm_stream2header(fp)
 	msg = (const char*)_free(msg);
         if (pkg->h)
             XPUSHs(sv_setref_pv(sv_newmortal(), "URPM::Package", (void*)pkg));
-		else free(pkg);
+        else free(pkg);
         Fclose(fd);
     }
 

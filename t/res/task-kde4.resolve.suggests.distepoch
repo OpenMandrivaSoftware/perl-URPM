@@ -1700,9 +1700,9 @@ kblackbox-4.7.97-1-mdv2012.0.x86_64
 ktron-4.7.97-1-mdv2012.0.x86_64
 kbreakout-4.7.97-1-mdv2012.0.x86_64
 konquest-4.7.97-1-mdv2012.0.x86_64
-bomber-4.7.97-1-mdv2012.0.x86_64
-kbattleship-4.7.97-1-mdv2012.0.x86_64
 kdiamond-4.7.97-1-mdv2012.0.x86_64
+kbattleship-4.7.97-1-mdv2012.0.x86_64
+bomber-4.7.97-1-mdv2012.0.x86_64
 palapeli-4.7.97-1-mdv2012.0.x86_64
 lib64pala0-4.7.97-1-mdv2012.0.x86_64
 kolf-4.7.97-1-mdv2012.0.x86_64
@@ -1858,8 +1858,8 @@ plasma-applet-bball-4.7.97-1-mdv2012.0.x86_64
 plasma-applet-charselect-4.7.97-1-mdv2012.0.x86_64
 plasma-applet-news-4.7.97-1-mdv2012.0.x86_64
 plasma-runner-datetime-4.7.97-1-mdv2012.0.x86_64
-plasma-applet-fuzzy-clock-4.7.97-1-mdv2012.0.x86_64
 plasma-runner-charrunner-4.7.97-1-mdv2012.0.x86_64
+plasma-applet-fuzzy-clock-4.7.97-1-mdv2012.0.x86_64
 plasma-applet-timer-4.7.97-1-mdv2012.0.x86_64
 plasma-applet-bookmarks-4.7.97-1-mdv2012.0.x86_64
 kmail-4.7.97-1-mdv2012.0.x86_64

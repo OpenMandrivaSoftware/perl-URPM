@@ -1,7 +1,5 @@
 package URPM;
 
-# $Id$
-
 use strict;
 use warnings;
 

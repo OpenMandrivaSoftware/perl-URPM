@@ -5,7 +5,6 @@ typemap
 URPM.xs
 URPM.pm
 URPM/Build.pm
-URPM/Query.pm
 URPM/Resolve.pm
 URPM/Signature.pm
 t/00prepare.t
@@ -22,5 +21,16 @@ t/synthesis.t
 t/test-rpm.spec
 t/res/rpmdb_btreebig/Packages
 t/res/rpmdb_hashlittle/Packages
+t/res/basesystem-minimal.resolve.nosuggests
+t/res/basesystem-minimal.resolve.nosuggests.distepoch
+t/res/basesystem.resolve.suggests
+t/res/basesystem.resolve.suggests.distepoch
+t/res/task-kde4.resolve.suggests
+t/res/task-kde4.resolve.suggests.distepoch
+t/res/synthesis.hdlist_distepoch.xz
+t/res/synthesis.hdlist_src.xz
+t/res/synthesis.hdlist.xz
+t/res/etcrpm/platform
 NEWS
 META.yml                                 Module meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

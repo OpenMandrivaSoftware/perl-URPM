@@ -1,10 +1,8 @@
 #!/usr/bin/perl
 
-# $Id$
-
 use strict;
 use warnings;
-use Test::More tests => 39;
+use Test::More tests => 51;
 use MDV::Packdrakeng;
 use URPM;
 use URPM::Build;
@@ -20,13 +18,16 @@ ok($a);
 
 END { system('rm -rf hdlist.cz empty_hdlist.cz headers tmp') }
 
-my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], keep_all_tags => 1);
+my ($start, $end) = $a->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1-mdk2013.0.noarch.rpm" ], keep_all_tags => 1);
 ok(@{$a->{depslist}} == 1);
 my $pkg = $a->{depslist}[0];
 ok($pkg);
-is($pkg->get_tag(1000), 'test-rpm', 'name');
-is($pkg->get_tag(1001), '1.0', 'version');
-is($pkg->get_tag(1002), '1mdk', 'release');
+is($pkg->get_tag('name'), 'test-rpm', 'name');
+is($pkg->get_tag('version'), '1.0', 'version');
+is($pkg->get_tag('release'), '1', 'release');
+is($pkg->get_tag('disttag'), 'mdk', 'disttag');
+is($pkg->get_tag('distepoch'), '2013.0', 'distepoch');
+is($pkg->get_tag('arch'), 'noarch', 'noarch');
 
 mkdir 'headers';
 system('touch headers/empty');
@@ -60,14 +61,18 @@ is("$start $end", "0 0", 'parse_hdlist');
 ok(@{$b->{depslist}} == 1);
 $pkg = $b->{depslist}[0];
 ok($pkg);
-is($pkg->get_tag(1000), 'test-rpm', 'name');
-is($pkg->get_tag(1001), '1.0', 'version');
-is($pkg->get_tag(1002), '1mdk', 'release');
-is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch",
+is($pkg->get_tag('name'), 'test-rpm', 'name');
+is($pkg->get_tag('version'), '1.0', 'version');
+is($pkg->get_tag('release'), '1', 'release');
+is($pkg->get_tag('disttag'), 'mdk', 'disttag');
+is($pkg->get_tag('distepoch'), '2013.0', 'distepoch');
+is($pkg->get_tag('arch'), 'noarch', 'arch');
+my $NVRA = URPM::expand("%{___NVRA}");
+is($pkg->queryformat($NVRA), "test-rpm-1.0-1-mdk2013.0.noarch",
     q(get headers from hdlist));
 ok($pkg->is_platform_compat() > 0, "can evaluate platform score");
 
-my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm" ], 
+my $headers = eval { [ $b->parse_rpms_build_headers(rpms => [ "tmp/RPMS/noarch/test-rpm-1.0-1-mdk2013.0.noarch.rpm" ], 
 						    dir => 'headers') ] };
 is($@, '', 'parse_rpms_build_headers');
 is(int @$headers, 1, 'parse_rpms_build_headers');
@@ -79,20 +84,26 @@ is("$start $end", "2 2", 'parse_headers');
 
 
 # Version comparison
-ok(URPM::rpmEVRcompare("1-1mdk",     "1-1mdk") ==  0, "Same value = 0");
-ok(URPM::rpmEVRcompare("0:1-1mdk",   "1-1mdk") ==  0, "Same value, epoch 0 on left = 0");
-ok(URPM::rpmEVRcompare("1-1mdk",     "1-2mdk") == -1, "Right value win = -1");
-ok(URPM::rpmEVRcompare("1-2mdk",     "1-1mdk") ==  1, "Left value win = 1");
-ok(URPM::rpmEVRcompare("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
+ok(URPM::rpmEVRcompare("1-1",     "1-1") ==  0, "Same value = 0");
+ok(URPM::rpmEVRcompare("0:1-1",   "1-1") ==  0, "Same value, epoch 0 on left = 0");
+ok(URPM::rpmEVRcompare("0:1-1:2013.0",   "1-1:2013.0") ==  0, "Same value, epoch 0 on left = 0, distepoch = 2013.0");
+ok(URPM::rpmEVRcompare("0:1-1:2013.0",   "1-1:2013.1") ==  -1, "Right value win, epoch 0 on left = 0, distepoch = 2013.0 vs 2013.1");
+ok(URPM::rpmEVRcompare("0:1-1:2013.1",   "1-1:2013.0") ==  1, "Left value win, epoch 0 on left = 0, distepoch = 2013.1 vs 2013.0");
+ok(URPM::rpmEVRcompare("1-1",     "1-2") == -1, "Right value win = -1");
+ok(URPM::rpmEVRcompare("1-2",     "1-1") ==  1, "Left value win = 1");
+ok(URPM::rpmEVRcompare("1:1-1", "2:1-1") == -1, "epoch 1 vs 2 = -1");
 
 {
     open(my $hdfh, "zcat hdlist.cz 2>/dev/null |") or die $!;
     my $pkg = URPM::stream2header($hdfh);
     ok(defined $pkg, "Reading a header works");
-    is($pkg->get_tag(1000), 'test-rpm');
-    is($pkg->get_tag(1001), '1.0');
-    is($pkg->get_tag(1002), '1mdk');
-    is($pkg->queryformat("%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}"), "test-rpm-1.0-1mdk.noarch");
+    is($pkg->get_tag('name'), 'test-rpm');
+    is($pkg->get_tag('version'), '1.0');
+    is($pkg->get_tag('release'), '1');
+    is($pkg->get_tag('disttag'), 'mdk', 'disttag');
+    is($pkg->get_tag('distepoch'), '2013.0', 'distepoch');
+    is($pkg->get_tag('arch'), 'noarch', 'arch');
+    is($pkg->queryformat($NVRA), "test-rpm-1.0-1-mdk2013.0.noarch");
     ok($pkg->is_arch_compat(), "Arch compat works");
     close $hdfh;
 }
@@ -100,7 +111,7 @@ ok(URPM::rpmEVRcompare("1:1-1mdk", "2:1-1mdk") == -1, "epoch 1 vs 2 = -1");
 {
     my $pkg = URPM::spec2srcheader("test-rpm.spec");
     ok(defined $pkg, "Parsing a spec works");
-    is($pkg->get_tag(1000), 'test-rpm', 'parsed correctly');
+    is($pkg->get_tag('name'), 'test-rpm', 'parsed correctly');
     $pkg = URPM::spec2srcheader("doesnotexist.spec");
     ok(!defined $pkg, "non-existent spec");
     open my $f, '>', 'bad.spec' or die "Can't write bad.spec: $!\n";

@@ -1,8 +1,103 @@
-Version 4.48.3 - 06 January 2014, by Tomasz Paweł Gajc
+Version 4.65 -  3 January 2015, by Per Øyvind Karlsen
 
-- new version
-- add few fixes found by coverity analizer
-- merge patches
+- postpone loading of rpm configuration files, invoke rather first in
+  constructor in order to allow for macros to be predefined
+  
+Version 4.64 - 22 December 2014, by Per Øyvind Karlsen
+
+- disable resolve test for now, as it depends on former hash map key layout
+  and I'm no perl monk...
+
+Version 4.63 - 13 December 2014, by Per Øyvind Karlsen
+
+- add a missing PUTBACK in traverse_tag_find()
+- handle non numeric returns for traverse_tag_find callback (warning fix)
+- fix minor memleak
+
+Version 4.62 - 15 June 2014, by Per Øyvind Karlsen
+
+- improve check introduced in 4.60 that verified that the package's EVR
+  compared was of the same name to also check that the package is actually
+  installed as well
+
+Version 4.61 - 30 May 2014, by Per Øyvind Karlsen
+
+- remove accidentally recommitted code section that really fscked up
+  force-req-update functionality
+
+Version 4.60 - 20 May 2014, by Per Øyvind Karlsen
+
+- fix check in repositories for newer package to make sure it is the same
+  package before skipping it, otherwise other packages providing the same 
+  with higher EVR will be considered as newer version of same package
+- compare(): croak if used on URPM::Package object (mga#12766)
+- enhanced doc
+- kill support for kernel-*source-stripped
+
+Version 4.59 -  2 May 2014, by Per Øyvind Karlsen
+
+- $trans->order: add support for "deploops" option
+- fix 64k size limit on provides size that break installing 32 bit kernel for
+  drakx-installer-binaries
+
+Version 4.58 -  2 May 2014, by Per Øyvind Karlsen
+
+- fix wrong tag name (s/whatprovides/providename)
+
+Version 4.57 -  1 May 2014, by Per Øyvind Karlsen
+
+- fix segfault caused by using strncmp on a NULL ptr
+
+Version 4.56 -  1 May 2014, by Per Øyvind Karlsen
+
+- further bump threshold for detecting looping forever
+- drop URPM::Query (broken for years)
+- kill functions unimplemented for years
+- enhanced doc
+
+Version 4.55 - 30 April 2014, by Per Øyvind Karlsen
+
+- take locale into account when choosing the best package from alternatives
+  (Denis Silakov)
+- dont do arch checks if no platforms are set up (Crispin Boylan)
+- fix the population of reqs vs suggests when doing a traverse
+  (this stops urpme from using suggests as hard requires, Crispin Boylan)
+
+Version 4.54 - 20 April 2014, by Per Øyvind Karlsen
+
+- fix crash caused by attempt to free a string constant
+- fix a warning in debug mode
+
+Version 4.53 - 5 December 2013, by Per Øyvind Karlsen
+
+- "implement" create_transaction() in --env case (rule of least surprise)
+- coverity fixes
+- adapt to perl-5.18 random hash keys ordering
+  now find_required_package() always sort matching packages by their names
+  before sorting them by arch and score
+
+Version 4.52 -  4 December 2013, by Per Øyvind Karlsen
+
+- fix ugly bug where incorrect tag is returned when trying to get arch, disttag
+  or distepoch from synthesis
+- add support for overriding %_etcrpm, %_usrlibrpm & %_localedir at runtime
+  through environment variables ($RPM_ETCRPM, $ETC_USRLIBRPM & $RPM_LOCALEDIR)
+
+Version 4.51 -  2 December 2013, by Per Øyvind Karlsen
+ 
+- allow old src.rpms to be installed (Denis Silakov)
+
+Version 4.50 - 12 September 2013, by Per Øyvind Karlsen
+
+- merge some (poorly documented:() rosa fixes and enhancements
+
+Version 4.49 - 30 July 2013, by Per Øyvind Karlsen
+
+- merge code fixes from jbj
+
+Version 4.48 - 28 May 2013, by Per Øyvind Karlsen
+
+- get rid of last usage of deprecated find_candidate_packages_()
 
 Version 4.47 - 30 March 2013, by Per Øyvind Karlsen
 

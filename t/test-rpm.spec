@@ -1,6 +1,3 @@
-# prevent distepoch & disttag to be added and appended to package filename
-%undefine distepoch
-%undefine disttag
 %undefine _build_pkgcheck_set
 %undefine _build_pkgcheck_srpm
 
@@ -8,7 +5,9 @@ Summary: test rpm for perl-URPM test suite
 BuildArch: noarch
 Name: test-rpm
 Version: 1.0
-Release: 1mdk
+Release: 1
+DistEpoch: 2013.0
+DistTag: mdk
 License: GPL
 Group: Application/Development
 BuildRoot: %{_tmppath}/%{name}-root

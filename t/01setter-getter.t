@@ -11,7 +11,7 @@ chdir 't' if -d 't';
 my $u = URPM->new;
 ok($u, 'URPM');
 
-$u->parse_rpm("tmp/RPMS/noarch/test-rpm-1.0-1mdk.noarch.rpm");
+$u->parse_rpm("tmp/RPMS/noarch/test-rpm-1.0-1-mdk2013.0.noarch.rpm");
 ok(@{$u->{depslist}} == 1, 'depslist');
 
 my $pkg = $u->{depslist}[0];

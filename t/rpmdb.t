@@ -2,7 +2,7 @@
 
 use strict ;
 use warnings ;
-use Test::More tests => 16;
+use Test::More tests => 17;
 use File::Copy qw (copy);
 use File::Path qw (make_path remove_tree);
 use Cwd qw (abs_path);
@@ -89,7 +89,10 @@ $db->traverse_tag("name", ["null-dummy"], sub {
 my $db2 = URPM::DB::open();
 
 my $errors = 0;
+my $grouperrors = 0;
+my $pkgs = 0;
 $db2->traverse( sub {
+	$pkgs++;
 	my ($pkg) = @_;
 	my @fullname = $pkg->fullname;
 	my $epoch = $pkg->epoch;
@@ -131,7 +134,7 @@ $db2->traverse( sub {
 
 	if (!$pkg->group) {
 	    print $pkg->fullname . ": no group\n";
-	    $errors++;
+	    $grouperrors++;
 	}
 	if (!$pkg->filesize) {
 	    print $pkg->fullname . ": no filesize\n";
@@ -175,3 +178,4 @@ $db2->traverse( sub {
     });
 
 is($errors, 0, "tags check");
+ok($grouperrors < $pkgs, "not every package lacks group tag");
