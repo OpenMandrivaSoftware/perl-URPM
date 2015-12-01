@@ -1603,7 +1603,29 @@ sub _handle_diff_provides {
 	}
 
 	if (@packages) {
-	    my $best = join('|', map { $_->id } @packages);
+	    # packages can contain several versions of the same package, we want to leave only the freshest one
+	    my %pkg_versions = ();
+	    foreach my $p (@packages) {
+	        if ($pkg_versions{$p->name}) {
+	            if (URPM::rpmEVRcompare($pkg_versions{$p->name}, $p->EVR) < 0) {
+	                $pkg_versions{$p->name} = $p->EVR;
+	            }
+	        }
+	        else {
+	            $pkg_versions{$p->name} = $p->EVR;
+	        }
+	    }
+	    my @latest_pkgs = ();
+	    foreach my $p (@packages) {
+	        if ($p->EVR eq $pkg_versions{$p->name}) {
+	            push @latest_pkgs, $p;
+	        }
+	        else {
+	            $urpm->{debug_URPM}("skipping ".$p->fullname." in favor of version ".$pkg_versions{$p->name}." of the same package") if $urpm->{debug_URPM};
+	        }
+	    }
+
+	    my $best = join('|', map { $_->id } @latest_pkgs);
 	    $urpm->{debug_URPM}("promoting " . join(' ', _ids_to_fullnames($urpm, split('\|', $best))) . " because of conflict above") if $urpm->{debug_URPM};
 	    push @$properties, { required => $best, promote => $n, psel => $pkg };
 	} else {
