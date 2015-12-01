@@ -19,4 +19,4 @@ no_index:
     - inc
 requires:
   MDV::Packdrakeng: 1.00
-version: 4.65
+version: 4.65.1
