@@ -963,6 +963,8 @@ return_problems(rpmps ps, int translate_message, int raw_message) {
 	  sv = newSVpvf("requires@%s@%s", pkgNEVR, altNEVR+2); break;
 	case RPMPROB_CONFLICT:
 	  sv = newSVpvf("conflicts@%s@%s", pkgNEVR, altNEVR+2); break;
+	case RPMPROB_OBSOLETES:
+	  sv = newSVpvf("obsoletes@%s@%s", pkgNEVR, altNEVR+2); break;
 	default:
 	  sv = newSVpvf("unknown@%s", pkgNEVR); break;
 	}

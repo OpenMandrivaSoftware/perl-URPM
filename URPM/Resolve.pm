@@ -18,7 +18,7 @@ URPM::Resolve - Resolve routines for URPM/urpmi
 
 =over
 
-=cut 
+=cut
 
 # a short language name used in _score_for_locale
 use Env qw(LANG);
@@ -2062,14 +2062,17 @@ sub compute_flags {
 
     #- now search packages which fullname match given regexps
     if (@regex) {
-	my $large_re_s = join("|", map { "(?:$_)" } @regex);
-	my $re = qr/$large_re_s/;
+	eval {
+		my $large_re_s = join("|", map { "(?:$_)" } @regex);
+		my $re = qr/$large_re_s/;
 
-	foreach my $pkg (@{$urpm->{depslist}}) {
-	    if ($pkg->fullname =~ $re) {
-		compute_flag($urpm, $pkg, %options);
-	    }
-	}
+		foreach my $pkg (@{$urpm->{depslist}}) {
+		    if ($pkg->fullname =~ $re) {
+			compute_flag($urpm, $pkg, %options);
+		    }
+		}
+	};
+	$urpm->{error}("reg ex problem: " . $@) if $@;
     }
 }
 
